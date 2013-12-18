@@ -13,8 +13,16 @@ from robot.utils import ArgumentParser
 
 NUMBER_OF_PARALLEL_RUNNERS = max(multiprocessing.cpu_count(), 2)
 
+
 def execute_and_wait(args):
     datasources, outs_dir, options, suite_name = args
+    print 'EXECUTING PARALLEL SUITE %s' % suite_name
+    rc = run(*datasources, **_options_for_executor(options, outs_dir, suite_name))
+    if rc != 0:
+        print 'EXECUTION FAILED IN %s' % suite_name
+
+
+def _options_for_executor(options, outs_dir, suite_name):
     options = options.copy()
     options['log'] = 'NONE'
     options['report'] = 'NONE'
@@ -23,10 +31,7 @@ def execute_and_wait(args):
     options['output'] = '%s.xml' % suite_name
     options['stdout'] = StringIO()
     options['stderr'] = StringIO()
-    print 'EXECUTING PARALLEL SUITE %s' % suite_name
-    rc = run(*datasources, **options)
-    if rc != 0:
-        print 'EXECUTION FAILED IN %s' % suite_name
+    return options
 
 class GatherSuiteNames(ResultVisitor):
 
@@ -63,14 +68,21 @@ def solve_suite_names(outs_dir, datasources, options):
     options['log'] = 'NONE'
     options['report'] = 'NONE'
     options['dryrun'] = True
+    options['output'] = 'suite_names.xml'
     options['outputdir'] = outs_dir
     options['stdout'] = StringIO()
     options['stderr'] = StringIO()
     run(*datasources, **options)
-    output = os.path.join(outs_dir, 'output.xml')
+    output = os.path.join(outs_dir, 'suite_names.xml')
     suite_names = get_suite_names(output)
-    os.remove(output)
+    if os.path.isfile(output):
+        os.remove(output)
     return suite_names
+
+def _options_for_rebot(options, datasources):
+    rebot_options = options.copy()
+    rebot_options['name'] = ', '.join(datasources)
+    return rebot_options
 
 if __name__ == '__main__':
     outs_dir = mkdtemp()
@@ -83,9 +95,7 @@ if __name__ == '__main__':
             process_pool.map_async(execute_and_wait, [(datasources, outs_dir, options, suite) for suite in suite_names])
             process_pool.close()
             process_pool.join()
-        rebot_options = options.copy()
-        rebot_options['name'] = ', '.join(datasources)
-        rc = rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))), **rebot_options)
+        sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))), **_options_for_rebot(options, datasources)))
     finally:
         shutil.rmtree(outs_dir)
 
