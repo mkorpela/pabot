@@ -23,6 +23,7 @@ def execute_and_wait(args):
 def execute_and_wait_with(args):
         datasources, outs_dir, options, suite_name, command = args
         cmd = command + _options_for_java_executor(options, outs_dir, suite_name) + datasources
+        cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
         print 'EXECUTING PARALLEL SUITE %s with command "%s"' % (suite_name, ' '.join(cmd))
         process = subprocess.Popen(' '.join(cmd),
                               shell=True,
