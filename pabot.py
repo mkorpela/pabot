@@ -99,7 +99,9 @@ def get_args():
         if args[0] == '--processes':
             pabot_args['processes'] = int(args[1])
             args = args[2:]
-    options, datasources = ArgumentParser(USAGE, auto_pythonpath=False, auto_argumentfile=False).parse_args(args)
+    options, datasources = ArgumentParser(USAGE,
+                                          auto_pythonpath=(pabot_args['command'] is None),
+                                          auto_argumentfile=(pabot_args['command'] is None)).parse_args(args)
     keys = set()
     for k in options:
         if options[k] is None:
