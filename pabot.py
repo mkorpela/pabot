@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os, sys
 import multiprocessing
 from glob import glob
