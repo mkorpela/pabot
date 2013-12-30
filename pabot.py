@@ -15,26 +15,31 @@ from robot.utils import ArgumentParser
 
 
 def execute_and_wait(args):
-    datasources, outs_dir, options, suite_name, _ = args
+    datasources, outs_dir, options, suite_name, _, verbose = args
     print 'EXECUTING PARALLEL SUITE %s' % suite_name
     rc = run(*datasources, **_options_for_executor(options, outs_dir, suite_name))
     if rc != 0:
         print 'EXECUTION FAILED IN %s' % suite_name
 
 def execute_and_wait_with(args):
-        datasources, outs_dir, options, suite_name, command = args
+        datasources, outs_dir, options, suite_name, command, verbose = args
         cmd = command + _options_for_java_executor(options, outs_dir, suite_name) + datasources
         cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
-        print 'EXECUTING PARALLEL SUITE %s with command:\n%s' % (suite_name, ' '.join(cmd))
+        if verbose:
+            print 'EXECUTING PARALLEL SUITE %s with command:\n%s' % (suite_name, ' '.join(cmd))
+        else:
+            print 'EXECUTING %s' % suite_name
         process = subprocess.Popen(' '.join(cmd),
                               shell=True,
                               stderr=subprocess.PIPE,
                               stdout=subprocess.PIPE)
         rc = process.wait()
         if rc != 0:
-            print _execution_failed_message(suite_name, process, rc)
+            print _execution_failed_message(suite_name, process, rc, verbose)
 
-def _execution_failed_message(suite_name, process, rc):
+def _execution_failed_message(suite_name, process, rc, verbose):
+    if not verbose:
+        return 'FAILED %s' % suite_name
     msg = ['Execution failed in %s with %d failing test(s)' % (suite_name, rc)]
     stderr = process.stderr.read().strip()
     if stderr:
@@ -87,9 +92,10 @@ def get_suite_names(output_file):
 
 def get_args():
     args = sys.argv[1:]
-    pabot_args = {'command':None,
+    pabot_args = {'command':None, 
+                  'verbose':False,
                   'processes':max(multiprocessing.cpu_count(), 2)}
-    while args and args[0] in ['--command', '--processes']:
+    while args and args[0] in ['--command', '--processes', '--verbose']:
         if args[0] == '--command':
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
@@ -97,6 +103,9 @@ def get_args():
         if args[0] == '--processes':
             pabot_args['processes'] = int(args[1])
             args = args[2:]
+        if args[0] == '--verbose':
+            pabot_args['verbose'] = True
+            args = args[1:]
     options, datasources = ArgumentParser(USAGE,
                                           auto_pythonpath=(pabot_args['command'] is None),
                                           auto_argumentfile=(pabot_args['command'] is None)).parse_args(args)
@@ -134,6 +143,19 @@ def _options_for_rebot(options, datasources, start_time_string, end_time_string)
 def _now():
     return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
 
+def _print_elapsed(start, end):
+    elapsed = end - start
+    millis = int((elapsed * 1000) % 1000)
+    seconds = int(elapsed) % 60
+    elapsed_minutes = (int(elapsed)-seconds)/60
+    minutes = elapsed_minutes % 60
+    elapsed_hours = (elapsed_minutes-minutes)/60
+    elapsed_string = ''
+    if elapsed_hours > 0:
+        elapsed_string += '%d hours ' % elapsed_hours
+    elapsed_string += '%d minutes %d.%d seconds' % (minutes, seconds, millis) 
+    print 'Elapsed time: '+elapsed_string
+
 if __name__ == '__main__':
     start_time = time.time()
     start_time_string = _now()
@@ -144,14 +166,13 @@ if __name__ == '__main__':
         if suite_names:
             process_pool = Pool(pabot_args['processes'])
             process_pool.map_async(execute_and_wait if not pabot_args['command'] else execute_and_wait_with,
-                                   [(datasources, outs_dir, options, suite, pabot_args['command']) for suite in suite_names])
+                                   [(datasources, outs_dir, options, suite, pabot_args['command'], pabot_args['verbose']) for suite in suite_names])
             process_pool.close()
             process_pool.join()
         end_time_string = _now()
         sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))), **_options_for_rebot(options, datasources, start_time_string, end_time_string)))
     finally:
         shutil.rmtree(outs_dir)
-        end_time = time.time()
-        print 'Elapsed time: %f seconds' % (end_time - start_time)
+        _print_elapsed(start_time, time.time())
 
 
