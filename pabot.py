@@ -126,13 +126,16 @@ def solve_suite_names(outs_dir, datasources, options):
         os.remove(output)
     return suite_names
 
-def _options_for_rebot(options, datasources):
+def _options_for_rebot(options, datasources, start_time_string, end_time_string):
     rebot_options = options.copy()
     rebot_options['name'] = ', '.join(datasources)
+    rebot_options['starttime'] = start_time_string
+    rebot_options['endtime'] = end_time_string
     return rebot_options
 
 if __name__ == '__main__':
     start_time = time.time()
+    start_time_string = time.strftime('%Y-%m-%d %H:%M:%S')
     outs_dir = mkdtemp()
     try:
         options, datasources, pabot_args = get_args()
@@ -143,7 +146,8 @@ if __name__ == '__main__':
                                    [(datasources, outs_dir, options, suite, pabot_args['command']) for suite in suite_names])
             process_pool.close()
             process_pool.join()
-        sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))), **_options_for_rebot(options, datasources)))
+        end_time_string = time.strftime('%Y-%m-%d %H:%M:%S')
+        sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))), **_options_for_rebot(options, datasources, start_time_string, end_time_string)))
     finally:
         shutil.rmtree(outs_dir)
         end_time = time.time()
