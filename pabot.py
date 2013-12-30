@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os, sys, time
+import os, sys, time, datetime
 import multiprocessing
 from glob import glob
 from StringIO import StringIO
@@ -135,7 +135,7 @@ def _options_for_rebot(options, datasources, start_time_string, end_time_string)
 
 if __name__ == '__main__':
     start_time = time.time()
-    start_time_string = time.strftime('%Y-%m-%d %H:%M:%S')
+    start_time_string = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
     outs_dir = mkdtemp()
     try:
         options, datasources, pabot_args = get_args()
@@ -146,7 +146,7 @@ if __name__ == '__main__':
                                    [(datasources, outs_dir, options, suite, pabot_args['command']) for suite in suite_names])
             process_pool.close()
             process_pool.join()
-        end_time_string = time.strftime('%Y-%m-%d %H:%M:%S')
+        end_time_string = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
         sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))), **_options_for_rebot(options, datasources, start_time_string, end_time_string)))
     finally:
         shutil.rmtree(outs_dir)
