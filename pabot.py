@@ -25,22 +25,20 @@ def execute_and_wait_with(args):
         datasources, outs_dir, options, suite_name, command = args
         cmd = command + _options_for_java_executor(options, outs_dir, suite_name) + datasources
         cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
-        print 'EXECUTING PARALLEL SUITE %s with command "%s"' % (suite_name, ' '.join(cmd))
+        print 'EXECUTING PARALLEL SUITE %s with command:\n%s' % (suite_name, ' '.join(cmd))
         process = subprocess.Popen(' '.join(cmd),
                               shell=True,
                               stderr=subprocess.PIPE,
                               stdout=subprocess.PIPE)
         rc = process.wait()
         if rc != 0:
-            print _execution_failed_message(suite_name, process)
+            print _execution_failed_message(suite_name, process, rc)
 
-def _execution_failed_message(suite_name, process):
-    msg = ['Execution failed in %s' % suite_name]
-    msg += ['<< STDOUT >>']
-    msg += [process.stdout.read()]
-    msg += ['<< STDERR >>']
-    msg += [process.stderr.read()]
-    msg += ['<< END OF OUTPUT >>']
+def _execution_failed_message(suite_name, process, rc):
+    msg = ['Execution failed in %s with %d failing test(s)' % (suite_name, rc)]
+    stderr = process.stderr.read().strip()
+    if stderr:
+        msg += ['<< STDERR >>', stderr, '<< END OF STDERR >>']
     return '\n'.join(msg)
 
 def _options_for_executor(options, outs_dir, suite_name):
