@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os, sys
+import os, sys, time
 import multiprocessing
 from glob import glob
 from StringIO import StringIO
@@ -132,6 +132,7 @@ def _options_for_rebot(options, datasources):
     return rebot_options
 
 if __name__ == '__main__':
+    start_time = time.time()
     outs_dir = mkdtemp()
     try:
         options, datasources, pabot_args = get_args()
@@ -145,5 +146,7 @@ if __name__ == '__main__':
         sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))), **_options_for_rebot(options, datasources)))
     finally:
         shutil.rmtree(outs_dir)
+        end_time = time.time()
+        print 'Elapsed time: %f seconds' % (end_time - start_time)
 
 
