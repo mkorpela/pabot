@@ -30,13 +30,6 @@ from robot.run import USAGE
 from robot.utils import ArgumentParser
 
 
-def execute_and_wait(args):
-    datasources, outs_dir, options, suite_name, _, verbose = args
-    print 'EXECUTING PARALLEL SUITE %s' % suite_name
-    rc = run(*datasources, **_options_for_executor(options, outs_dir, suite_name))
-    if rc != 0:
-        print 'EXECUTION FAILED IN %s' % suite_name
-
 def execute_and_wait_with(args):
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     datasources, outs_dir, options, suite_name, command, verbose = args
@@ -63,6 +56,9 @@ def _execution_failed_message(suite_name, process, rc, verbose):
         msg += ['<< STDERR >>', stderr, '<< END OF STDERR >>']
     return '\n'.join(msg)
 
+def _options_for_custom_executor(*args):
+    return _options_to_cli_arguments(_options_for_executor(*args))
+
 def _options_for_executor(options, outs_dir, suite_name):
     options = options.copy()
     options['log'] = 'NONE'
@@ -76,8 +72,7 @@ def _options_for_executor(options, outs_dir, suite_name):
     options['monitormarkers'] = 'off'
     return options
 
-def _options_for_custom_executor(*args):
-    opts = _options_for_executor(*args)
+def _options_to_cli_arguments(opts):
     res = []
     for k, v in opts.items():
         if isinstance(v, basestring):
@@ -109,9 +104,8 @@ def get_suite_names(output_file):
     except:
        return []
 
-def get_args():
-    args = sys.argv[1:]
-    pabot_args = {'command':None, 
+def _parse_args(args):
+    pabot_args = {'command':['pybot'],
                   'verbose':False,
                   'processes':max(multiprocessing.cpu_count(), 2)}
     while args and args[0] in ['--command', '--processes', '--verbose']:
@@ -125,9 +119,7 @@ def get_args():
         if args[0] == '--verbose':
             pabot_args['verbose'] = True
             args = args[1:]
-    options, datasources = ArgumentParser(USAGE,
-                                          auto_pythonpath=(pabot_args['command'] is None),
-                                          auto_argumentfile=(pabot_args['command'] is None)).parse_args(args)
+    options, datasources = ArgumentParser(USAGE, auto_pythonpath=False, auto_argumentfile=False).parse_args(args)
     keys = set()
     for k in options:
         if options[k] is None:
@@ -177,24 +169,26 @@ def _print_elapsed(start, end):
     elapsed_string += '%d minutes %d.%d seconds' % (minutes, seconds, millis) 
     print 'Elapsed time: '+elapsed_string
 
-
-if __name__ == '__main__':
+def _main(args):
     start_time = time.time()
     start_time_string = _now()
     outs_dir = mkdtemp()
     try:
-        options, datasources, pabot_args = get_args()
+        options, datasources, pabot_args = _parse_args(args)
         suite_names = solve_suite_names(outs_dir, datasources, options)
         if suite_names:
             process_pool = Pool(pabot_args['processes'])
-            process_pool.map_async(execute_and_wait if not pabot_args['command'] else execute_and_wait_with,
-                                   [(datasources, outs_dir, options, suite, pabot_args['command'], pabot_args['verbose']) for suite in suite_names])
+            process_pool.map_async(execute_and_wait_with,
+                                   [(datasources, outs_dir, options, suite, pabot_args['command'],
+                                     pabot_args['verbose']) for suite in suite_names])
             process_pool.close()
             process_pool.join()
         end_time_string = _now()
-        sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))), **_options_for_rebot(options, datasources, start_time_string, end_time_string)))
+        sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))),
+                       **_options_for_rebot(options, datasources, start_time_string, end_time_string)))
     finally:
         shutil.rmtree(outs_dir)
         _print_elapsed(start_time, time.time())
 
-
+if __name__ == '__main__':
+    _main(sys.argv[1:])
