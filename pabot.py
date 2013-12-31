@@ -169,6 +169,15 @@ def _print_elapsed(start, end):
     elapsed_string += '%d minutes %d.%d seconds' % (minutes, seconds, millis) 
     print 'Elapsed time: '+elapsed_string
 
+def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
+    if suite_names:
+        process_pool = Pool(pabot_args['processes'])
+        process_pool.map_async(execute_and_wait_with,
+                               [(datasources, outs_dir, options, suite, pabot_args['command'],
+                                 pabot_args['verbose']) for suite in suite_names])
+        process_pool.close()
+        process_pool.join()
+
 def _main(args):
     start_time = time.time()
     start_time_string = _now()
@@ -176,13 +185,7 @@ def _main(args):
     try:
         options, datasources, pabot_args = _parse_args(args)
         suite_names = solve_suite_names(outs_dir, datasources, options)
-        if suite_names:
-            process_pool = Pool(pabot_args['processes'])
-            process_pool.map_async(execute_and_wait_with,
-                                   [(datasources, outs_dir, options, suite, pabot_args['command'],
-                                     pabot_args['verbose']) for suite in suite_names])
-            process_pool.close()
-            process_pool.join()
+        _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
         end_time_string = _now()
         sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))),
                        **_options_for_rebot(options, datasources, start_time_string, end_time_string)))
