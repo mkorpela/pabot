@@ -57,6 +57,8 @@ def _options_for_executor(options, outs_dir, suite_name):
     options['output'] = '%s.xml' % suite_name
     options['stdout'] = StringIO()
     options['stderr'] = StringIO()
+    options['monitorcolors'] = 'off'
+    options['monitormarkers'] = 'off'
     return options
 
 def _options_for_java_executor(*args):
@@ -128,6 +130,8 @@ def solve_suite_names(outs_dir, datasources, options):
     options['outputdir'] = outs_dir
     options['stdout'] = StringIO()
     options['stderr'] = StringIO()
+    options['monitorcolors'] = 'off'
+    options['monitormarkers'] = 'off'
     run(*datasources, **options)
     output = os.path.join(outs_dir, 'suite_names.xml')
     suite_names = get_suite_names(output)
