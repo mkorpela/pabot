@@ -170,12 +170,12 @@ def _print_elapsed(start, end):
 
 def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
     if suite_names:
-        process_pool = ThreadPool(pabot_args['processes'])
-        process_pool.map_async(execute_and_wait_with,
+        pool = ThreadPool(pabot_args['processes'])
+        pool.map_async(execute_and_wait_with,
                                [(datasources, outs_dir, options, suite, pabot_args['command'],
                                  pabot_args['verbose']) for suite in suite_names])
-        process_pool.close()
-        process_pool.join()
+        pool.close()
+        pool.join()
 
 def _main(args):
     start_time = time.time()
