@@ -187,9 +187,8 @@ def _main(args):
         options, datasources, pabot_args = _parse_args(args)
         suite_names = solve_suite_names(outs_dir, datasources, options)
         _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
-        end_time_string = _now()
         sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))),
-                       **_options_for_rebot(options, datasources, start_time_string, end_time_string)))
+                       **_options_for_rebot(options, datasources, start_time_string, _now())))
     finally:
         shutil.rmtree(outs_dir)
         _print_elapsed(start_time, time.time())
