@@ -27,9 +27,16 @@ from multiprocessing.pool import ThreadPool
 from tempfile import mkdtemp
 from robot.run import USAGE
 from robot.utils import ArgumentParser
+import signal
 
+CTRL_C_PRESSED = False
 
 def execute_and_wait_with(args):
+    global CTRL_C_PRESSED
+    if CTRL_C_PRESSED:
+        print 'CTRL_C_PRESSED!'
+        return
+    time.sleep(0)
     datasources, outs_dir, options, suite_name, command, verbose = args
     cmd = command + _options_for_custom_executor(options, outs_dir, suite_name) + datasources
     cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
@@ -41,7 +48,10 @@ def execute_and_wait_with(args):
                           shell=True,
                           stderr=subprocess.PIPE,
                           stdout=subprocess.PIPE)
-    rc = process.wait()
+    rc = None
+    while rc is None:
+        rc = process.poll()
+        time.sleep(0)
     if rc != 0:
         print _execution_failed_message(suite_name, process, rc, verbose)
 
@@ -177,6 +187,11 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
         pool.close()
         pool.join()
 
+def keyboard_interrupt(*args):
+    global CTRL_C_PRESSED
+    CTRL_C_PRESSED = True
+    print 'CTRL C SET FLAG!'
+
 def _main(args):
     start_time = time.time()
     start_time_string = _now()
@@ -184,6 +199,7 @@ def _main(args):
     try:
         options, datasources, pabot_args = _parse_args(args)
         suite_names = solve_suite_names(outs_dir, datasources, options)
+        signal.signal(signal.SIGINT, keyboard_interrupt)
         _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
         sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))),
                        **_options_for_rebot(options, datasources, start_time_string, _now())))
