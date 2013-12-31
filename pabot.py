@@ -23,21 +23,21 @@ def execute_and_wait(args):
         print 'EXECUTION FAILED IN %s' % suite_name
 
 def execute_and_wait_with(args):
-        signal.signal(signal.SIGINT, signal.SIG_IGN)
-        datasources, outs_dir, options, suite_name, command, verbose = args
-        cmd = command + _options_for_java_executor(options, outs_dir, suite_name) + datasources
-        cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
-        if verbose:
-            print 'EXECUTING PARALLEL SUITE %s with command:\n%s' % (suite_name, ' '.join(cmd))
-        else:
-            print 'EXECUTING %s' % suite_name
-        process = subprocess.Popen(' '.join(cmd),
-                              shell=True,
-                              stderr=subprocess.PIPE,
-                              stdout=subprocess.PIPE)
-        rc = process.wait()
-        if rc != 0:
-            print _execution_failed_message(suite_name, process, rc, verbose)
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    datasources, outs_dir, options, suite_name, command, verbose = args
+    cmd = command + _options_for_custom_executor(options, outs_dir, suite_name) + datasources
+    cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
+    if verbose:
+        print 'EXECUTING PARALLEL SUITE %s with command:\n%s' % (suite_name, ' '.join(cmd))
+    else:
+        print 'EXECUTING %s' % suite_name
+    process = subprocess.Popen(' '.join(cmd),
+                          shell=True,
+                          stderr=subprocess.PIPE,
+                          stdout=subprocess.PIPE)
+    rc = process.wait()
+    if rc != 0:
+        print _execution_failed_message(suite_name, process, rc, verbose)
 
 def _execution_failed_message(suite_name, process, rc, verbose):
     if not verbose:
@@ -61,7 +61,7 @@ def _options_for_executor(options, outs_dir, suite_name):
     options['monitormarkers'] = 'off'
     return options
 
-def _options_for_java_executor(*args):
+def _options_for_custom_executor(*args):
     opts = _options_for_executor(*args)
     res = []
     for k, v in opts.items():
