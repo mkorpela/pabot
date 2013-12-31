@@ -151,6 +151,7 @@ def _options_for_rebot(options, datasources, start_time_string, end_time_string)
     rebot_options['name'] = ', '.join(datasources)
     rebot_options['starttime'] = start_time_string
     rebot_options['endtime'] = end_time_string
+    rebot_options['output'] = rebot_options.get('output', 'output.xml')
     return rebot_options
 
 def _now():
