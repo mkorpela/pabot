@@ -15,7 +15,6 @@
 #  limitations under the License.
 
 import os, sys, time, datetime
-import signal
 import multiprocessing
 from glob import glob
 from StringIO import StringIO
@@ -24,14 +23,13 @@ import subprocess
 from robot import run, rebot
 from robot.api import ExecutionResult
 from robot.result.visitor import ResultVisitor
-from multiprocessing.pool import Pool
+from multiprocessing.pool import ThreadPool
 from tempfile import mkdtemp
 from robot.run import USAGE
 from robot.utils import ArgumentParser
 
 
 def execute_and_wait_with(args):
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
     datasources, outs_dir, options, suite_name, command, verbose = args
     cmd = command + _options_for_custom_executor(options, outs_dir, suite_name) + datasources
     cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
@@ -172,7 +170,7 @@ def _print_elapsed(start, end):
 
 def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
     if suite_names:
-        process_pool = Pool(pabot_args['processes'])
+        process_pool = ThreadPool(pabot_args['processes'])
         process_pool.map_async(execute_and_wait_with,
                                [(datasources, outs_dir, options, suite, pabot_args['command'],
                                  pabot_args['verbose']) for suite in suite_names])
@@ -192,6 +190,7 @@ def _main(args):
     finally:
         shutil.rmtree(outs_dir)
         _print_elapsed(start_time, time.time())
+
 
 if __name__ == '__main__':
     _main(sys.argv[1:])
