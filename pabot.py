@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import os, sys, time, datetime
+import signal
 import multiprocessing
 from glob import glob
 from StringIO import StringIO
@@ -22,6 +23,7 @@ def execute_and_wait(args):
         print 'EXECUTION FAILED IN %s' % suite_name
 
 def execute_and_wait_with(args):
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
         datasources, outs_dir, options, suite_name, command, verbose = args
         cmd = command + _options_for_java_executor(options, outs_dir, suite_name) + datasources
         cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
@@ -155,6 +157,7 @@ def _print_elapsed(start, end):
         elapsed_string += '%d hours ' % elapsed_hours
     elapsed_string += '%d minutes %d.%d seconds' % (minutes, seconds, millis) 
     print 'Elapsed time: '+elapsed_string
+
 
 if __name__ == '__main__':
     start_time = time.time()
