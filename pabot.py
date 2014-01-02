@@ -135,6 +135,15 @@ def _parse_args(args):
     return options, datasources, pabot_args
 
 def solve_suite_names(outs_dir, datasources, options):
+    opts = _options_for_dryrun(options, outs_dir)
+    run(*datasources, **opts)
+    output = os.path.join(outs_dir, opts['output'])
+    suite_names = get_suite_names(output)
+    if os.path.isfile(output):
+        os.remove(output)
+    return suite_names
+
+def _options_for_dryrun(options, outs_dir):
     options = options.copy()
     options['log'] = 'NONE'
     options['report'] = 'NONE'
@@ -145,12 +154,7 @@ def solve_suite_names(outs_dir, datasources, options):
     options['stderr'] = StringIO()
     options['monitorcolors'] = 'off'
     options['monitormarkers'] = 'off'
-    run(*datasources, **options)
-    output = os.path.join(outs_dir, 'suite_names.xml')
-    suite_names = get_suite_names(output)
-    if os.path.isfile(output):
-        os.remove(output)
-    return suite_names
+    return options
 
 def _options_for_rebot(options, datasources, start_time_string, end_time_string):
     rebot_options = options.copy()
