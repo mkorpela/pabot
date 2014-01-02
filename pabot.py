@@ -184,8 +184,13 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
     if suite_names:
         pool = ThreadPool(pabot_args['processes'])
         pool.map_async(execute_and_wait_with,
-                               [(datasources, outs_dir, options, suite, pabot_args['command'],
-                                 pabot_args['verbose']) for suite in suite_names])
+                               [(datasources,
+                                 outs_dir,
+                                 options,
+                                 suite,
+                                 pabot_args['command'],
+                                 pabot_args['verbose'])
+                                for suite in suite_names])
         pool.close()
         pool.join()
 
