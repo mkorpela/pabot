@@ -51,7 +51,7 @@ def execute_and_wait_with(args):
     rc = None
     while rc is None:
         rc = process.poll()
-        time.sleep(0)
+        time.sleep(0.1)
     if rc != 0:
         print _execution_failed_message(suite_name, process, rc, verbose)
 
