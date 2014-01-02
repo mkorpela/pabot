@@ -34,7 +34,7 @@ CTRL_C_PRESSED = False
 def execute_and_wait_with(args):
     global CTRL_C_PRESSED
     if CTRL_C_PRESSED:
-        print 'CTRL_C_PRESSED!'
+        # Keyboard interrupt has happened!
         return
     time.sleep(0)
     datasources, outs_dir, options, suite_name, command, verbose = args
@@ -162,6 +162,8 @@ def _options_for_rebot(options, datasources, start_time_string, end_time_string)
     rebot_options['starttime'] = start_time_string
     rebot_options['endtime'] = end_time_string
     rebot_options['output'] = rebot_options.get('output', 'output.xml')
+    rebot_options['monitorcolors'] = 'off'
+    rebot_options['monitormarkers'] = 'off'
     return rebot_options
 
 def _now():
@@ -180,24 +182,28 @@ def _print_elapsed(start, end):
     elapsed_string += '%d minutes %d.%d seconds' % (minutes, seconds, millis) 
     print 'Elapsed time: '+elapsed_string
 
-def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
-    if suite_names:
-        pool = ThreadPool(pabot_args['processes'])
-        pool.map_async(execute_and_wait_with,
-                               [(datasources,
-                                 outs_dir,
-                                 options,
-                                 suite,
-                                 pabot_args['command'],
-                                 pabot_args['verbose'])
-                                for suite in suite_names])
-        pool.close()
-        pool.join()
-
 def keyboard_interrupt(*args):
     global CTRL_C_PRESSED
     CTRL_C_PRESSED = True
-    print 'CTRL C SET FLAG!'
+
+def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
+    if suite_names:
+        original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
+        result = ThreadPool(pabot_args['processes']).map_async(execute_and_wait_with,
+                   [(datasources,
+                     outs_dir,
+                     options,
+                     suite,
+                     pabot_args['command'],
+                     pabot_args['verbose'])
+                    for suite in suite_names])
+        while not result.ready():
+            # keyboard interrupt is executed in main thread and needs this loop to get time to get executed
+            try:
+                time.sleep(0.1)
+            except IOError:
+                keyboard_interrupt()
+        signal.signal(signal.SIGINT, original_signal_handler)
 
 def _main(args):
     start_time = time.time()
@@ -206,7 +212,6 @@ def _main(args):
     try:
         options, datasources, pabot_args = _parse_args(args)
         suite_names = solve_suite_names(outs_dir, datasources, options)
-        signal.signal(signal.SIGINT, keyboard_interrupt)
         _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
         sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))),
                        **_options_for_rebot(options, datasources, start_time_string, _now())))
