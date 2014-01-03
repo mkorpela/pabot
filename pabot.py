@@ -189,7 +189,8 @@ def keyboard_interrupt(*args):
 def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
     if suite_names:
         original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
-        result = ThreadPool(pabot_args['processes']).map_async(execute_and_wait_with,
+        pool = ThreadPool(pabot_args['processes'])
+        result = pool.map_async(execute_and_wait_with,
                    [(datasources,
                      outs_dir,
                      options,
@@ -197,6 +198,7 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
                      pabot_args['command'],
                      pabot_args['verbose'])
                     for suite in suite_names])
+        pool.close()
         while not result.ready():
             # keyboard interrupt is executed in main thread and needs this loop to get time to get executed
             try:
