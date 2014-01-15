@@ -1,2 +1,2 @@
 @echo off
-python -m pabot.pabot.main %*
+python -m pabot.pabot %*
