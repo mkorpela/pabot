@@ -207,7 +207,7 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
                 keyboard_interrupt()
         signal.signal(signal.SIGINT, original_signal_handler)
 
-def _main(args):
+def main(args):
     start_time = time.time()
     start_time_string = _now()
     outs_dir = mkdtemp()
@@ -223,4 +223,4 @@ def _main(args):
 
 
 if __name__ == '__main__':
-    _main(sys.argv[1:])
+    main(sys.argv[1:])
