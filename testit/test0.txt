@@ -1,7 +1,0 @@
-*** Settings ***
-Library  foo.py
-
-*** Test Cases ***
-testi
-   Sleep  1
-   moi

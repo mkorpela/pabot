@@ -1,2 +1,0 @@
-def moi():
-    print 'moi'
