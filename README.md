@@ -16,7 +16,7 @@ Command line options:
 
 Example usages:
 
-     ./pabot.py test_directory
-     ./pabot.py --exclude FOO directory_to_tests
-     ./pabot.py --command java -jar robotframework.jar --end-command --include SMOKE tests
-     ./pabot.py --processes 10 tests
+     pabot test_directory
+     pabot --exclude FOO directory_to_tests
+     pabot --command java -jar robotframework.jar --end-command --include SMOKE tests
+     pabot --processes 10 tests
