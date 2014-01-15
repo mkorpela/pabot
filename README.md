@@ -20,3 +20,9 @@ Example usages:
      pabot --exclude FOO directory_to_tests
      pabot --command java -jar robotframework.jar --end-command --include SMOKE tests
      pabot --processes 10 tests
+
+Installation:
+
+Clone this repository and run:
+
+     setup.py  install
