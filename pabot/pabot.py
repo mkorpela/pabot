@@ -219,7 +219,10 @@ def main(args):
         sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))),
                        **_options_for_rebot(options, datasources, start_time_string, _now())))
     finally:
-        shutil.rmtree(outs_dir) #TODO: this is not safe in all the situations.. option to not to do it or change the default behavior?
+        shutil.rmtree(outs_dir) 
+        #TODO: this is not safe in all the situations.. 
+        #TODO: option to not to do it or change the default behavior?
+        #for example a structure in the --outputdir ?
         _print_elapsed(start_time, time.time())
 
 
