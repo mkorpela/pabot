@@ -210,7 +210,8 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
 def main(args):
     start_time = time.time()
     start_time_string = _now()
-    outs_dir = mkdtemp()
+    outs_dir = mkdtemp() #TODO: put under the outputdir and log location to the user
+    #NOTE: timeout option
     try:
         options, datasources, pabot_args = _parse_args(args)
         suite_names = solve_suite_names(outs_dir, datasources, options)
@@ -218,7 +219,7 @@ def main(args):
         sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))),
                        **_options_for_rebot(options, datasources, start_time_string, _now())))
     finally:
-        shutil.rmtree(outs_dir)
+        shutil.rmtree(outs_dir) #TODO: this is not safe in all the situations.. option to not to do it or change the default behavior?
         _print_elapsed(start_time, time.time())
 
 
