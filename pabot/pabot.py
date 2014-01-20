@@ -38,6 +38,7 @@ def execute_and_wait_with(args):
         return
     time.sleep(0)
     datasources, outs_dir, options, suite_name, command, verbose = args
+    outs_dir = os.path.join(outs_dir, suite_name)
     cmd = command + _options_for_custom_executor(options, outs_dir, suite_name) + datasources
     cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
     if verbose:
@@ -73,7 +74,6 @@ def _options_for_executor(options, outs_dir, suite_name):
     options['report'] = 'NONE'
     options['suite'] = suite_name
     options['outputdir'] = outs_dir
-    options['output'] = '%s.xml' % suite_name
     options['monitorcolors'] = 'off'
     options['monitormarkers'] = 'off'
     return options
@@ -207,22 +207,27 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
                 keyboard_interrupt()
         signal.signal(signal.SIGINT, original_signal_handler)
 
+def _output_dir(options):
+    outputdir = '.'
+    if 'outputdir' in options:
+        outputdir = options['outputdir']
+    outpath = os.path.join(outputdir, 'pabot_results')
+    if os.path.isdir(outpath):
+        shutil.rmtree(outpath)
+    return outpath
+
 def main(args):
     start_time = time.time()
     start_time_string = _now()
-    outs_dir = mkdtemp() #TODO: put under the outputdir and log location to the user
     #NOTE: timeout option
     try:
         options, datasources, pabot_args = _parse_args(args)
+        outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options)
         _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
-        sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '*.xml'))),
+        sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '**/*.xml'))),
                        **_options_for_rebot(options, datasources, start_time_string, _now())))
     finally:
-        shutil.rmtree(outs_dir) 
-        #TODO: this is not safe in all the situations.. 
-        #TODO: option to not to do it or change the default behavior?
-        #for example a structure in the --outputdir ?
         _print_elapsed(start_time, time.time())
 
 
