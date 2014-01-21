@@ -3,7 +3,7 @@ Pabot
 
 A parallel executor for Robot Framework test cases.
 
-Command line options:
+Supports all Robot Framework commmand line options and also following options (these must be before normal RF options):
 
 --verbose     
   more output
@@ -22,6 +22,10 @@ Example usages:
      pabot --processes 10 tests
 
 Installation:
+
+From PyPi:
+
+     pip install -U robotframework-pabot
 
 Clone this repository and run:
 
