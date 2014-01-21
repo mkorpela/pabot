@@ -41,20 +41,23 @@ def execute_and_wait_with(args):
     outs_dir = os.path.join(outs_dir, suite_name)
     cmd = command + _options_for_custom_executor(options, outs_dir, suite_name) + datasources
     cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
-    if verbose:
-        print 'EXECUTING PARALLEL SUITE %s with command:\n%s' % (suite_name, ' '.join(cmd))
-    else:
-        print 'EXECUTING %s' % suite_name
+
     process = subprocess.Popen(' '.join(cmd),
                           shell=True,
                           stderr=subprocess.PIPE,
                           stdout=subprocess.PIPE)
+    if verbose:
+        print '[PID:%s] EXECUTING PARALLEL SUITE %s with command:\n%s' % (process.pid, suite_name, ' '.join(cmd))
+    else:
+        print '[PID:%s] EXECUTING %s' % (process.pid, suite_name)
     rc = None
     while rc is None:
         rc = process.poll()
         time.sleep(0.1)
     if rc != 0:
         print _execution_failed_message(suite_name, process, rc, verbose)
+    else:
+        print 'PASSED %s' % suite_name
 
 def _execution_failed_message(suite_name, process, rc, verbose):
     if not verbose:
