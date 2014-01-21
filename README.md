@@ -3,7 +3,7 @@ Pabot
 
 A parallel executor for Robot Framework test cases.
 
-Supports all Robot Framework commmand line options and also following options (these must be before normal RF options):
+Supports all Robot Framework command line options and also following options (these must be before normal RF options):
 
 --verbose     
   more output
