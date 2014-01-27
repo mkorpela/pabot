@@ -21,10 +21,10 @@ from StringIO import StringIO
 import shutil
 import subprocess
 from robot import run, rebot
+from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
 from robot.result.visitor import ResultVisitor
 from multiprocessing.pool import ThreadPool
-from tempfile import mkdtemp
 from robot.run import USAGE
 from robot.utils import ArgumentParser
 import signal
@@ -78,7 +78,8 @@ def _options_for_executor(options, outs_dir, suite_name):
     options['suite'] = suite_name
     options['outputdir'] = outs_dir
     options['monitorcolors'] = 'off'
-    options['monitormarkers'] = 'off'
+    if ROBOT_VERSION >= '2.8':
+        options['monitormarkers'] = 'off'
     return options
 
 def _options_to_cli_arguments(opts):
@@ -150,13 +151,17 @@ def _options_for_dryrun(options, outs_dir):
     options = options.copy()
     options['log'] = 'NONE'
     options['report'] = 'NONE'
-    options['dryrun'] = True
+    if ROBOT_VERSION >= '2.8':
+        options['dryrun'] = True
+    else:
+        options['runmode'] = 'DryRun'
     options['output'] = 'suite_names.xml'
     options['outputdir'] = outs_dir
     options['stdout'] = StringIO()
     options['stderr'] = StringIO()
     options['monitorcolors'] = 'off'
-    options['monitormarkers'] = 'off'
+    if ROBOT_VERSION >= '2.8':
+        options['monitormarkers'] = 'off'
     return options
 
 def _options_for_rebot(options, datasources, start_time_string, end_time_string):
@@ -166,7 +171,8 @@ def _options_for_rebot(options, datasources, start_time_string, end_time_string)
     rebot_options['endtime'] = end_time_string
     rebot_options['output'] = rebot_options.get('output', 'output.xml')
     rebot_options['monitorcolors'] = 'off'
-    rebot_options['monitormarkers'] = 'off'
+    if ROBOT_VERSION >= '2.8':
+        options['monitormarkers'] = 'off'
     return rebot_options
 
 def _now():
