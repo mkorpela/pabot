@@ -31,6 +31,7 @@ import signal
 
 CTRL_C_PRESSED = False
 
+
 def execute_and_wait_with(args):
     global CTRL_C_PRESSED
     if CTRL_C_PRESSED:
@@ -41,11 +42,20 @@ def execute_and_wait_with(args):
     outs_dir = os.path.join(outs_dir, suite_name)
     cmd = command + _options_for_custom_executor(options, outs_dir, suite_name) + datasources
     cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
+    os.makedirs(outs_dir)
+    with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout, \
+        open(os.path.join(outs_dir, 'stderr.txt'), 'w') as stderr:
+            process, rc = _run(cmd, stderr, stdout, suite_name, verbose)
+    if rc != 0:
+        print _execution_failed_message(suite_name, process, rc, verbose)
+    else:
+        print 'PASSED %s' % suite_name
 
+def _run(cmd, stderr, stdout, suite_name, verbose):
     process = subprocess.Popen(' '.join(cmd),
-                          shell=True,
-                          stderr=subprocess.PIPE,
-                          stdout=subprocess.PIPE)
+                               shell=True,
+                               stderr=stderr,
+                               stdout=stdout)
     if verbose:
         print '[PID:%s] EXECUTING PARALLEL SUITE %s with command:\n%s' % (process.pid, suite_name, ' '.join(cmd))
     else:
@@ -54,19 +64,12 @@ def execute_and_wait_with(args):
     while rc is None:
         rc = process.poll()
         time.sleep(0.1)
-    if rc != 0:
-        print _execution_failed_message(suite_name, process, rc, verbose)
-    else:
-        print 'PASSED %s' % suite_name
+    return process, rc
 
 def _execution_failed_message(suite_name, process, rc, verbose):
     if not verbose:
         return 'FAILED %s' % suite_name
-    msg = ['Execution failed in %s with %d failing test(s)' % (suite_name, rc)]
-    stderr = process.stderr.read().strip()
-    if stderr:
-        msg += ['<< STDERR >>', stderr, '<< END OF STDERR >>']
-    return '\n'.join(msg)
+    return 'Execution failed in %s with %d failing test(s)' % (suite_name, rc)
 
 def _options_for_custom_executor(*args):
     return _options_to_cli_arguments(_options_for_executor(*args))
