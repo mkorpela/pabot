@@ -23,6 +23,7 @@ import subprocess
 from robot import run, rebot
 from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
+from robot.errors import Information
 from robot.result.visitor import ResultVisitor
 from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
@@ -239,6 +240,8 @@ def main(args):
         _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
         sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '**/*.xml'))),
                        **_options_for_rebot(options, datasources, start_time_string, _now())))
+    except Information, i:
+        print i.message
     finally:
         _print_elapsed(start_time, time.time())
 
