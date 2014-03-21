@@ -241,6 +241,18 @@ def main(args):
         sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '**/*.xml'))),
                        **_options_for_rebot(options, datasources, start_time_string, _now())))
     except Information, i:
+        print """A parallel executor for Robot Framework test cases.
+
+Supports all Robot Framework command line options and also following options (these must be before normal RF options):
+
+--verbose
+more output
+
+--command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command
+RF script for situations where pybot is not used directly
+
+--processes [NUMBER OF PROCESSES]
+How many parallel executors to use (default max of 2 and cpu count)"""
         print i.message
     finally:
         _print_elapsed(start_time, time.time())
