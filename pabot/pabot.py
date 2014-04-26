@@ -40,6 +40,7 @@ def execute_and_wait_with(args):
         return
     time.sleep(0)
     datasources, outs_dir, options, suite_name, command, verbose = args
+    datasources = [d.encode('utf-8') if isinstance(d, unicode) else d for d in datasources]
     outs_dir = os.path.join(outs_dir, suite_name)
     cmd = command + _options_for_custom_executor(options, outs_dir, suite_name) + datasources
     cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
@@ -89,13 +90,18 @@ def _options_for_executor(options, outs_dir, suite_name):
 def _options_to_cli_arguments(opts):
     res = []
     for k, v in opts.items():
-        if isinstance(v, basestring):
+        if isinstance(v, str):
             res += ['--' + str(k), str(v)]
-        if isinstance(v, bool) and (v is True):
+        elif isinstance(v, unicode):
+            res += ['--' + str(k), v.encode('utf-8')]
+        elif isinstance(v, bool) and (v is True):
             res += ['--' + str(k)]
-        if isinstance(v, list):
+        elif isinstance(v, list):
             for value in v:
-                res += ['--' + str(k), str(value)]
+                if isinstance(value, unicode):
+                    res += ['--' + str(k), value.encode('utf-8')]
+                else:
+                    res += ['--' + str(k), str(value)]
     return res
 
 class GatherSuiteNames(ResultVisitor):
