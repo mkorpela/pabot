@@ -19,8 +19,8 @@
 #  by Nokia Solutions and Networks
 #  that was licensed under Apache License Version 2.0
 
+from robot.api import ExecutionResult
 from robot.model import SuiteVisitor
-
 
 class ResultMerger(SuiteVisitor):
 
@@ -65,9 +65,13 @@ class ResultMerger(SuiteVisitor):
     def visit_test(self, test):
         pass
 
+def merge(*result_files):
+    assert len(result_files) > 0
+    out = ExecutionResult(result_files[0])
+    merger = ResultMerger(out)
+    for result in result_files[1:]:
+        merger.merge(ExecutionResult(result))
+    return out
+
 if __name__ == '__main__':
-    from robot.api import ExecutionResult
-    result1 = ExecutionResult('../tmp/passing.xml')
-    result2 = ExecutionResult('../tmp/failing.xml')
-    ResultMerger(result1).merge(result2)
-    result1.save('../tmp/merged.xml')
+    merge('../tmp/passing.xml', '../tmp/failing.xml').save('../tmp/merged.xml')

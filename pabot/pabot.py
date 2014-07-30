@@ -36,6 +36,7 @@ from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
 from robot.utils import ArgumentParser
 import signal
+from result_merger import merge
 
 CTRL_C_PRESSED = False
 
@@ -181,12 +182,10 @@ def _options_for_dryrun(options, outs_dir):
         options['monitormarkers'] = 'off'
     return options
 
-def _options_for_rebot(options, datasources, start_time_string, end_time_string):
+def _options_for_rebot(options, start_time_string, end_time_string):
     rebot_options = options.copy()
-    rebot_options['name'] = options.get('name', ', '.join(datasources))
     rebot_options['starttime'] = start_time_string
     rebot_options['endtime'] = end_time_string
-    rebot_options['output'] = rebot_options.get('output', 'output.xml')
     rebot_options['monitorcolors'] = 'off'
     if ROBOT_VERSION >= '2.8':
         options['monitormarkers'] = 'off'
@@ -242,6 +241,13 @@ def _output_dir(options):
         shutil.rmtree(outpath)
     return outpath
 
+def _report_results(outs_dir, options, start_time_string):
+    output_path = os.path.abspath(os.path.join(options.get('outputdir', '.'), options.get('output', 'output.xml')))
+    merge(*sorted(glob(os.path.join(outs_dir, '**/*.xml')))).save(output_path)
+    print 'Output:  %s' % output_path
+    options['output'] = None # Do not write output again with rebot
+    return rebot(output_path, **_options_for_rebot(options, start_time_string, _now()))
+
 def main(args):
     start_time = time.time()
     start_time_string = _now()
@@ -251,8 +257,7 @@ def main(args):
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options)
         _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
-        sys.exit(rebot(*sorted(glob(os.path.join(outs_dir, '**/*.xml'))),
-                       **_options_for_rebot(options, datasources, start_time_string, _now())))
+        sys.exit(_report_results(outs_dir, options, start_time_string))
     except Information, i:
         print """A parallel executor for Robot Framework test cases.
 
@@ -267,7 +272,8 @@ RF script for situations where pybot is not used directly
 --processes [NUMBER OF PROCESSES]
 How many parallel executors to use (default max of 2 and cpu count)
 
-Copyright 2014 Mikko Korpela - GPLv3"""
+Copyright 2014 Mikko Korpela - GPLv3
+"""
         print i.message
     finally:
         _print_elapsed(start_time, time.time())
