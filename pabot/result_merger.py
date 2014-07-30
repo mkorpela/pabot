@@ -30,18 +30,27 @@ class ResultMerger(SuiteVisitor):
         self._skip_until = None
 
     def merge(self, merged):
-        merged.suite.visit(self)
+        try:
+            merged.suite.visit(self)
+        except:
+            print 'Error while merging result %s' % merged.source
+            raise
 
     def start_suite(self, suite):
         if self._skip_until and self._skip_until != suite:
             return
         if not self.current:
             self.current = self._find_root(suite)
+            assert self.current
         else:
             next = self._find(self.current.suites, suite.name)
             if next is None:
                 self.current.suites.append(suite)
+                suite.parent = self.current
                 self._skip_until = suite
+            else:
+                self.current = next
+
 
     def _find_root(self, suite):
         if self.root.name != suite.name:
