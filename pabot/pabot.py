@@ -27,6 +27,7 @@ from glob import glob
 from StringIO import StringIO
 import shutil
 import subprocess
+import threading
 from robot import run, rebot
 from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
@@ -37,9 +38,10 @@ from robot.run import USAGE
 from robot.utils import ArgumentParser
 import signal
 from result_merger import merge
+import Queue
 
 CTRL_C_PRESSED = False
-
+MESSAGE_QUEUE = Queue.Queue()
 
 def execute_and_wait_with(args):
     global CTRL_C_PRESSED
@@ -57,9 +59,9 @@ def execute_and_wait_with(args):
         open(os.path.join(outs_dir, 'stderr.txt'), 'w') as stderr:
             process, rc = _run(cmd, stderr, stdout, suite_name, verbose)
     if rc != 0:
-        print _execution_failed_message(suite_name, process, rc, verbose)
+        _write(_execution_failed_message(suite_name, process, rc, verbose))
     else:
-        print 'PASSED %s' % suite_name
+        _write('PASSED %s' % suite_name)
 
 def _run(cmd, stderr, stdout, suite_name, verbose):
     process = subprocess.Popen(' '.join(cmd),
@@ -67,13 +69,17 @@ def _run(cmd, stderr, stdout, suite_name, verbose):
                                stderr=stderr,
                                stdout=stdout)
     if verbose:
-        print '[PID:%s] EXECUTING PARALLEL SUITE %s with command:\n%s' % (process.pid, suite_name, ' '.join(cmd))
+        _write('[PID:%s] EXECUTING PARALLEL SUITE %s with command:\n%s' % (process.pid, suite_name, ' '.join(cmd)))
     else:
-        print '[PID:%s] EXECUTING %s' % (process.pid, suite_name)
+        _write('[PID:%s] EXECUTING %s' % (process.pid, suite_name))
     rc = None
+    elapsed = 0
     while rc is None:
         rc = process.poll()
         time.sleep(0.1)
+        elapsed += 1
+        if elapsed % 150 == 0:
+            _write('[PID:%s] still running %s after %s seconds' % (process.pid, suite_name, elapsed / 10.0))
     return process, rc
 
 def _execution_failed_message(suite_name, process, rc, verbose):
@@ -250,11 +256,25 @@ def _report_results(outs_dir, options, start_time_string):
     options['output'] = None # Do not write output again with rebot
     return rebot(output_path, **_options_for_rebot(options, start_time_string, _now()))
 
+def _writer():
+    while True:
+        message = MESSAGE_QUEUE.get()
+        print message
+
+def _write(message):
+    MESSAGE_QUEUE.put(message)
+
+def _start_message_writer():
+    t = threading.Thread(target=_writer)
+    t.setDaemon(True)
+    t.start()
+
 def main(args):
     start_time = time.time()
     start_time_string = _now()
     #NOTE: timeout option
     try:
+        _start_message_writer()
         options, datasources, pabot_args = _parse_args(args)
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options)
