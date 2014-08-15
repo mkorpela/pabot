@@ -88,6 +88,7 @@ def _options_for_executor(options, outs_dir, suite_name):
     options = options.copy()
     options['log'] = 'NONE'
     options['report'] = 'NONE'
+    options['xunit'] = 'NONE'
     options['suite'] = suite_name
     options['outputdir'] = outs_dir
     options['monitorcolors'] = 'off'
@@ -169,6 +170,7 @@ def _options_for_dryrun(options, outs_dir):
     options = options.copy()
     options['log'] = 'NONE'
     options['report'] = 'NONE'
+    options['xunit'] = 'NONE'
     if ROBOT_VERSION >= '2.8':
         options['dryrun'] = True
     else:
