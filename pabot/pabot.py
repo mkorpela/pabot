@@ -60,7 +60,7 @@ def execute_and_wait_with(args):
         open(os.path.join(outs_dir, 'stderr.txt'), 'w') as stderr:
             process, rc = _run(cmd, stderr, stdout, suite_name, verbose)
     if rc != 0:
-        _write(_execution_failed_message(suite_name, process, rc, verbose))
+        _write(_execution_failed_message(suite_name, rc, verbose))
     else:
         _write('PASSED %s' % suite_name)
 
@@ -83,7 +83,7 @@ def _run(cmd, stderr, stdout, suite_name, verbose):
             _write('[PID:%s] still running %s after %s seconds' % (process.pid, suite_name, elapsed / 10.0))
     return process, rc
 
-def _execution_failed_message(suite_name, process, rc, verbose):
+def _execution_failed_message(suite_name, rc, verbose):
     if not verbose:
         return 'FAILED %s' % suite_name
     return 'Execution failed in %s with %d failing test(s)' % (suite_name, rc)
