@@ -20,7 +20,8 @@ from robotremoteserver import RobotRemoteServer
 class PabotLib(object):
 
     def ping(self):
+        print 'PONG PONG'
         return 'pong'
 
 if __name__ == '__main__':
-    RobotRemoteServer(PabotLib)
+    RobotRemoteServer(PabotLib())
