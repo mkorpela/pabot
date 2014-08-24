@@ -37,6 +37,7 @@ from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
 from robot.utils import ArgumentParser
 import signal
+import pabotlib
 from result_merger import merge
 import Queue
 
@@ -269,11 +270,18 @@ def _start_message_writer():
     t.setDaemon(True)
     t.start()
 
+def _start_remote_library():
+    return subprocess.Popen('python %s' % os.path.abspath(pabotlib.__file__), shell=True)
+
+def _stop_remote_library(process):
+    process.terminate()
+
 def main(args):
     start_time = time.time()
     start_time_string = _now()
     #NOTE: timeout option
     try:
+        lib_process = _start_remote_library()
         _start_message_writer()
         options, datasources, pabot_args = _parse_args(args)
         outs_dir = _output_dir(options)
@@ -298,6 +306,7 @@ Copyright 2014 Mikko Korpela - GPLv3
 """
         print i.message
     finally:
+        _stop_remote_library(lib_process)
         _print_elapsed(start_time, time.time())
 
 
