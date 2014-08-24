@@ -16,5 +16,5 @@ setup(name='robotframework-pabot',
       url='https://github.com/mkorpela/pabot',
       packages=find_packages(),
       scripts = [os.path.join('scripts', 'pabot'), os.path.join('scripts', 'pabot.bat')],
-      license='LICENSE.txt',
+      license='GNU General Public License v3',
       install_requires = ['robotframework'])
