@@ -37,7 +37,7 @@ from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
 from robot.utils import ArgumentParser
 import signal
-import pabotlib
+import PabotLib
 from result_merger import merge
 import Queue
 
@@ -271,7 +271,7 @@ def _start_message_writer():
     t.start()
 
 def _start_remote_library():
-    return subprocess.Popen('python %s' % os.path.abspath(pabotlib.__file__), shell=True)
+    return subprocess.Popen('python %s' % os.path.abspath(PabotLib.__file__), shell=True)
 
 def _stop_remote_library(process):
     process.terminate()
