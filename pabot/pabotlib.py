@@ -15,6 +15,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Pabot.  If not, see <http://www.gnu.org/licenses/>.
 #
+import uuid
 from robotremoteserver import RobotRemoteServer
 from robot.libraries.Remote import Remote
 import time
@@ -24,28 +25,34 @@ class PabotLib(object):
 
     def __init__(self, uri=None):
         self._remotelib = Remote(uri) if uri else None
-        self._locks = set()
+        self._my_id = uuid.uuid4().get_hex()
+        self._locks = {}
 
-    def acquire_lock(self, name):
+    def acquire_lock(self, name, caller_id=None):
         if self._remotelib:
             try:
-                while not self._remotelib.run_keyword('acquire_lock', [name], {}):
+                while not self._remotelib.run_keyword('acquire_lock', [name, self._my_id], {}):
                     time.sleep(0.1)
                     print 'waiting for lock to release'
                 return True
             except RuntimeError:
                 print 'no connection'
                 self._remotelib = None
-        if name in self._locks:
+        if name in self._locks and caller_id != self._locks[name][0]:
             return False
-        self._locks.add(name)
+        if name not in self._locks:
+            self._locks[name] = [caller_id, 0]
+        self._locks[name][1] += 1
         return True
 
-    def release_lock(self, name):
+    def release_lock(self, name, caller_id=None):
         if self._remotelib:
-            self._remotelib.run_keyword('release_lock', [name], {})
+            self._remotelib.run_keyword('release_lock', [name, self._my_id], {})
         else:
-            self._locks.remove(name)
-
+            print self._locks, caller_id
+            assert self._locks[name][0] == caller_id
+            self._locks[name][1] -= 1
+            if self._locks[name][1] == 0:
+                del self._locks[name]
 if __name__ == '__main__':
     RobotRemoteServer(PabotLib())
