@@ -23,22 +23,23 @@ import time
 class PabotLib(object):
 
     def __init__(self, uri=None):
-        if uri:
-            self._remotelib = Remote(uri)
-        else:
-            self._remotelib = None
-            self._locks = set()
+        self._remotelib = Remote(uri) if uri else None
+        self._locks = set()
 
     def acquire_lock(self, name):
         if self._remotelib:
-            while not self._remotelib.run_keyword('acquire_lock', [name], {}):
-                time.sleep(0.1)
-                print 'waiting for lock to release'
-        else:
-            if name in self._locks:
-                return False
-            self._locks.add(name)
-            return True
+            try:
+                while not self._remotelib.run_keyword('acquire_lock', [name], {}):
+                    time.sleep(0.1)
+                    print 'waiting for lock to release'
+                return True
+            except RuntimeError:
+                print 'no connection'
+                self._remotelib = None
+        if name in self._locks:
+            return False
+        self._locks.add(name)
+        return True
 
     def release_lock(self, name):
         if self._remotelib:
