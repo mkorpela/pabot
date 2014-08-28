@@ -21,14 +21,41 @@ from robot.libraries.Remote import Remote
 import time
 
 
-class PabotLib(object):
+class _PabotLib(object):
 
-    def __init__(self, uri=None):
+    def __init__(self):
+        self._locks = {}
+        self._values = {}
+
+    def acquire_lock(self, name, caller_id):
+        if name in self._locks and caller_id != self._locks[name][0]:
+            return False
+        if name not in self._locks:
+            self._locks[name] = [caller_id, 0]
+        self._locks[name][1] += 1
+        return True
+
+    def release_lock(self, name, caller_id):
+        assert self._locks[name][0] == caller_id
+        self._locks[name][1] -= 1
+        if self._locks[name][1] == 0:
+            del self._locks[name]
+
+    def acquire_value(self, key):
+        pass
+
+    def release_value(self, key, value):
+        pass
+
+
+class PabotLib(_PabotLib):
+
+    def __init__(self, uri):
+        _PabotLib.__init__(self)
         self._remotelib = Remote(uri) if uri else None
         self._my_id = uuid.uuid4().get_hex()
-        self._locks = {}
 
-    def acquire_lock(self, name, caller_id=None):
+    def acquire_lock(self, name):
         if self._remotelib:
             try:
                 while not self._remotelib.run_keyword('acquire_lock', [name, self._my_id], {}):
@@ -38,21 +65,26 @@ class PabotLib(object):
             except RuntimeError:
                 print 'no connection'
                 self._remotelib = None
-        if name in self._locks and caller_id != self._locks[name][0]:
-            return False
-        if name not in self._locks:
-            self._locks[name] = [caller_id, 0]
-        self._locks[name][1] += 1
-        return True
+        return _PabotLib.acquire_lock(self, name, self._my_id)
 
-    def release_lock(self, name, caller_id=None):
+    def release_lock(self, name):
         if self._remotelib:
             self._remotelib.run_keyword('release_lock', [name, self._my_id], {})
         else:
-            print self._locks, caller_id
-            assert self._locks[name][0] == caller_id
-            self._locks[name][1] -= 1
-            if self._locks[name][1] == 0:
-                del self._locks[name]
+            _PabotLib.release_lock(self, name, self._my_id)
+
+    def acquire_value(self, key):
+        if self._remotelib:
+            return self._remotelib.run_keyword('acquire_value', [key], {})
+        else:
+            return _PabotLib.acquire_value(self, key)
+
+    def release_value(self, key, value):
+        if self._remotelib:
+            self._remotelib.run_keyword('release_value', [key, value], {})
+        else:
+            _PabotLib.release_value(self, key, value)
+
+
 if __name__ == '__main__':
-    RobotRemoteServer(PabotLib())
+    RobotRemoteServer(_PabotLib())
