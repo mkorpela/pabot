@@ -155,6 +155,9 @@ def _parse_args(args):
         if args[0] == '--verbose':
             pabot_args['verbose'] = True
             args = args[1:]
+        if args[0] == '--resourcefile':
+            pabot_args['resourcefile'] = args[1]
+            args = args[2:]
     options, datasources = ArgumentParser(USAGE, auto_pythonpath=False, auto_argumentfile=False).parse_args(args)
     keys = set()
     for k in options:
@@ -270,8 +273,10 @@ def _start_message_writer():
     t.setDaemon(True)
     t.start()
 
-def _start_remote_library():
-    return subprocess.Popen('python %s' % os.path.abspath(PabotLib.__file__), shell=True)
+def _start_remote_library(pabot_args):
+    return subprocess.Popen('python %s %s' % (os.path.abspath(PabotLib.__file__),
+                                              pabot_args.get('resourcefile', 'N/A')),
+                            shell=True)
 
 def _stop_remote_library(process):
     process.terminate()
@@ -281,9 +286,9 @@ def main(args):
     start_time_string = _now()
     #NOTE: timeout option
     try:
-        lib_process = _start_remote_library()
         _start_message_writer()
         options, datasources, pabot_args = _parse_args(args)
+        lib_process = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options)
         _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
@@ -301,6 +306,9 @@ RF script for situations where pybot is not used directly
 
 --processes [NUMBER OF PROCESSES]
 How many parallel executors to use (default max of 2 and cpu count)
+
+--resourcefile [FILEPATH]
+Indicator for a file that can contain shared variables for distributing resources.
 
 Copyright 2014 Mikko Korpela - GPLv3
 """

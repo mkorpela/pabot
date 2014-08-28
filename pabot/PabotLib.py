@@ -15,6 +15,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Pabot.  If not, see <http://www.gnu.org/licenses/>.
 #
+import os
 import uuid
 from robotremoteserver import RobotRemoteServer
 from robot.libraries.Remote import Remote
@@ -23,9 +24,16 @@ import time
 
 class _PabotLib(object):
 
-    def __init__(self):
+    def __init__(self, resourcefile=None):
         self._locks = {}
-        self._values = {}
+        self._values = self._parse_values(resourcefile)
+
+    def _parse_values(self, resourcefile):
+        return {'A':[1,2,3]}
+        if not os.path.exists(resourcefile):
+            return {}
+        with open(resourcefile, 'r') as r:
+            data = r.read()
 
     def acquire_lock(self, name, caller_id):
         if name in self._locks and caller_id != self._locks[name][0]:
@@ -42,10 +50,13 @@ class _PabotLib(object):
             del self._locks[name]
 
     def acquire_value(self, key):
-        pass
+        vals = self._values[key]
+        if not vals:
+            return ''
+        return vals.pop()
 
     def release_value(self, key, value):
-        pass
+        self._values[key].append(value)
 
 
 class PabotLib(_PabotLib):
@@ -75,7 +86,13 @@ class PabotLib(_PabotLib):
 
     def acquire_value(self, key):
         if self._remotelib:
-            return self._remotelib.run_keyword('acquire_value', [key], {})
+            while True:
+                value = self._remotelib.run_keyword('acquire_value', [key], {})
+                if value != '':
+                    print repr(value)
+                    return value
+                time.sleep(0.1)
+                print 'waiting for a value'
         else:
             return _PabotLib.acquire_value(self, key)
 
@@ -87,4 +104,5 @@ class PabotLib(_PabotLib):
 
 
 if __name__ == '__main__':
-    RobotRemoteServer(_PabotLib())
+    import sys
+    RobotRemoteServer(_PabotLib(sys.argv[1]))
