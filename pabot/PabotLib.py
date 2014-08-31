@@ -15,6 +15,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Pabot.  If not, see <http://www.gnu.org/licenses/>.
 #
+import ConfigParser
 import os
 import uuid
 from robotremoteserver import RobotRemoteServer
@@ -29,11 +30,13 @@ class _PabotLib(object):
         self._values = self._parse_values(resourcefile)
 
     def _parse_values(self, resourcefile):
-        return {'A':[1,2,3]}
+        vals = {}
         if not os.path.exists(resourcefile):
-            return {}
-        with open(resourcefile, 'r') as r:
-            data = r.read()
+            return vals
+        conf = ConfigParser.ConfigParser()
+        conf.read(resourcefile)
+        for section in conf.sections():
+            vals[section] = dict((k,conf.get(section, k)) for k in conf.options(section))
 
     def acquire_lock(self, name, caller_id):
         if name in self._locks and caller_id != self._locks[name][0]:

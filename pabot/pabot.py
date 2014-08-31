@@ -144,7 +144,7 @@ def _parse_args(args):
     pabot_args = {'command':['pybot'],
                   'verbose':False,
                   'processes':max(multiprocessing.cpu_count(), 2)}
-    while args and args[0] in ['--command', '--processes', '--verbose']:
+    while args and args[0] in ['--command', '--processes', '--verbose', '--resourcefile']:
         if args[0] == '--command':
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
@@ -284,6 +284,7 @@ def _stop_remote_library(process):
 def main(args):
     start_time = time.time()
     start_time_string = _now()
+    lib_process = None
     #NOTE: timeout option
     try:
         _start_message_writer()
@@ -314,7 +315,8 @@ Copyright 2014 Mikko Korpela - GPLv3
 """
         print i.message
     finally:
-        _stop_remote_library(lib_process)
+        if lib_process:
+            _stop_remote_library(lib_process)
         _print_elapsed(start_time, time.time())
 
 
