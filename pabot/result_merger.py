@@ -82,5 +82,3 @@ def merge(*result_files):
         merger.merge(ExecutionResult(result))
     return out
 
-if __name__ == '__main__':
-    merge('../tmp/passing.xml', '../tmp/failing.xml').save('../tmp/merged.xml')
