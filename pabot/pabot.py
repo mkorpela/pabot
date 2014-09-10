@@ -143,8 +143,10 @@ def get_suite_names(output_file):
 def _parse_args(args):
     pabot_args = {'command':['pybot'],
                   'verbose':False,
+                  'disable-pabotlib':False,
                   'processes':max(multiprocessing.cpu_count(), 2)}
-    while args and args[0] in ['--command', '--processes', '--verbose', '--resourcefile']:
+    while args and args[0] in ['--'+param for param in ['command', 'processes', 'verbose', 'resourcefile',
+                                                        'disable-pabotlib']]:
         if args[0] == '--command':
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
@@ -158,6 +160,9 @@ def _parse_args(args):
         if args[0] == '--resourcefile':
             pabot_args['resourcefile'] = args[1]
             args = args[2:]
+        if args[0] == '--disable-pabotlib':
+            pabot_args['disable-pabotlib'] = True
+            args = args[1:]
     options, datasources = ArgumentParser(USAGE, auto_pythonpath=False, auto_argumentfile=False).parse_args(args)
     keys = set()
     for k in options:
@@ -273,6 +278,8 @@ def _start_message_writer():
     t.start()
 
 def _start_remote_library(pabot_args):
+    if pabot_args['disable-pabotlib']:
+        return None
     return subprocess.Popen('python %s %s' % (os.path.abspath(PabotLib.__file__),
                                               pabot_args.get('resourcefile', 'N/A')),
                             shell=True)
@@ -312,6 +319,9 @@ How many parallel executors to use (default max of 2 and cpu count)
 
 --resourcefile [FILEPATH]
 Indicator for a file that can contain shared variables for distributing resources.
+
+--disable-pabotlib
+Do not start PabotLib remote server.
 
 Copyright 2014 Mikko Korpela - GPLv3
 """
