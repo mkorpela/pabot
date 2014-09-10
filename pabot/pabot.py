@@ -224,25 +224,24 @@ def keyboard_interrupt(*args):
     CTRL_C_PRESSED = True
 
 def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
-    if suite_names:
-        original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
-        pool = ThreadPool(pabot_args['processes'])
-        result = pool.map_async(execute_and_wait_with,
-                   [(datasources,
-                     outs_dir,
-                     options,
-                     suite,
-                     pabot_args['command'],
-                     pabot_args['verbose'])
-                    for suite in suite_names])
-        pool.close()
-        while not result.ready():
-            # keyboard interrupt is executed in main thread and needs this loop to get time to get executed
-            try:
-                time.sleep(0.1)
-            except IOError:
-                keyboard_interrupt()
-        signal.signal(signal.SIGINT, original_signal_handler)
+    original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
+    pool = ThreadPool(pabot_args['processes'])
+    result = pool.map_async(execute_and_wait_with,
+               [(datasources,
+                 outs_dir,
+                 options,
+                 suite,
+                 pabot_args['command'],
+                 pabot_args['verbose'])
+                for suite in suite_names])
+    pool.close()
+    while not result.ready():
+        # keyboard interrupt is executed in main thread and needs this loop to get time to get executed
+        try:
+            time.sleep(0.1)
+        except IOError:
+            keyboard_interrupt()
+    signal.signal(signal.SIGINT, original_signal_handler)
 
 def _output_dir(options):
     outputdir = '.'
@@ -292,8 +291,11 @@ def main(args):
         lib_process = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options)
-        _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
-        sys.exit(_report_results(outs_dir, options, start_time_string))
+        if suite_names:
+            _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
+            sys.exit(_report_results(outs_dir, options, start_time_string))
+        else:
+            print 'No tests to execute'
     except Information, i:
         print """A parallel executor for Robot Framework test cases.
 
