@@ -27,16 +27,19 @@ class _PabotLib(object):
 
     def __init__(self, resourcefile=None):
         self._locks = {}
+        self._owner_to_values = {}
         self._values = self._parse_values(resourcefile)
 
     def _parse_values(self, resourcefile):
         vals = {}
-        if not os.path.exists(resourcefile):
+        if resourcefile is None or not os.path.exists(resourcefile):
             return vals
         conf = ConfigParser.ConfigParser()
         conf.read(resourcefile)
         for section in conf.sections():
+            print '!', section
             vals[section] = dict((k,conf.get(section, k)) for k in conf.options(section))
+        return vals
 
     def acquire_lock(self, name, caller_id):
         if name in self._locks and caller_id != self._locks[name][0]:
@@ -52,14 +55,17 @@ class _PabotLib(object):
         if self._locks[name][1] == 0:
             del self._locks[name]
 
-    def acquire_value(self, key):
-        vals = self._values[key]
-        if not vals:
-            return ''
-        return vals.pop()
+    def acquire_value_set(self, caller_id):
+        for k in self._values:
+            if k not in self._owner_to_values.values():
+                self._owner_to_values[caller_id] = k
+                return k
 
-    def release_value(self, key, value):
-        self._values[key].append(value)
+    def release_value_set(self, caller_id):
+        self._owner_to_values[caller_id] = None
+
+    def get_value(self, key, caller_id):
+        return self._owner_to_values[caller_id][key]
 
 
 class PabotLib(_PabotLib):
@@ -87,23 +93,34 @@ class PabotLib(_PabotLib):
         else:
             _PabotLib.release_lock(self, name, self._my_id)
 
-    def acquire_value(self, key):
+    def aquire_value_set(self):
         if self._remotelib:
             while True:
-                value = self._remotelib.run_keyword('acquire_value', [key], {})
+                value = self._remotelib.run_keyword('aquire_value_set', [self._my_id], {})
+                if value is not None:
+                    return value
+                time.sleep(0.1)
+                print 'waiting for a value set'
+        else:
+            return _PabotLib.acquire_value_set(self, self._my_id)
+
+    def get_value(self, key):
+        if self._remotelib:
+            while True:
+                value = self._remotelib.run_keyword('get_value', [key, self._my_id], {})
                 if value != '':
                     print repr(value)
                     return value
                 time.sleep(0.1)
                 print 'waiting for a value'
         else:
-            return _PabotLib.acquire_value(self, key)
+            return _PabotLib.get_value(self, key, self._my_id)
 
-    def release_value(self, key, value):
+    def release_value_set(self):
         if self._remotelib:
-            self._remotelib.run_keyword('release_value', [key, value], {})
+            self._remotelib.run_keyword('release_value_set', [self._my_id], {})
         else:
-            _PabotLib.release_value(self, key, value)
+            _PabotLib.release_value_set(self, self._my_id)
 
 
 if __name__ == '__main__':
