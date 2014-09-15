@@ -57,8 +57,8 @@ class _PabotLib(object):
 
     def acquire_value_set(self, caller_id):
         for k in self._values:
-            if k not in self._owner_to_values.values():
-                self._owner_to_values[caller_id] = k
+            if self._values[k] not in self._owner_to_values.values():
+                self._owner_to_values[caller_id] = self._values[k]
                 return k
 
     def release_value_set(self, caller_id):
@@ -93,11 +93,11 @@ class PabotLib(_PabotLib):
         else:
             _PabotLib.release_lock(self, name, self._my_id)
 
-    def aquire_value_set(self):
+    def acquire_value_set(self):
         if self._remotelib:
             while True:
-                value = self._remotelib.run_keyword('aquire_value_set', [self._my_id], {})
-                if value is not None:
+                value = self._remotelib.run_keyword('acquire_value_set', [self._my_id], {})
+                if value:
                     return value
                 time.sleep(0.1)
                 print 'waiting for a value set'
