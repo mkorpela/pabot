@@ -20,6 +20,7 @@ import os
 import uuid
 from robotremoteserver import RobotRemoteServer
 from robot.libraries.Remote import Remote
+from robot.api import logger
 import time
 
 
@@ -76,18 +77,26 @@ class PabotLib(_PabotLib):
         self._my_id = uuid.uuid4().get_hex()
 
     def acquire_lock(self, name):
+        """
+        Wait for a lock with name.
+        This will prevent other processes from acquiring the lock with the name while it is held.
+        """
         if self._remotelib:
             try:
                 while not self._remotelib.run_keyword('acquire_lock', [name, self._my_id], {}):
                     time.sleep(0.1)
-                    print 'waiting for lock to release'
+                    logger.debug('waiting for lock to release')
                 return True
             except RuntimeError:
-                print 'no connection'
+                logger.warn('no connection')
                 self._remotelib = None
         return _PabotLib.acquire_lock(self, name, self._my_id)
 
     def release_lock(self, name):
+        """
+        Release a lock with name.
+        This will enable others to acquire the lock.
+        """
         if self._remotelib:
             self._remotelib.run_keyword('release_lock', [name, self._my_id], {})
         else:
@@ -95,24 +104,26 @@ class PabotLib(_PabotLib):
 
     def acquire_value_set(self):
         if self._remotelib:
-            while True:
-                value = self._remotelib.run_keyword('acquire_value_set', [self._my_id], {})
-                if value:
-                    return value
-                time.sleep(0.1)
-                print 'waiting for a value set'
-        else:
-            return _PabotLib.acquire_value_set(self, self._my_id)
+            try:
+                while True:
+                    value = self._remotelib.run_keyword('acquire_value_set', [self._my_id], {})
+                    if value:
+                        return value
+                    time.sleep(0.1)
+                    logger.debug('waiting for a value set')
+            except RuntimeError:
+                logger.warn('no connection')
+                self._remotelib = None
+        return _PabotLib.acquire_value_set(self, self._my_id)
 
     def get_value(self, key):
         if self._remotelib:
             while True:
                 value = self._remotelib.run_keyword('get_value', [key, self._my_id], {})
-                if value != '':
-                    print repr(value)
+                if value:
                     return value
                 time.sleep(0.1)
-                print 'waiting for a value'
+                logger.debug('waiting for a value')
         else:
             return _PabotLib.get_value(self, key, self._my_id)
 
