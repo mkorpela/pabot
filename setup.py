@@ -9,7 +9,7 @@ name = 'Mikko Korpela'
 address = name.lower().replace(' ', '.')+chr(64)+'gmail.com'
 
 setup(name='robotframework-pabot',
-      version='0.8',
+      version='0.9',
       description='Parallel test runner for Robot Framework',
       author=name,
       author_email=address,
