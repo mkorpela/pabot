@@ -38,7 +38,6 @@ class _PabotLib(object):
         conf = ConfigParser.ConfigParser()
         conf.read(resourcefile)
         for section in conf.sections():
-            print '!', section
             vals[section] = dict((k,conf.get(section, k)) for k in conf.options(section))
         return vals
 
