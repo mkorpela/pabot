@@ -55,9 +55,9 @@ valueset.dat
       PASSWORD=password1
       
       [Server2]
-      HOST=123.123.123.123
-      USERNAME=user1
-      PASSWORD=password1
+      HOST=121.121.121.121
+      USERNAME=user2
+      PASSWORD=password2
       
 
 pabot call
