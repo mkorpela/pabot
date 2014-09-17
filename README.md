@@ -14,10 +14,10 @@ Supports all Robot Framework command line options and also following options (th
 --processes   [NUMBER OF PROCESSES]          
   How many parallel executors to use (default max of 2 and cpu count)
 
---pabotlib
+--pabotlib         
   Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
 
---resourcefile [FILEPATH]
+--resourcefile [FILEPATH]         
   Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with pabotlib option. Resource file syntax is same as Windows ini files. Where a section is a shared set of variables.
 
 Example usages:
