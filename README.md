@@ -27,6 +27,44 @@ Example usages:
      pabot --command java -jar robotframework.jar --end-command --include SMOKE tests
      pabot --processes 10 tests
 
+PabotLib example:
+
+test.robot
+
+      *** Settings ***
+      Library    pabot.PabotLib    127.0.0.1:8270
+      
+      *** Test Case ***
+      Testing PabotLib
+        Acquire Lock   MyLock
+        Log   This part is critical section
+        Release Lock   MyLock
+        ${valuesetname}=    Acquire Value Set
+        ${host}=   Get Value   HOST
+        ${username}=     Get Value   USERNAME
+        ${password}=     Get Value   PASSWORD
+        Log   Do something with the values (for example access host with username and password)
+        Release Value Set
+        Log   After value set release others can obtain the variable values
+
+valueset.dat
+
+      [Server1]
+      HOST=123.123.123.123
+      USERNAME=user1
+      PASSWORD=password1
+      
+      [Server2]
+      HOST=123.123.123.123
+      USERNAME=user1
+      PASSWORD=password1
+      
+
+pabot call
+
+      pabot --pabotlib --resourcefile valueset.dat test.robot
+
+
 Installation:
 
 From PyPi:
