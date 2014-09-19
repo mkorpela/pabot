@@ -41,8 +41,8 @@ test.robot
         Release Lock   MyLock
         ${valuesetname}=    Acquire Value Set
         ${host}=   Get Value   HOST
-        ${username}=     Get Value   USERNAME
-        ${password}=     Get Value   PASSWORD
+        ${username}=     Get Value From Set   USERNAME
+        ${password}=     Get Value From Set   PASSWORD
         Log   Do something with the values (for example access host with username and password)
         Release Value Set
         Log   After value set release others can obtain the variable values
