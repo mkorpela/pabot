@@ -64,7 +64,7 @@ class _PabotLib(object):
     def release_value_set(self, caller_id):
         self._owner_to_values[caller_id] = None
 
-    def get_value(self, key, caller_id):
+    def get_value_from_set(self, key, caller_id):
         return self._owner_to_values[caller_id][key]
 
 
@@ -115,10 +115,10 @@ class PabotLib(_PabotLib):
                 self._remotelib = None
         return _PabotLib.acquire_value_set(self, self._my_id)
 
-    def get_value(self, key):
+    def get_value_from_set(self, key):
         if self._remotelib:
             while True:
-                value = self._remotelib.run_keyword('get_value', [key, self._my_id], {})
+                value = self._remotelib.run_keyword('get_value_from_set', [key, self._my_id], {})
                 if value:
                     return value
                 time.sleep(0.1)
