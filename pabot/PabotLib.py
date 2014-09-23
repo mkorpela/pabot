@@ -70,6 +70,9 @@ class _PabotLib(object):
 
 class PabotLib(_PabotLib):
 
+    __version__ = 0.11
+    ROBOT_LIBRARY_SCOPE = 'GLOBAL'
+
     def __init__(self, uri):
         _PabotLib.__init__(self)
         self._remotelib = Remote(uri) if uri else None
@@ -102,6 +105,9 @@ class PabotLib(_PabotLib):
             _PabotLib.release_lock(self, name, self._my_id)
 
     def acquire_value_set(self):
+        """
+        Reserve a set of values for this execution.
+        """
         if self._remotelib:
             try:
                 while True:
@@ -116,6 +122,9 @@ class PabotLib(_PabotLib):
         return _PabotLib.acquire_value_set(self, self._my_id)
 
     def get_value_from_set(self, key):
+        """
+        Get a value from previously reserved value set.
+        """
         if self._remotelib:
             while True:
                 value = self._remotelib.run_keyword('get_value_from_set', [key, self._my_id], {})
@@ -127,6 +136,9 @@ class PabotLib(_PabotLib):
             return _PabotLib.get_value(self, key, self._my_id)
 
     def release_value_set(self):
+        """
+        Release a reserved value set so that other executions can use it also.
+        """
         if self._remotelib:
             self._remotelib.run_keyword('release_value_set', [self._my_id], {})
         else:
