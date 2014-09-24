@@ -99,6 +99,8 @@ def _options_for_executor(options, outs_dir, suite_name):
     options['suite'] = suite_name
     options['outputdir'] = outs_dir
     options['monitorcolors'] = 'off'
+    options['variable'] = options.get('variable')
+    options['variable'].append('PABOTLIBURI:127.0.0.1:8270')
     if ROBOT_VERSION >= '2.8':
         options['monitormarkers'] = 'off'
     return options
