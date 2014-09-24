@@ -65,6 +65,10 @@ class _PabotLib(object):
         self._owner_to_values[caller_id] = None
 
     def get_value_from_set(self, key, caller_id):
+        if caller_id not in self._owner_to_values:
+            raise AssertionError('No value set reserved for caller process')
+        if key not in self._owner_to_values[caller_id]:
+            raise AssertionError('No value for key "%s"' % key)
         return self._owner_to_values[caller_id][key]
 
 
@@ -133,7 +137,7 @@ class PabotLib(_PabotLib):
                 time.sleep(0.1)
                 logger.debug('waiting for a value')
         else:
-            return _PabotLib.get_value(self, key, self._my_id)
+            return _PabotLib.get_value_from_set(self, key, self._my_id)
 
     def release_value_set(self):
         """
