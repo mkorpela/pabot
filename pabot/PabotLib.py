@@ -18,6 +18,7 @@
 import ConfigParser
 import os
 import uuid
+from robot.libraries.BuiltIn import BuiltIn
 from robotremoteserver import RobotRemoteServer
 from robot.libraries.Remote import Remote
 from robot.api import logger
@@ -77,10 +78,19 @@ class PabotLib(_PabotLib):
     __version__ = 0.11
     ROBOT_LIBRARY_SCOPE = 'GLOBAL'
 
-    def __init__(self, uri):
+    def __init__(self):
         _PabotLib.__init__(self)
-        self._remotelib = Remote(uri) if uri else None
+        self.__remotelib = None
         self._my_id = uuid.uuid4().get_hex()
+
+    @property
+    def _remotelib(self):
+        if self.__remotelib is None:
+            BuiltIn().log_variables()
+            uri = BuiltIn().get_variable_value('${PABOTLIBURI}')
+            logger.warn('URI %r' % uri)
+            self.__remotelib = Remote(uri) if uri else None
+        return self.__remotelib
 
     def acquire_lock(self, name):
         """
@@ -95,7 +105,7 @@ class PabotLib(_PabotLib):
                 return True
             except RuntimeError:
                 logger.warn('no connection')
-                self._remotelib = None
+                self.__remotelib = None
         return _PabotLib.acquire_lock(self, name, self._my_id)
 
     def release_lock(self, name):
@@ -122,7 +132,7 @@ class PabotLib(_PabotLib):
                     logger.debug('waiting for a value set')
             except RuntimeError:
                 logger.warn('no connection')
-                self._remotelib = None
+                self.__remotelib = None
         return _PabotLib.acquire_value_set(self, self._my_id)
 
     def get_value_from_set(self, key):
