@@ -1,22 +1,21 @@
-Pabot
-=====
+# Pabot - A parallel executor for [Robot Framework](www.robotframework.org) tests
 
-A parallel executor for Robot Framework test cases. Allowing you to split one test execution in to multiple parallel pybot runs and save test execution time.
+Split one execution into multiple and save test execution time.
 
-*My goal in creating this tool is to help people with huge test sets. I worked with a lot of people that were doing test execution time optimisation before I created this tool. 
-I saw similarities in how testing systems around Robot Framework were built and came up with a quite good solution for the basic parallelisation problem. I hope this tool brings you joy and speeds up your test execution! If there are any questions or comments on this tool or you just want to discuss about problems related to test automation and huge test sets, please contact me through github or pop an email to mikko.korpela(at)gmail.com!* - Mikko Korpela
+*My goal in creating this tool is to help you guys with big test sets. I've worked with a number of people that were doing test execution time optimisation before I created this tool. 
+I saw similarities in how Robot Framework testing systems have been built and came up with a quite good solution for the basic parallelisation problem. I hope this tool brings you joy and speeds up your test execution! If there are any questions or comments on this tool or you just want to discuss about problems related to test automation, please contact me through github or pop an email to firstname.lastname(at)gmail.com!* - Mikko Korpela ( those are my firstname and lastname :D )
 
-# Installation:
+## Installation:
 
 From PyPi:
 
      pip install -U robotframework-pabot
 
-Clone this repository and run:
+OR clone this repository and run:
 
      setup.py  install
 
-# Command-line options
+## Command-line options
 
 Supports all Robot Framework command line options and also following options (these must be before normal RF options):
 
