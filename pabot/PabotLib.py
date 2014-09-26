@@ -129,6 +129,7 @@ class PabotLib(_PabotLib):
                 while True:
                     value = self._remotelib.run_keyword('acquire_value_set', [self._my_id], {})
                     if value:
+                        logger.info('Value set "%s" acquired' % value)
                         return value
                     time.sleep(0.1)
                     logger.debug('waiting for a value set')
