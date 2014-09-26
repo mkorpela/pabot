@@ -96,6 +96,8 @@ class PabotLib(_PabotLib):
         """
         Wait for a lock with name.
         This will prevent other processes from acquiring the lock with the name while it is held.
+        Thus they will wait in the position where they are acquiring the lock until the process
+        that has it releases it.
         """
         if self._remotelib:
             try:
@@ -121,6 +123,9 @@ class PabotLib(_PabotLib):
     def acquire_value_set(self):
         """
         Reserve a set of values for this execution.
+        No other process can reserve the same set of values while the set is reserved.
+        Acquired value set needs to be released after use to allow other processes
+        to access it.
         """
         if self._remotelib:
             try:
