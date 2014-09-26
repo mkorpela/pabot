@@ -46,7 +46,7 @@ Example usages:
 test.robot
 
       *** Settings ***
-      Library    pabot.PabotLib    127.0.0.1:8270
+      Library    pabot.PabotLib
       
       *** Test Case ***
       Testing PabotLib
