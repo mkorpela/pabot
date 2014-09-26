@@ -2,7 +2,7 @@
 
 A parallel executor for [Robot Framework](www.robotframework.org) tests. With Pabot you can split one execution into multiple and save test execution time.
 
-*My goal in creating this tool is to help you guys with big test sets. I've worked with a number of people that were doing test execution time optimisation before I created this tool. 
+*My goal in creating this tool is to help you guys with big test sets. I've worked with a number of teams around the world that were doing test execution time optimisation before I created this tool. 
 I saw similarities in how Robot Framework testing systems have been built and came up with a quite good solution for the basic parallelisation problem. I hope this tool brings you joy and speeds up your test execution! If there are any questions or comments on this tool or you just want to discuss about problems related to test automation, please contact me through github or pop an email to firstname.lastname(at)gmail.com!* - Mikko Korpela ( those are my firstname and lastname :D )
 
 ## Installation:
