@@ -6,6 +6,18 @@ A parallel executor for Robot Framework test cases. Allowing you to split one te
 *My goal in creating this tool is to help people with huge test sets. I worked with a lot of people that were doing test execution time optimisation before I created this tool. 
 I saw similarities in how testing systems around Robot Framework were built and came up with a quite good solution for the basic parallelisation problem. I hope this tool brings you joy and speeds up your test execution! If there are any questions or comments on this tool or you just want to discuss about problems related to test automation and huge test sets, please contact me through github or pop an email to mikko.korpela(at)gmail.com!* - Mikko Korpela
 
+# Installation:
+
+From PyPi:
+
+     pip install -U robotframework-pabot
+
+Clone this repository and run:
+
+     setup.py  install
+
+# Command-line options
+
 Supports all Robot Framework command line options and also following options (these must be before normal RF options):
 
 --verbose     
@@ -67,13 +79,3 @@ pabot call
 
       pabot --pabotlib --resourcefile valueset.dat test.robot
 
-
-Installation:
-
-From PyPi:
-
-     pip install -U robotframework-pabot
-
-Clone this repository and run:
-
-     setup.py  install
