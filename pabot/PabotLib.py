@@ -84,9 +84,8 @@ class PabotLib(_PabotLib):
     @property
     def _remotelib(self):
         if self.__remotelib is None:
-            BuiltIn().log_variables()
             uri = BuiltIn().get_variable_value('${PABOTLIBURI}')
-            logger.warn('URI %r' % uri)
+            logger.debug('PabotLib URI %r' % uri)
             self.__remotelib = Remote(uri) if uri else None
         return self.__remotelib
 
