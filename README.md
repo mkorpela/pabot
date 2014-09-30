@@ -54,7 +54,7 @@ test.robot
         Log   This part is critical section
         Release Lock   MyLock
         ${valuesetname}=    Acquire Value Set
-        ${host}=   Get Value   HOST
+        ${host}=   Get Value From Set   HOST
         ${username}=     Get Value From Set   USERNAME
         ${password}=     Get Value From Set   PASSWORD
         Log   Do something with the values (for example access host with username and password)
