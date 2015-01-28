@@ -16,8 +16,10 @@
 #  by Nokia Solutions and Networks
 #  that was licensed under Apache License Version 2.0
 
+import os
 from robot.api import ExecutionResult
 from robot.result.executionresult import CombinedResult
+from robot.result.testsuite import TestSuite
 from robot.model import SuiteVisitor
 
 class ResultMerger(SuiteVisitor):
@@ -69,8 +71,19 @@ class ResultMerger(SuiteVisitor):
             return
         self.current = self.current.parent
 
-    def visit_test(self, test):
-        pass
+    def visit_message(self, msg):
+        if msg.html and "<img src=\"selenium-screenshot" in msg.message:
+            item_p = msg.parent
+            while not isinstance(item_p, TestSuite):
+                item_p = item_p.parent
+
+            suites_names = item_p.longname.split('.')
+            top_name = os.getenv('TESTS_TOP_NAME', '')
+            if top_name:
+                suites_names[0] = top_name
+            prefix = '.'.join(suites_names)
+            msg.message = msg.message.replace('selenium-screenshot',
+                                              prefix + '-selenium-screenshot')
 
 
 class ResultsCombiner(CombinedResult):
@@ -92,10 +105,11 @@ def group_by_root(results):
 def merge_groups(results):
     merged = []
     for group in group_by_root(results).values():
-        merger = ResultMerger(group[0])
-        for out in group[1:]:
+        base = group[0]
+        merger = ResultMerger(base)
+        for out in group:
             merger.merge(out)
-        merged.append(group[0])
+        merged.append(base)
     return merged
 
 
