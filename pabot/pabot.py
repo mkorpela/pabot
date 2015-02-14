@@ -315,7 +315,7 @@ def main(args):
         else:
             print 'No tests to execute'
     except Information, i:
-        print """A parallel executor for Robot Framework test cases.
+        print """A parallel executor for Robot Framework test cases. Version 0.12.
 
 Supports all Robot Framework command line options and also following options (these must be before normal RF options):
 
@@ -334,7 +334,7 @@ Indicator for a file that can contain shared variables for distributing resource
 --pabotlib
 Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
 
-Copyright 2014 Mikko Korpela - GPLv3
+Copyright 2015 Mikko Korpela - GPLv3
 """
         print i.message
     finally:
