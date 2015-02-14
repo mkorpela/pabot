@@ -30,6 +30,7 @@ from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
 from robot.errors import Information
 from robot.result.visitor import ResultVisitor
+from robot.libraries.Remote import Remote
 from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
 from robot.utils import ArgumentParser
@@ -40,6 +41,7 @@ import Queue
 
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = Queue.Queue()
+_PABOTLIBURI = '127.0.0.1:8270'
 
 def execute_and_wait_with(args):
     global CTRL_C_PRESSED
@@ -97,7 +99,7 @@ def _options_for_executor(options, outs_dir, suite_name):
     options['outputdir'] = outs_dir
     options['monitorcolors'] = 'off'
     options['variable'] = options.get('variable')
-    options['variable'].append('PABOTLIBURI:127.0.0.1:8270')
+    options['variable'].append('PABOTLIBURI:%s' % _PABOTLIBURI)
     if ROBOT_VERSION >= '2.8':
         options['monitormarkers'] = 'off'
     return options
@@ -284,7 +286,17 @@ def _start_remote_library(pabot_args):
                             shell=True)
 
 def _stop_remote_library(process):
-    process.terminate()
+    print 'Stopping PabotLib process'
+    Remote(_PABOTLIBURI).run_keyword('stop_remote_server', [], {})
+    i = 50
+    while i > 0 and process.poll() is None:
+        time.sleep(0.1)
+        i -= 1
+    if i == 0:
+        print 'Could not stop PabotLib Process in 5 seconds - calling terminate'
+        process.terminate()
+    else:
+        print 'PabotLib process stopped'
 
 def main(args):
     start_time = time.time()

@@ -164,4 +164,4 @@ class PabotLib(_PabotLib):
 
 if __name__ == '__main__':
     import sys
-    RobotRemoteServer(_PabotLib(sys.argv[1]))
+    RobotRemoteServer(_PabotLib(sys.argv[1]), allow_stop=True)
