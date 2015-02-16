@@ -45,7 +45,7 @@ class _PabotLib(object):
         self._parallel_values[key] = value
 
     def get_parallel_value_for_key(self, key):
-        return self._parallel_values.get(key, None)
+        return self._parallel_values.get(key, "")
 
     def acquire_lock(self, name, caller_id):
         if name in self._locks and caller_id != self._locks[name][0]:
@@ -107,7 +107,7 @@ class PabotLib(_PabotLib):
 
     def get_parallel_value_for_key(self, key):
         """
-        Get the value for a key. If there is no value for the key then None is returned.
+        Get the value for a key. If there is no value for the key then empty string is returned.
         """
         if self._remotelib:
             return self._remotelib.run_keyword('get_parallel_value_for_key', [key], {})
