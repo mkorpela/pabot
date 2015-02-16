@@ -96,6 +96,34 @@ class PabotLib(_PabotLib):
             self.__remotelib = Remote(uri) if uri else None
         return self.__remotelib
 
+    def run_only_once(self, keyword):
+        """
+        This is an *experimental* keyword for building setups that should be executed only once.
+        As the keyword will be called only in one process and the return value could basically be anything.
+        The "Run Only Once" can't return the actual value.
+        If the keyword fails, "Run Only Once" fails.
+        Others executing "Run Only Once" wait before going through this keyword before the actual command has been executed.
+        NOTE! This is a potential "Shoot yourself in to knee" keyword
+        Especially note that all the namespace changes are only visible in the process that actually executed the keyword.
+        Also note that this might lead to odd situations if used inside of other keywords.
+        Also at this point the keyword will be identified to be same if it has the same name.
+        """
+        lock_name = 'pabot_run_only_once_%s' % keyword
+        try:
+            self.acquire_lock(lock_name)
+            passed = self.get_parallel_value_for_key(lock_name)
+            if passed != '':
+                if passed == 'FAILED':
+                    raise AssertionError('Keyword failed in other process')
+                return
+            BuiltIn().run_keyword(keyword)
+            self.set_parallel_value_for_key(lock_name, 'PASSED')
+        except:
+            self.set_parallel_value_for_key(lock_name, 'FAILED')
+            raise
+        finally:
+            self.release_lock(lock_name)
+
     def set_parallel_value_for_key(self, key, value):
         """
         Set a globally available key and value that can be accessed from all the pabot processes.
