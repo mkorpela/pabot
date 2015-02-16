@@ -28,6 +28,7 @@ class _PabotLib(object):
     def __init__(self, resourcefile=None):
         self._locks = {}
         self._owner_to_values = {}
+        self._parallel_values = {}
         self._values = self._parse_values(resourcefile)
 
     def _parse_values(self, resourcefile):
@@ -39,6 +40,12 @@ class _PabotLib(object):
         for section in conf.sections():
             vals[section] = dict((k,conf.get(section, k)) for k in conf.options(section))
         return vals
+
+    def set_parallel_value_for_key(self, key, value):
+        self._parallel_values[key] = value
+
+    def get_parallel_value_for_key(self, key):
+        return self._parallel_values.get(key, None)
 
     def acquire_lock(self, name, caller_id):
         if name in self._locks and caller_id != self._locks[name][0]:
@@ -88,6 +95,23 @@ class PabotLib(_PabotLib):
             logger.debug('PabotLib URI %r' % uri)
             self.__remotelib = Remote(uri) if uri else None
         return self.__remotelib
+
+    def set_parallel_value_for_key(self, key, value):
+        """
+        Set a globally available key and value that can be accessed from all the pabot processes.
+        """
+        if self._remotelib:
+            self._remotelib.run_keyword('set_parallel_value_for_key', [key, value], {})
+        else:
+            _PabotLib.set_parallel_value_for_key(self, key, value)
+
+    def get_parallel_value_for_key(self, key):
+        """
+        Get the value for a key. If there is no value for the key then None is returned.
+        """
+        if self._remotelib:
+            return self._remotelib.run_keyword('get_parallel_value_for_key', [key], {})
+        return _PabotLib.get_parallel_value_for_key(self, key)
 
     def acquire_lock(self, name):
         """
