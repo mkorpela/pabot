@@ -80,7 +80,7 @@ class _PabotLib(object):
 
 class PabotLib(_PabotLib):
 
-    __version__ = 0.11
+    __version__ = 0.13
     ROBOT_LIBRARY_SCOPE = 'GLOBAL'
 
     def __init__(self):
