@@ -55,8 +55,8 @@ def execute_and_wait_with(args):
     cmd = command + _options_for_custom_executor(options, outs_dir, suite_name) + datasources
     cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
     os.makedirs(outs_dir)
-    with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout, \
-        open(os.path.join(outs_dir, 'stderr.txt'), 'w') as stderr:
+    with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
+        with open(os.path.join(outs_dir, 'stderr.txt'), 'w') as stderr:
             process, rc = _run(cmd, stderr, stdout, suite_name, verbose)
     if rc != 0:
         _write(_execution_failed_message(suite_name, rc, verbose))
