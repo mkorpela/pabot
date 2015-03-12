@@ -41,6 +41,11 @@ Example usages:
      pabot --command java -jar robotframework.jar --end-command --include SMOKE tests
      pabot --processes 10 tests
 
+### PabotLib
+
+pabot.PabotLib provides keywords that will help communication and data sharing between the executor processes.
+Docs are located at https://github.com/mkorpela/pabot/edit/master/PabotLib.html
+
 ### PabotLib example:
 
 test.robot
