@@ -44,7 +44,7 @@ Example usages:
 ### PabotLib
 
 pabot.PabotLib provides keywords that will help communication and data sharing between the executor processes.
-Docs are located at https://github.com/mkorpela/pabot/edit/master/PabotLib.html
+Docs are located at https://github.com/mkorpela/pabot/blob/master/PabotLib.html
 
 ### PabotLib example:
 
