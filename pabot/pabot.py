@@ -334,7 +334,7 @@ Indicator for a file that can contain shared variables for distributing resource
 --pabotlib
 Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
 
-Copyright 2015 Mikko Korpela - GPLv3
+Copyright 2015 Mikko Korpela - Apache 2 License
 """
         print i.message
     finally:
