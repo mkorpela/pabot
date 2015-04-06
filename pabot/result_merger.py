@@ -17,6 +17,7 @@
 #  that was licensed under Apache License Version 2.0
 
 from robot.api import ExecutionResult
+from robot.result.executionresult import CombinedResult
 from robot.model import SuiteVisitor
 
 class ResultMerger(SuiteVisitor):
@@ -71,11 +72,37 @@ class ResultMerger(SuiteVisitor):
     def visit_test(self, test):
         pass
 
+
+class ResultsCombiner(CombinedResult):
+
+    def add_result(self, other):
+        for suite in other.suite.suites:
+            self.suite.suites.append(suite)
+        self.errors.add(other.errors)
+
+
+def group_by_root(results):
+    groups = {}
+    for src in results:
+        res = ExecutionResult(src)
+        groups[res.suite.name] = groups.get(res.suite.name, []) + [res]
+    return groups
+
+
+def merge_groups(results):
+    merged = []
+    for group in group_by_root(results).values():
+        merger = ResultMerger(group[0])
+        for out in group[1:]:
+            merger.merge(out)
+        merged.append(group[0])
+    return merged
+
+
 def merge(*result_files):
     assert len(result_files) > 0
-    out = ExecutionResult(result_files[0])
-    merger = ResultMerger(out)
-    for result in result_files[1:]:
-        merger.merge(ExecutionResult(result))
-    return out
-
+    merged = merge_groups(result_files)
+    if len(merged) == 1:
+        return merged[0]
+    else:
+        return ResultsCombiner(merged)
