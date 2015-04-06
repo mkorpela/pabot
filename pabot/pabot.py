@@ -147,11 +147,14 @@ def _parse_args(args):
                   'pabotlib':False,
                   'processes':max(multiprocessing.cpu_count(), 2)}
     while args and args[0] in ['--'+param for param in ['command', 'processes', 'verbose', 'resourcefile',
-                                                        'pabotlib']]:
+                                                        'pybot', 'pabotlib']]:
         if args[0] == '--command':
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
             args = args[end_index+1:]
+        if args[0] == '--pybot':
+            pabot_args['command'] = [args[1]]
+            args = args[2:]
         if args[0] == '--processes':
             pabot_args['processes'] = int(args[1])
             args = args[2:]
