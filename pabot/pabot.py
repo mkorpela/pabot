@@ -18,6 +18,7 @@
 
 
 
+import re
 import os, sys, time, datetime
 import multiprocessing
 from glob import glob
@@ -249,18 +250,32 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
             keyboard_interrupt()
     signal.signal(signal.SIGINT, original_signal_handler)
 
-def _output_dir(options):
+def _output_dir(options, cleanup=True):
     outputdir = '.'
     if 'outputdir' in options:
         outputdir = options['outputdir']
     outpath = os.path.join(outputdir, 'pabot_results')
-    if os.path.isdir(outpath):
+    if cleanup and os.path.isdir(outpath):
         shutil.rmtree(outpath)
     return outpath
+
+
+def _copy_screenshots(options):
+    pabot_outputdir = _output_dir(options, cleanup=False)
+    outputdir = options['outputdir']
+    for location, dir_names, file_names in os.walk(pabot_outputdir):
+        for file_name in file_names:
+            if re.search("selenium-screenshot-.*\.png", file_name):
+                prefix = os.path.relpath(location, pabot_outputdir)
+                dst_file_name = '-'.join([prefix, file_name])
+                shutil.copyfile(os.path.join(location, file_name),
+                                os.path.join(options['outputdir'], dst_file_name))
+
 
 def _report_results(outs_dir, options, start_time_string):
     output_path = os.path.abspath(os.path.join(options.get('outputdir', '.'), options.get('output', 'output.xml')))
     merge(*sorted(glob(os.path.join(outs_dir, '**/*.xml')))).save(output_path)
+    _copy_screenshots(options)
     print 'Output:  %s' % output_path
     options['output'] = None # Do not write output again with rebot
     return rebot(output_path, **_options_for_rebot(options, start_time_string, _now()))
@@ -298,6 +313,13 @@ def _stop_remote_library(process):
     else:
         print 'PabotLib process stopped'
 
+
+def _set_top_name(suite_names):
+    top_names = [x.split('.')[0] for x in suite_names]
+    if top_names.count(top_names[0]) == len(top_names):
+        os.environ['TESTS_TOP_NAME'] = top_names[0]
+
+
 def main(args):
     start_time = time.time()
     start_time_string = _now()
@@ -310,6 +332,7 @@ def main(args):
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options)
         if suite_names:
+            _set_top_name(suite_names)
             _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
             sys.exit(_report_results(outs_dir, options, start_time_string))
         else:
