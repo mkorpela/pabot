@@ -251,9 +251,7 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
     signal.signal(signal.SIGINT, original_signal_handler)
 
 def _output_dir(options, cleanup=True):
-    outputdir = '.'
-    if 'outputdir' in options:
-        outputdir = options['outputdir']
+    outputdir = options.get('outputdir', '.')
     outpath = os.path.join(outputdir, 'pabot_results')
     if cleanup and os.path.isdir(outpath):
         shutil.rmtree(outpath)
@@ -262,14 +260,14 @@ def _output_dir(options, cleanup=True):
 
 def _copy_screenshots(options):
     pabot_outputdir = _output_dir(options, cleanup=False)
-    outputdir = options['outputdir']
+    outputdir = options.get('outputdir', '.')
     for location, dir_names, file_names in os.walk(pabot_outputdir):
         for file_name in file_names:
             if re.search("selenium-screenshot-.*\.png", file_name):
                 prefix = os.path.relpath(location, pabot_outputdir)
                 dst_file_name = '-'.join([prefix, file_name])
                 shutil.copyfile(os.path.join(location, file_name),
-                                os.path.join(options['outputdir'], dst_file_name))
+                                os.path.join(outputdir, dst_file_name))
 
 
 def _report_results(outs_dir, options, start_time_string):
