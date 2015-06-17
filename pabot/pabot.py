@@ -44,6 +44,11 @@ CTRL_C_PRESSED = False
 MESSAGE_QUEUE = Queue.Queue()
 _PABOTLIBURI = '127.0.0.1:8270'
 
+class Color:
+    GREEN = '\033[92m'
+    RED = '\033[91m'
+    ENDC = '\033[0m'
+
 def execute_and_wait_with(args):
     global CTRL_C_PRESSED
     if CTRL_C_PRESSED:
@@ -60,9 +65,9 @@ def execute_and_wait_with(args):
         with open(os.path.join(outs_dir, 'stderr.txt'), 'w') as stderr:
             process, rc = _run(cmd, stderr, stdout, suite_name, verbose)
     if rc != 0:
-        _write(_execution_failed_message(suite_name, rc, verbose))
+        _write(_execution_failed_message(suite_name, rc, verbose), Color.RED)
     else:
-        _write('PASSED %s' % suite_name)
+        _write('PASSED %s' % suite_name, Color.GREEN)
 
 def _run(cmd, stderr, stdout, suite_name, verbose):
     process = subprocess.Popen(' '.join(cmd),
@@ -283,8 +288,18 @@ def _writer():
         message = MESSAGE_QUEUE.get()
         print message
 
-def _write(message):
+def _write(message, color=None):
+    if color == Color.RED:
+        message = _wrap_with_red(message)
+    if color == Color.GREEN:
+        message = _wrap_with_green(message)
     MESSAGE_QUEUE.put(message)
+
+def _wrap_with_red(text):
+    return "%s%s%s" % (Color.RED, text, Color.ENDC)
+
+def _wrap_with_green(text):
+    return "%s%s%s" % (Color.GREEN, text, Color.ENDC)
 
 def _start_message_writer():
     t = threading.Thread(target=_writer)
