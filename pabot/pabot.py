@@ -289,17 +289,12 @@ def _writer():
         print message
 
 def _write(message, color=None):
-    if color == Color.RED:
-        message = _wrap_with_red(message)
-    if color == Color.GREEN:
-        message = _wrap_with_green(message)
+    if color:
+        message = _wrap_with(color, message)
     MESSAGE_QUEUE.put(message)
 
-def _wrap_with_red(text):
-    return "%s%s%s" % (Color.RED, text, Color.ENDC)
-
-def _wrap_with_green(text):
-    return "%s%s%s" % (Color.GREEN, text, Color.ENDC)
+def _wrap_with(color, message):
+    return "%s%s%s" % (color, message, Color.ENDC)
 
 def _start_message_writer():
     t = threading.Thread(target=_writer)
