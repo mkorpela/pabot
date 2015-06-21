@@ -45,6 +45,8 @@ MESSAGE_QUEUE = Queue.Queue()
 _PABOTLIBURI = '127.0.0.1:8270'
 
 class Color:
+    SUPPORTED_OSES = ['posix']
+
     GREEN = '\033[92m'
     RED = '\033[91m'
     ENDC = '\033[0m'
@@ -289,12 +291,18 @@ def _writer():
         print message
 
 def _write(message, color=None):
-    if color:
+    if _is_output_coloring_supported() and color:
         message = _wrap_with(color, message)
     MESSAGE_QUEUE.put(message)
 
 def _wrap_with(color, message):
     return "%s%s%s" % (color, message, Color.ENDC)
+
+def _is_output_coloring_supported():
+    if any([not sys.stdout.isatty(),
+            not os.name in Color.SUPPORTED_OSES]):
+        return False
+    return True
 
 def _start_message_writer():
     t = threading.Thread(target=_writer)
