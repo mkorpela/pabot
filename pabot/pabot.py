@@ -299,10 +299,7 @@ def _wrap_with(color, message):
     return "%s%s%s" % (color, message, Color.ENDC)
 
 def _is_output_coloring_supported():
-    if any([not sys.stdout.isatty(),
-            not os.name in Color.SUPPORTED_OSES]):
-        return False
-    return True
+    return sys.stdout.isatty() and os.name in Color.SUPPORTED_OSES
 
 def _start_message_writer():
     t = threading.Thread(target=_writer)
