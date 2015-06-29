@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-#  Copyright 2014 Mikko Korpela
+#  Copyright 2014->future! Mikko Korpela
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -351,7 +351,7 @@ def main(args):
         else:
             print 'No tests to execute'
     except Information, i:
-        print """A parallel executor for Robot Framework test cases. Version 0.14.
+        print """A parallel executor for Robot Framework test cases. Version 0.15.
 
 Supports all Robot Framework command line options and also following options (these must be before normal RF options):
 
