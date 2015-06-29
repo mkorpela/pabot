@@ -291,12 +291,12 @@ def _writer():
         print message
 
 def _write(message, color=None):
-    if _is_output_coloring_supported() and color:
-        message = _wrap_with(color, message)
-    MESSAGE_QUEUE.put(message)
+    MESSAGE_QUEUE.put(_wrap_with(color, message))
 
 def _wrap_with(color, message):
-    return "%s%s%s" % (color, message, Color.ENDC)
+    if _is_output_coloring_supported() and color:
+        return "%s%s%s" % (color, message, Color.ENDC)
+    return message
 
 def _is_output_coloring_supported():
     return sys.stdout.isatty() and os.name in Color.SUPPORTED_OSES
