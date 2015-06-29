@@ -105,10 +105,17 @@ def _options_for_executor(options, outs_dir, suite_name):
     options['xunit'] = 'NONE'
     options['suite'] = suite_name
     options['outputdir'] = outs_dir
-    options['monitorcolors'] = 'off'
     options['variable'] = options.get('variable')
     options['variable'].append('PABOTLIBURI:%s' % _PABOTLIBURI)
-    if ROBOT_VERSION >= '2.8':
+    return _set_terminal_coloring_options(options)
+
+def _set_terminal_coloring_options(options):
+    if ROBOT_VERSION >= '2.9':
+        options['consolecolors'] = 'off'
+        options['consolemarkers'] = 'off'
+    else:
+        options['monitorcolors'] = 'off'
+    if ROBOT_VERSION >= '2.8' and ROBOT_VERSION < '2.9':
         options['monitormarkers'] = 'off'
     return options
 
@@ -203,10 +210,7 @@ def _options_for_dryrun(options, outs_dir):
     options['outputdir'] = outs_dir
     options['stdout'] = StringIO()
     options['stderr'] = StringIO()
-    options['monitorcolors'] = 'off'
-    if ROBOT_VERSION >= '2.8':
-        options['monitormarkers'] = 'off'
-    return options
+    return _set_terminal_coloring_options(options)
 
 def _options_for_rebot(options, start_time_string, end_time_string):
     rebot_options = options.copy()
