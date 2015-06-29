@@ -18,6 +18,7 @@
 
 import os
 from robot.api import ExecutionResult
+from robot.conf import RebotSettings
 from robot.result.executionresult import CombinedResult
 from robot.result.testsuite import TestSuite
 from robot.model import SuiteVisitor
@@ -94,17 +95,18 @@ class ResultsCombiner(CombinedResult):
         self.errors.add(other.errors)
 
 
-def group_by_root(results):
+def group_by_root(results, critical_tags, non_critical_tags):
     groups = {}
     for src in results:
         res = ExecutionResult(src)
+        res.suite.set_criticality(critical_tags, non_critical_tags)
         groups[res.suite.name] = groups.get(res.suite.name, []) + [res]
     return groups
 
 
-def merge_groups(results):
+def merge_groups(results, critical_tags, non_critical_tags):
     merged = []
-    for group in group_by_root(results).values():
+    for group in group_by_root(results, critical_tags, non_critical_tags).values():
         base = group[0]
         merger = ResultMerger(base)
         for out in group:
@@ -113,9 +115,10 @@ def merge_groups(results):
     return merged
 
 
-def merge(*result_files):
+def merge(*result_files, **options):
     assert len(result_files) > 0
-    merged = merge_groups(result_files)
+    settings = RebotSettings(options)
+    merged = merge_groups(result_files, settings.critical_tags, settings.non_critical_tags)
     if len(merged) == 1:
         return merged[0]
     else:

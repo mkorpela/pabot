@@ -279,7 +279,7 @@ def _copy_screenshots(options):
 
 def _report_results(outs_dir, options, start_time_string):
     output_path = os.path.abspath(os.path.join(options.get('outputdir', '.'), options.get('output', 'output.xml')))
-    merge(*sorted(glob(os.path.join(outs_dir, '**/*.xml')))).save(output_path)
+    merge(*sorted(glob(os.path.join(outs_dir, '**/*.xml'))), **options).save(output_path)
     _copy_screenshots(options)
     print 'Output:  %s' % output_path
     options['output'] = None # Do not write output again with rebot
