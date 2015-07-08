@@ -281,9 +281,9 @@ def _copy_screenshots(options):
                                 os.path.join(outputdir, dst_file_name))
 
 
-def _report_results(outs_dir, options, start_time_string):
+def _report_results(outs_dir, options, start_time_string, tests_root_name):
     output_path = os.path.abspath(os.path.join(options.get('outputdir', '.'), options.get('output', 'output.xml')))
-    merge(*sorted(glob(os.path.join(outs_dir, '**/*.xml'))), **options).save(output_path)
+    merge(sorted(glob(os.path.join(outs_dir, '**/*.xml'))), options, tests_root_name).save(output_path)
     _copy_screenshots(options)
     print 'Output:  %s' % output_path
     options['output'] = None # Do not write output again with rebot
@@ -331,10 +331,11 @@ def _stop_remote_library(process):
         print 'PabotLib process stopped'
 
 
-def _set_top_name(suite_names):
+def _get_suite_root_name(suite_names):
     top_names = [x.split('.')[0] for x in suite_names]
     if top_names.count(top_names[0]) == len(top_names):
-        os.environ['TESTS_TOP_NAME'] = top_names[0]
+        return top_names[0]
+    return ''
 
 
 def main(args):
@@ -349,9 +350,8 @@ def main(args):
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options)
         if suite_names:
-            _set_top_name(suite_names)
             _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
-            sys.exit(_report_results(outs_dir, options, start_time_string))
+            sys.exit(_report_results(outs_dir, options, start_time_string, _get_suite_root_name(suite_names)))
         else:
             print 'No tests to execute'
     except Information, i:

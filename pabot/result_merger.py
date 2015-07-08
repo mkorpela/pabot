@@ -25,10 +25,11 @@ from robot.model import SuiteVisitor
 
 class ResultMerger(SuiteVisitor):
 
-    def __init__(self, result):
+    def __init__(self, result, tests_root_name):
         self.root = result.suite
         self.current = None
         self._skip_until = None
+        self._tests_root_name = tests_root_name
 
     def merge(self, merged):
         try:
@@ -52,7 +53,6 @@ class ResultMerger(SuiteVisitor):
             else:
                 self.current = next
 
-
     def _find_root(self, suite):
         if self.root.name != suite.name:
             raise ValueError('self.root.name "%s" != suite.name "%s"' % (self.root.name, suite.name))
@@ -74,14 +74,12 @@ class ResultMerger(SuiteVisitor):
 
     def visit_message(self, msg):
         if msg.html and "<img src=\"selenium-screenshot" in msg.message:
-            item_p = msg.parent
-            while not isinstance(item_p, TestSuite):
-                item_p = item_p.parent
-
-            suites_names = item_p.longname.split('.')
-            top_name = os.getenv('TESTS_TOP_NAME', '')
-            if top_name:
-                suites_names[0] = top_name
+            parent = msg.parent
+            while not isinstance(parent, TestSuite):
+                parent = parent.parent
+            suites_names = parent.longname.split('.')
+            if self._tests_root_name:
+                suites_names[0] = self._tests_root_name
             prefix = '.'.join(suites_names)
             msg.message = msg.message.replace('selenium-screenshot',
                                               prefix + '-selenium-screenshot')
@@ -104,21 +102,21 @@ def group_by_root(results, critical_tags, non_critical_tags):
     return groups
 
 
-def merge_groups(results, critical_tags, non_critical_tags):
+def merge_groups(results, critical_tags, non_critical_tags, tests_root_name):
     merged = []
     for group in group_by_root(results, critical_tags, non_critical_tags).values():
         base = group[0]
-        merger = ResultMerger(base)
+        merger = ResultMerger(base, tests_root_name)
         for out in group:
             merger.merge(out)
         merged.append(base)
     return merged
 
 
-def merge(*result_files, **options):
+def merge(result_files, rebot_options, tests_root_name):
     assert len(result_files) > 0
-    settings = RebotSettings(options)
-    merged = merge_groups(result_files, settings.critical_tags, settings.non_critical_tags)
+    settings = RebotSettings(rebot_options)
+    merged = merge_groups(result_files, settings.critical_tags, settings.non_critical_tags, tests_root_name)
     if len(merged) == 1:
         return merged[0]
     else:
