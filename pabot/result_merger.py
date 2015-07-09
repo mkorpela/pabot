@@ -16,7 +16,6 @@
 #  by Nokia Solutions and Networks
 #  that was licensed under Apache License Version 2.0
 
-import os
 from robot.api import ExecutionResult
 from robot.conf import RebotSettings
 from robot.result.executionresult import CombinedResult
