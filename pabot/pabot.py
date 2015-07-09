@@ -195,7 +195,7 @@ def solve_suite_names(outs_dir, datasources, options):
     suite_names = get_suite_names(output)
     if os.path.isfile(output):
         os.remove(output)
-    return suite_names
+    return sorted(set(suite_names))
 
 def _options_for_dryrun(options, outs_dir):
     options = options.copy()
