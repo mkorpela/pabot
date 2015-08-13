@@ -51,17 +51,47 @@ class Color:
     RED = '\033[91m'
     ENDC = '\033[0m'
 
+class TestsuitesHosts:
+    """Iterator for looping over a sequence backwards."""
+    def __init__(self, testsuites, hosts):
+        self.testsuites = testsuites
+        self.testsuitesIter = iter(testsuites)
+        self.hosts = hosts
+        if(self.hosts is not None):
+            self.hostsIter = iter(hosts)
+        else:
+            self.hostsIter = None
+    def __iter__(self):
+        return self
+    def next(self):
+        testsuite = self.testsuitesIter.next()
+        if (self.hostsIter is not None):
+            try:
+                host = self.hostsIter.next()
+            except StopIteration:
+                self.hostsIter = iter(self.hosts)
+                host = self.hostsIter.next()
+        else:
+            host = None
+        return (testsuite, host)
+
 def execute_and_wait_with(args):
     global CTRL_C_PRESSED
     if CTRL_C_PRESSED:
         # Keyboard interrupt has happened!
         return
     time.sleep(0)
-    datasources, outs_dir, options, suite_name, command, verbose = args
+    datasources, outs_dir, options, suite_name, command, verbose, host = args
+    if (host is not None):
+        host_variable = ["--variable", "%s" % host]
+    else:
+        host_variable = []
     datasources = [d.encode('utf-8') if isinstance(d, unicode) else d for d in datasources]
     outs_dir = os.path.join(outs_dir, suite_name)
-    cmd = command + _options_for_custom_executor(options, outs_dir, suite_name) + datasources
+    cmd = command + host_variable + _options_for_custom_executor(options, outs_dir, suite_name) + datasources
     cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
+    if verbose:
+        _write("DEBUG=========%s\n\n" % cmd)
     os.makedirs(outs_dir)
     with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
         with open(os.path.join(outs_dir, 'stderr.txt'), 'w') as stderr:
@@ -162,7 +192,7 @@ def _parse_args(args):
                   'pabotlib':False,
                   'processes':max(multiprocessing.cpu_count(), 2)}
     while args and args[0] in ['--'+param for param in ['command', 'processes', 'verbose', 'resourcefile',
-                                                        'pabotlib']]:
+                                                        'pabotlib', 'hostsfile']]:
         if args[0] == '--command':
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
@@ -179,6 +209,9 @@ def _parse_args(args):
         if args[0] == '--pabotlib':
             pabot_args['pabotlib'] = True
             args = args[1:]
+        if args[0] == '--hostsfile':
+            pabot_args['hostsfile'] = args[1]
+            args = args[2:]
     options, datasources = ArgumentParser(USAGE, auto_pythonpath=False, auto_argumentfile=False).parse_args(args)
     keys = set()
     for k in options:
@@ -244,14 +277,21 @@ def keyboard_interrupt(*args):
 def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
     pool = ThreadPool(pabot_args['processes'])
+    if (pabot_args.has_key("hostsfile")):
+        hosts = [host.rstrip('\r\n') for host in open(pabot_args["hostsfile"])]
+    else:
+        hosts = None
+    if pabot_args["verbose"]:
+        print [(suite,host) for (suite,host) in TestsuitesHosts(suite_names, hosts)]
     result = pool.map_async(execute_and_wait_with,
                [(datasources,
                  outs_dir,
                  options,
                  suite,
                  pabot_args['command'],
-                 pabot_args['verbose'])
-                for suite in suite_names])
+                 pabot_args['verbose'],
+                 host)
+                for (suite,host) in TestsuitesHosts(suite_names, hosts)])
     pool.close()
     while not result.ready():
         # keyboard interrupt is executed in main thread and needs this loop to get time to get executed
@@ -373,6 +413,9 @@ Indicator for a file that can contain shared variables for distributing resource
 
 --pabotlib
 Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
+
+--hostsfile
+Set the variable for each test suite with one line of hostsfile before executing test suite in parallel
 
 Copyright 2015 Mikko Korpela - Apache 2 License
 """
