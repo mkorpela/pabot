@@ -51,6 +51,30 @@ class Color:
     RED = '\033[91m'
     ENDC = '\033[0m'
 
+class TestsuitesHosts:
+    """Iterator for looping over a sequence backwards."""
+    def __init__(self, testsuites, hosts):
+        self.testsuites = testsuites
+        self.testsuitesIter = iter(testsuites)
+        self.hosts = hosts
+        if(self.hosts is not None):
+            self.hostsIter = iter(hosts)
+        else:
+            self.hostsIter = None
+    def __iter__(self):
+        return self
+    def next(self):
+        testsuite = self.testsuitesIter.next()
+        if (self.hostsIter is not None):
+            try:
+                host = self.hostsIter.next()
+            except StopIteration:
+                self.hostsIter = iter(self.hosts)
+                host = self.hostsIter.next()
+        else:
+            host = None
+        return (testsuite, host)
+
 def execute_and_wait_with(args):
     global CTRL_C_PRESSED
     if CTRL_C_PRESSED:
