@@ -61,7 +61,7 @@ def execute_and_wait_with(args):
     datasources = [d.encode('utf-8') if isinstance(d, unicode) else d for d in datasources]
     outs_dir = os.path.join(outs_dir, suite_name)
     cmd = command + _options_for_custom_executor(options, outs_dir, suite_name) + datasources
-    cmd = [c if ' ' not in c else '"%s"' % c for c in cmd]
+    cmd = [c if (' ' not in c) and (';' not in c) else '"%s"' % c for c in cmd]
     os.makedirs(outs_dir)
     with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
         with open(os.path.join(outs_dir, 'stderr.txt'), 'w') as stderr:
