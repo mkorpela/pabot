@@ -15,6 +15,11 @@ OR clone this repository and run:
 
      setup.py  install
 
+## Things you should know
+
+   - Pabot will split test execution from suite files and not from individual test level
+   - In general case you can't account on tests that haven't desinged to be executed parallely to work out of the box when executing parallely. This might require some work from your part. For example if they manipulate or use the same data, you might get yourself in trouble (one test suite logs in to the system while another logs the same session out etc.). PabotLib can help you solve these problems of concurrency.
+
 ## Command-line options
 
 Supports all Robot Framework command line options and also following options (these must be before normal RF options):
