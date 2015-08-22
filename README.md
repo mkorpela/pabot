@@ -18,7 +18,7 @@ OR clone this repository and run:
 ## Things you should know
 
    - Pabot will split test execution from suite files and not from individual test level.
-   - In general case you can't count on tests that haven't desinged to be executed parallely to work out of the box when executing parallely. For example if the tests manipulate or use the same data, you might get yourself in trouble (one test suite logs in to the system while another logs the same session out etc.). PabotLib can help you solve these problems of concurrency. Also see [TRICKS|./TRICKS.md] for helpful tips.
+   - In general case you can't count on tests that haven't desinged to be executed parallely to work out of the box when executing parallely. For example if the tests manipulate or use the same data, you might get yourself in trouble (one test suite logs in to the system while another logs the same session out etc.). PabotLib can help you solve these problems of concurrency. Also see [TRICKS|(./TRICKS.md) for helpful tips.
 
 ## Command-line options
 
