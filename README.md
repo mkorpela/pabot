@@ -36,6 +36,18 @@ Supports all Robot Framework command line options and also following options (th
 --pabotlib         
   Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
 
+--pabotlibhost   [HOSTNAME]
+  Host name of the PabotLib remote server (default is 127.0.0.1)
+  If used with --pabotlib option, will change the host listen address of the created remote server (see https://github.com/robotframework/PythonRemoteServer)
+  If used without the --pabotlib option, will connect to already running instance of the PabotLib remote server in the given host. The remote server can be started with:
+     python PabotLib.py <path_to_resourcefile> <host> <port>
+     python PabotLib.py resource.txt 192.168.1.123 8271
+  This enables sharing a resource with multiple Robot Framework instances
+
+--pabotlibport   [PORT]
+  Port number of the PabotLib remote server (default is 8270)
+  See --pabotlibhost for more information
+
 --resourcefile [FILEPATH]         
   Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with pabotlib option. Resource file syntax is same as Windows ini files. Where a section is a shared set of variables.
 
@@ -45,6 +57,8 @@ Example usages:
      pabot --exclude FOO directory_to_tests
      pabot --command java -jar robotframework.jar --end-command --include SMOKE tests
      pabot --processes 10 tests
+     pabot --pabotlibhost 192.168.1.123 --pabotlibport 8271 --processes 10 tests
+     pabot --pabotlib --pabotlibhost 192.168.1.111 --pabotlibport 8272 --processes 10 tests
 
 ### PabotLib
 
