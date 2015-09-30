@@ -160,9 +160,11 @@ def _parse_args(args):
     pabot_args = {'command':['pybot'],
                   'verbose':False,
                   'pabotlib':False,
+                  'pabotlibhost':'127.0.0.1',
+                  'pabotlibport':8270,
                   'processes':max(multiprocessing.cpu_count(), 2)}
     while args and args[0] in ['--'+param for param in ['command', 'processes', 'verbose', 'resourcefile',
-                                                        'pabotlib']]:
+                                                        'pabotlib', 'pabotlibhost', 'pabotlibport']]:
         if args[0] == '--command':
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
@@ -179,6 +181,12 @@ def _parse_args(args):
         if args[0] == '--pabotlib':
             pabot_args['pabotlib'] = True
             args = args[1:]
+        if args[0] == '--pabotlibhost':
+            pabot_args['pabotlibhost'] = args[1]
+            args = args[2:]
+        if args[0] == '--pabotlibport':
+            pabot_args['pabotlibport'] = int(args[1])
+            args = args[2:]
     options, datasources = ArgumentParser(USAGE, auto_pythonpath=False, auto_argumentfile=False).parse_args(args)
     keys = set()
     for k in options:
@@ -313,8 +321,8 @@ def _start_message_writer():
 def _start_remote_library(pabot_args):
     if not pabot_args['pabotlib']:
         return None
-    return subprocess.Popen('python %s %s' % (os.path.abspath(PabotLib.__file__),
-                                              pabot_args.get('resourcefile', 'N/A')),
+    return subprocess.Popen('python %s %s %s %s' % (os.path.abspath(PabotLib.__file__),
+                                              pabot_args.get('resourcefile', 'N/A'), pabot_args['pabotlibhost'], pabot_args['pabotlibport']),
                             shell=True)
 
 def _stop_remote_library(process):
@@ -346,6 +354,8 @@ def main(args):
     try:
         _start_message_writer()
         options, datasources, pabot_args = _parse_args(args)
+        global _PABOTLIBURI
+        _PABOTLIBURI = pabot_args['pabotlibhost'] + ':' + str(pabot_args['pabotlibport'])
         lib_process = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options)
@@ -373,6 +383,12 @@ Indicator for a file that can contain shared variables for distributing resource
 
 --pabotlib
 Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
+
+--pabotlibhost [HOSTNAME]
+  Host name of the PabotLib remote server (default is 127.0.0.1)
+
+--pabotlibport [PORT]
+  Port number of the PabotLib remote server (default is 8270)
 
 Copyright 2015 Mikko Korpela - Apache 2 License
 """
