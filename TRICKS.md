@@ -1,6 +1,6 @@
 # Tricks
 
-Different approaches and common knowledge about solving how to do parallel testing.
+Different approaches and common knowledge about solving how to do parallel testing. (Please contribute!)
 
 ### Cookbook example: How to use pabot to distribute testing to multiple remote machines
 
