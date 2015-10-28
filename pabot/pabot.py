@@ -86,8 +86,8 @@ def _run(cmd, stderr, stdout, suite_name, verbose):
         rc = process.poll()
         time.sleep(0.1)
         elapsed += 1
-        if elapsed % 150 == 0:
-            _write('[PID:%s] still running %s after %s seconds' % (process.pid, suite_name, elapsed / 10.0))
+        #if elapsed % 150 == 0:
+           # _write('[PID:%s] still running %s after %s seconds' % (process.pid, suite_name, elapsed / 10.0))
     return process, rc
 
 def _execution_failed_message(suite_name, rc, verbose):
