@@ -301,6 +301,7 @@ def _writer():
     while True:
         message = MESSAGE_QUEUE.get()
         print message
+        sys.stdout.flush()
 
 def _write(message, color=None):
     MESSAGE_QUEUE.put(_wrap_with(color, message))
