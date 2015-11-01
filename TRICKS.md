@@ -2,6 +2,11 @@
 
 Different approaches and common knowledge about solving how to do parallel testing. (Please contribute!)
 
+### Speed profiling
+
+Before you split your tests to multiple parallel test runs, please first check that you don't have easy optimization targets- if this hasn't been done before then it might be that you can have much more significant speed up boost from this than from parallelization. There are good ways of profiling where execution time is spend: https://bitbucket.org/robotframework/robottools/src/master/keywordtimes/ and bunch of others.
+Also Python cProfiler is a valuable tool https://docs.python.org/2/library/profile.html .
+
 ### Cookbook example: How to use pabot to distribute testing to multiple remote machines
 
 Basic idea: 
