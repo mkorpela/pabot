@@ -19,8 +19,9 @@
 from robot.api import ExecutionResult
 from robot.conf import RebotSettings
 from robot.result.executionresult import CombinedResult
-from robot.result.testsuite import TestSuite
+from robot.result import TestSuite
 from robot.model import SuiteVisitor
+
 
 class ResultMerger(SuiteVisitor):
 
