@@ -19,7 +19,12 @@
 from robot.api import ExecutionResult
 from robot.conf import RebotSettings
 from robot.result.executionresult import CombinedResult
-from robot.result import TestSuite
+
+try:
+    from robot.result import TestSuite
+except ImportError:
+    from robot.result.testsuite import TestSuite
+
 from robot.model import SuiteVisitor
 
 
