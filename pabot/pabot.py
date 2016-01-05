@@ -106,7 +106,9 @@ def _options_for_executor(options, outs_dir, suite_name):
     options['suite'] = suite_name
     options['outputdir'] = outs_dir
     options['variable'] = options.get('variable')
-    options['variable'].append('PABOTLIBURI:%s' % _PABOTLIBURI)
+    pabotLibURIVar = 'PABOTLIBURI:%s' % _PABOTLIBURI
+    if pabotLibURIVar not in options['variable'] :  # Prevent multiple appending of PABOTLIBURI variable setting
+        options['variable'].append(pabotLibURIVar)
     return _set_terminal_coloring_options(options)
 
 def _set_terminal_coloring_options(options):
