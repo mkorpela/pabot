@@ -373,7 +373,7 @@ def main(args):
         else:
             print 'No tests to execute'
     except Information, i:
-        print """A parallel executor for Robot Framework test cases. Version 0.21.
+        print """A parallel executor for Robot Framework test cases. Version 0.22.
 
 Supports all Robot Framework command line options and also following options (these must be before normal RF options):
 
@@ -398,7 +398,7 @@ Start PabotLib remote server. This enables locking and resource distribution bet
 --pabotlibport [PORT]
   Port number of the PabotLib remote server (default is 8270)
 
-Copyright 2015 Mikko Korpela - Apache 2 License
+Copyright 2016 Mikko Korpela - Apache 2 License
 """
         print i.message
     finally:
