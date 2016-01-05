@@ -149,6 +149,7 @@ class GatherSuiteNames(ResultVisitor):
 
 def get_suite_names(output_file):
     if not os.path.isfile(output_file):
+       print "get_suite_names: output_file='%s' does not exist" % output_file
        return []
     try:
        e = ExecutionResult(output_file)
@@ -156,6 +157,7 @@ def get_suite_names(output_file):
        e.visit(gatherer)
        return gatherer.result
     except:
+       print "Exception in get_suite_names!"
        return []
 
 def _parse_args(args):
@@ -217,6 +219,7 @@ def _options_for_dryrun(options, outs_dir):
     else:
         options['runmode'] = 'DryRun'
     options['output'] = 'suite_names.xml'
+    options['timestampoutputs'] = False     # --timestampoutputs is not compatible with hard-coded suite_names.xml above
     options['outputdir'] = outs_dir
     options['stdout'] = StringIO()
     options['stderr'] = StringIO()
