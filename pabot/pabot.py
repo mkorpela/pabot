@@ -282,8 +282,10 @@ def _copy_screenshots(options):
     outputdir = options.get('outputdir', '.')
     for location, dir_names, file_names in os.walk(pabot_outputdir):
         for file_name in file_names:
-            if re.search("selenium-screenshot-.*\.png", file_name):
+            if file_name.endswith(".png") : # We want ALL screenshots copied, not just selenium ones!
                 prefix = os.path.relpath(location, pabot_outputdir)
+                if os.sep in prefix :       # But not .png files in any sub-folders of "location"
+                    continue
                 dst_file_name = '-'.join([prefix, file_name])
                 shutil.copyfile(os.path.join(location, file_name),
                                 os.path.join(outputdir, dst_file_name))
