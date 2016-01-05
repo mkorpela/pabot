@@ -82,7 +82,7 @@ class ResultMerger(SuiteVisitor):
         self.current = self.current.parent
 
     def visit_message(self, msg):
-        if msg.html and re.search('src="([^"]+.png)"', msg.message):
+        if msg.html and re.search(r'src="([^"]+\.png)"', msg.message):
             parent = msg.parent
             while not isinstance(parent, TestSuite):
                 parent = parent.parent
@@ -90,7 +90,7 @@ class ResultMerger(SuiteVisitor):
             if self._tests_root_name:
                 suites_names[0] = self._tests_root_name
             prefix = '.'.join(suites_names)
-            msg.message = re.sub('"([^"]+.png)"', r'"%s-\1"' % prefix, msg.message)
+            msg.message = re.sub(r'"([^"]+\.png)"', r'"%s-\1"' % prefix, msg.message)
 
 
 class ResultsCombiner(CombinedResult):
