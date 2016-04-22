@@ -223,6 +223,7 @@ def _options_for_dryrun(options, outs_dir):
     options['outputdir'] = outs_dir
     options['stdout'] = StringIO()
     options['stderr'] = StringIO()
+    options['listener'] = []
     return _set_terminal_coloring_options(options)
 
 def _options_for_rebot(options, start_time_string, end_time_string):
