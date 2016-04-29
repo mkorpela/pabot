@@ -26,6 +26,7 @@ import shutil
 import subprocess
 import threading
 from robot import run, rebot
+from robot.api import ExecutionResult, ResultVisitor
 from robot import __version__ as ROBOT_VERSION
 from robot.errors import Information
 from robot.libraries.Remote import Remote
@@ -150,7 +151,7 @@ def _parse_args(args):
                   'pabotlibport':8270,
                   'processes':max(multiprocessing.cpu_count(), 2)}
     while args and args[0] in ['--'+param for param in ['command', 'processes', 'verbose', 'resourcefile',
-                                                        'pabotlib', 'pabotlibhost', 'pabotlibport']]:
+                                                        'pabotlib', 'pabotlibhost', 'pabotlibport', 'suitesfrom']]:
         if args[0] == '--command':
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
@@ -173,6 +174,9 @@ def _parse_args(args):
         if args[0] == '--pabotlibport':
             pabot_args['pabotlibport'] = int(args[1])
             args = args[2:]
+        if args[0] == '--suitesfrom':
+            pabot_args['suitesfrom'] = args[1]
+            args = args[2:]
     options, datasources = ArgumentParser(USAGE, auto_pythonpath=False, auto_argumentfile=False).parse_args(args)
     keys = set()
     for k in options:
@@ -182,10 +186,27 @@ def _parse_args(args):
         del options[k]
     return options, datasources, pabot_args
 
-def solve_suite_names(outs_dir, datasources, options):
+def solve_suite_names(outs_dir, datasources, options, pabot_args):
+    if 'suitesfrom' in pabot_args:
+        return _suites_from_outputxml(pabot_args['suitesfrom'])
     opts = _options_for_dryrun(options, outs_dir)
     run(*datasources, **opts)
     return sorted(set(_DRY_RUN_SUITES))
+
+class SuiteTimes(ResultVisitor):
+
+    def __init__(self):
+        self.suites = []
+
+    def start_suite(self, suite):
+        if len(suite.tests) > 0:
+            self.suites.append((suite.elapsedtime, suite.longname))
+
+def _suites_from_outputxml(outputxml):
+    res = ExecutionResult(outputxml)
+    suite_times = SuiteTimes()
+    res.visit(suite_times)
+    return [suite for (_, suite) in reversed(sorted(suite_times.suites))]
 
 def _options_for_dryrun(options, outs_dir):
     options = options.copy()
@@ -340,7 +361,7 @@ def main(args):
         _PABOTLIBURI = pabot_args['pabotlibhost'] + ':' + str(pabot_args['pabotlibport'])
         lib_process = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
-        suite_names = solve_suite_names(outs_dir, datasources, options)
+        suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
         if suite_names:
             _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
             sys.exit(_report_results(outs_dir, options, start_time_string, _get_suite_root_name(suite_names)))
@@ -352,25 +373,28 @@ def main(args):
 Supports all Robot Framework command line options and also following options (these must be before normal RF options):
 
 --verbose
-more output
+  more output
 
 --command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command
-RF script for situations where pybot is not used directly
+  RF script for situations where pybot is not used directly
 
 --processes [NUMBER OF PROCESSES]
-How many parallel executors to use (default max of 2 and cpu count)
+  How many parallel executors to use (default max of 2 and cpu count)
 
 --resourcefile [FILEPATH]
-Indicator for a file that can contain shared variables for distributing resources.
+  Indicator for a file that can contain shared variables for distributing resources.
 
 --pabotlib
-Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
+  Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
 
 --pabotlibhost [HOSTNAME]
   Host name of the PabotLib remote server (default is 127.0.0.1)
 
 --pabotlibport [PORT]
   Port number of the PabotLib remote server (default is 8270)
+
+--suitesfrom [FILEPATH TO OUTPUTXML]
+  Optionally read suites from output.xml file. Longer running ones will be executed first.
 
 Copyright 2016 Mikko Korpela - Apache 2 License
 """
