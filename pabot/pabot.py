@@ -25,6 +25,7 @@ from StringIO import StringIO
 import shutil
 import subprocess
 import threading
+from decorator import contextmanager
 from robot import run, rebot
 from robot.api import ExecutionResult, ResultVisitor
 from robot import __version__ as ROBOT_VERSION
@@ -190,8 +191,41 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
     if 'suitesfrom' in pabot_args:
         return _suites_from_outputxml(pabot_args['suitesfrom'])
     opts = _options_for_dryrun(options, outs_dir)
-    run(*datasources, **opts)
+    with _with_modified_robot():
+        run(*datasources, **opts)
     return sorted(set(_DRY_RUN_SUITES))
+
+@contextmanager
+def _with_modified_robot():
+    try:
+        from robot.parsing.tsvreader import TsvReader, Utf8Reader
+
+        def new_read(self, tsvfile, populator):
+            process = False
+            first = True
+            for row in Utf8Reader(tsvfile).readlines():
+                row = self._process_row(row)
+                cells = [self._process_cell(cell) for cell in self.split_row(row)]
+                if cells and cells[0].strip().startswith('*') and \
+                        populator.start_table([c.replace('*', '') for c in cells]):
+                    process = True
+                elif process:
+                    if cells[0].strip() != '' or (len(cells) > 1 and '[' in cells[1]):
+                        populator.add(cells)
+                        first = True
+                    elif first:
+                        populator.add(['', 'No Operation'])
+                        first = False
+            populator.eof()
+
+        TsvReader.read = new_read
+    except:
+        pass
+
+    try:
+        yield
+    finally:
+        pass
 
 class SuiteTimes(ResultVisitor):
 
