@@ -35,7 +35,7 @@ from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
 from robot.utils import ArgumentParser
 import signal
-from .PabotLib import PabotLib
+import PabotLib
 from result_merger import merge
 import Queue
 
