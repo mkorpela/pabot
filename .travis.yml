@@ -1,0 +1,20 @@
+language: python
+
+python:
+  - "2.7"
+  - "3.3"
+  - "3.4"
+  - "3.5"
+  - "3.5-dev" # 3.5 development branch
+  - "nightly" # currently points to 3.6-dev
+  # command to install dependencies
+install:
+  - "pip install nose-cov"
+  - "pip install tissue"
+  - "pip install coveralls"
+  - "pip install ."
+  # command to run tests
+script:
+  - nosetests --with-cov --with-tissue --cov=overrides --cov-report term-missing
+after_success:
+  - coveralls
