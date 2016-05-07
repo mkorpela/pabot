@@ -13,7 +13,7 @@ class PabotTests(unittest.TestCase):
                  '--pabotlibport', '4562',
                  '--suitesfrom', 'some.xml',
                  'suite'])
-        self.assertEqual(pabot_args['command'], 'my_own_command.sh')
+        self.assertEqual(pabot_args['command'], ['my_own_command.sh'])
         self.assertEqual(pabot_args['processes'], 12)
         self.assertEqual(pabot_args['resourcefile'], 'resourcefile.ini')
         self.assertEqual(pabot_args['pabotlib'], True)
