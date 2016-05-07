@@ -197,6 +197,8 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
 
 @contextmanager
 def _with_modified_robot():
+    TsvReader = None
+    old_read = None
     try:
         from robot.parsing.tsvreader import TsvReader, Utf8Reader
 
@@ -218,6 +220,7 @@ def _with_modified_robot():
                         first = False
             populator.eof()
 
+        old_read = TsvReader.read
         TsvReader.read = new_read
     except:
         pass
@@ -225,7 +228,8 @@ def _with_modified_robot():
     try:
         yield
     finally:
-        pass
+        if TsvReader:
+            TsvReader.read = old_read
 
 class SuiteTimes(ResultVisitor):
 
