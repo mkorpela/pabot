@@ -25,7 +25,7 @@ from StringIO import StringIO
 import shutil
 import subprocess
 import threading
-from decorator import contextmanager
+from contextlib import contextmanager
 from robot import run, rebot
 from robot.api import ExecutionResult, ResultVisitor
 from robot import __version__ as ROBOT_VERSION
