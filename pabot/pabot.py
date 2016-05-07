@@ -410,7 +410,7 @@ def main(args):
         else:
             print 'No tests to execute'
     except Information, i:
-        print """A parallel executor for Robot Framework test cases. Version 0.24.
+        print """A parallel executor for Robot Framework test cases. Version 0.25.
 
 Supports all Robot Framework command line options and also following options (these must be before normal RF options):
 
