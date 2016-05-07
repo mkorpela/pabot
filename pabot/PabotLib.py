@@ -13,7 +13,11 @@
 #  limitations under the License.
 #
 
-import ConfigParser
+try:
+    import configparser
+except:
+    import ConfigParser as configparser # Support Python 2
+
 import os
 import uuid
 from robot.libraries.BuiltIn import BuiltIn
@@ -35,7 +39,7 @@ class _PabotLib(object):
         vals = {}
         if resourcefile is None or not os.path.exists(resourcefile):
             return vals
-        conf = ConfigParser.ConfigParser()
+        conf = configparser.ConfigParser()
         conf.read(resourcefile)
         for section in conf.sections():
             vals[section] = dict((k,conf.get(section, k)) for k in conf.options(section))
