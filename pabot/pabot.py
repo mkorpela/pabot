@@ -56,6 +56,7 @@ class Color:
     GREEN = '\033[92m'
     RED = '\033[91m'
     ENDC = '\033[0m'
+    YELLOW = '\033[93m'
 
 def execute_and_wait_with(args):
     global CTRL_C_PRESSED
@@ -362,8 +363,11 @@ def _start_message_writer():
 def _start_remote_library(pabot_args):
     if not pabot_args['pabotlib']:
         return None
+    if pabot_args.get('resourcefile') and not os.path.exists(pabot_args['resourcefile']):
+        _write('Warning: specified resource file doesn\'t exist. Some tests may fail or continue forever.', Color.YELLOW)
+        pabot_args['resourcefile'] = None
     return subprocess.Popen('python %s %s %s %s' % (os.path.abspath(PabotLib.__file__),
-                                              pabot_args.get('resourcefile', 'N/A'), pabot_args['pabotlibhost'], pabot_args['pabotlibport']),
+                                              pabot_args.get('resourcefile'), pabot_args['pabotlibhost'], pabot_args['pabotlibport']),
                             shell=True)
 
 def _stop_remote_library(process):

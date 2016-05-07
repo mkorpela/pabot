@@ -18,7 +18,6 @@ try:
 except:
     import ConfigParser as configparser # Support Python 2
 
-import os
 import uuid
 from robot.libraries.BuiltIn import BuiltIn
 from robotremoteserver import RobotRemoteServer
@@ -37,7 +36,7 @@ class _PabotLib(object):
 
     def _parse_values(self, resourcefile):
         vals = {}
-        if resourcefile is None or not os.path.exists(resourcefile):
+        if resourcefile is None:
             return vals
         conf = configparser.ConfigParser()
         conf.read(resourcefile)
@@ -66,6 +65,8 @@ class _PabotLib(object):
             del self._locks[name]
 
     def acquire_value_set(self, caller_id):
+        if not self._values:
+            raise AssertionError('Value set cannot be aquired - it was never imported')
         for k in self._values:
             if self._values[k] not in self._owner_to_values.values():
                 self._owner_to_values[caller_id] = self._values[k]
