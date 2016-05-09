@@ -238,20 +238,20 @@ def _with_modified_robot():
         if TsvReader:
             TsvReader.read = old_read
 
-class SuiteTimes(ResultVisitor):
+class SuiteNotPassingsAndTimes(ResultVisitor):
 
     def __init__(self):
         self.suites = []
 
     def start_suite(self, suite):
         if len(suite.tests) > 0:
-            self.suites.append((suite.elapsedtime, suite.longname))
+            self.suites.append((not suite.passed, suite.elapsedtime, suite.longname))
 
 def _suites_from_outputxml(outputxml):
     res = ExecutionResult(outputxml)
-    suite_times = SuiteTimes()
+    suite_times = SuiteNotPassingsAndTimes()
     res.visit(suite_times)
-    return [suite for (_, suite) in reversed(sorted(suite_times.suites))]
+    return [suite for (_, _, suite) in reversed(sorted(suite_times.suites))]
 
 def _options_for_dryrun(options, outs_dir):
     options = options.copy()
@@ -442,7 +442,8 @@ Supports all Robot Framework command line options and also following options (th
   Port number of the PabotLib remote server (default is 8270)
 
 --suitesfrom [FILEPATH TO OUTPUTXML]
-  Optionally read suites from output.xml file. Longer running ones will be executed first.
+  Optionally read suites from output.xml file. Failed suites will run first and longer running ones
+  will be executed before shorter ones.
 
 Copyright 2016 Mikko Korpela - Apache 2 License
 """
