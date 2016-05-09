@@ -87,15 +87,21 @@ def _run(cmd, stderr, stdout, suite_name, verbose):
         _write('[PID:%s] EXECUTING PARALLEL SUITE %s with command:\n%s' % (process.pid, suite_name, ' '.join(cmd)))
     else:
         _write('[PID:%s] EXECUTING %s' % (process.pid, suite_name))
+    return process, _wait_for_return_code(process, suite_name)
+
+def _wait_for_return_code(process, suite_name):
     rc = None
     elapsed = 0
+    ping_time = ping_interval = 150
     while rc is None:
         rc = process.poll()
         time.sleep(0.1)
         elapsed += 1
-        if elapsed % 150 == 0:
-            _write('[PID:%s] still running %s after %s seconds' % (process.pid, suite_name, elapsed / 10.0))
-    return process, rc
+        if elapsed == ping_time:
+            ping_interval += 50
+            ping_time += ping_interval
+            _write('[PID:%s] still running %s after %s seconds (next ping in %s seconds)' % (process.pid, suite_name, elapsed / 10.0, ping_interval / 10.0))
+    return rc
 
 def _execution_failed_message(suite_name, rc, verbose):
     if not verbose:
