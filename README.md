@@ -1,5 +1,7 @@
 # Pabot
 
+[![Build Status](https://travis-ci.org/mkorpela/pabot.svg?branch=master)](https://travis-ci.org/mkorpela/pabot)
+
 A parallel executor for [Robot Framework](http://www.robotframework.org) tests. With Pabot you can split one execution into multiple and save test execution time.
 
 *My goal in creating this tool is to help you guys with big test sets. I've worked with a number of teams around the world that were doing test execution time optimisation before I created this tool. 
