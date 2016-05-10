@@ -41,7 +41,8 @@ class _PabotLib(object):
         conf = configparser.ConfigParser()
         conf.read(resourcefile)
         for section in conf.sections():
-            vals[section] = dict((k,conf.get(section, k)) for k in conf.options(section))
+            vals[section] = dict((k,conf.get(section, k))
+                                 for k in conf.options(section))
         return vals
 
     def set_parallel_value_for_key(self, key, value):
@@ -66,7 +67,8 @@ class _PabotLib(object):
 
     def acquire_value_set(self, caller_id):
         if not self._values:
-            raise AssertionError('Value set cannot be aquired - it was never imported')
+            raise AssertionError(
+                'Value set cannot be aquired - it was never imported')
         for k in self._values:
             if self._values[k] not in self._owner_to_values.values():
                 self._owner_to_values[caller_id] = self._values[k]
@@ -103,15 +105,20 @@ class PabotLib(_PabotLib):
 
     def run_only_once(self, keyword):
         """
-        This is an *experimental* keyword for building setups that should be executed only once.
-        As the keyword will be called only in one process and the return value could basically be anything.
+        This is an *experimental* keyword for building setups that
+        should be executed only once. As the keyword will be called
+        only in one process and the return value could basically be anything.
         The "Run Only Once" can't return the actual value.
         If the keyword fails, "Run Only Once" fails.
-        Others executing "Run Only Once" wait before going through this keyword before the actual command has been executed.
+        Others executing "Run Only Once" wait before going through this
+        keyword before the actual command has been executed.
         NOTE! This is a potential "Shoot yourself in to knee" keyword
-        Especially note that all the namespace changes are only visible in the process that actually executed the keyword.
-        Also note that this might lead to odd situations if used inside of other keywords.
-        Also at this point the keyword will be identified to be same if it has the same name.
+        Especially note that all the namespace changes are only visible
+        in the process that actually executed the keyword.
+        Also note that this might lead to odd situations if used inside
+        of other keywords.
+        Also at this point the keyword will be identified to be same
+        if it has the same name.
         """
         lock_name = 'pabot_run_only_once_%s' % keyword
         try:
@@ -131,31 +138,37 @@ class PabotLib(_PabotLib):
 
     def set_parallel_value_for_key(self, key, value):
         """
-        Set a globally available key and value that can be accessed from all the pabot processes.
+        Set a globally available key and value that can be accessed
+        from all the pabot processes.
         """
         if self._remotelib:
-            self._remotelib.run_keyword('set_parallel_value_for_key', [key, value], {})
+            self._remotelib.run_keyword('set_parallel_value_for_key',
+                                        [key, value], {})
         else:
             _PabotLib.set_parallel_value_for_key(self, key, value)
 
     def get_parallel_value_for_key(self, key):
         """
-        Get the value for a key. If there is no value for the key then empty string is returned.
+        Get the value for a key. If there is no value for the key then empty
+        string is returned.
         """
         if self._remotelib:
-            return self._remotelib.run_keyword('get_parallel_value_for_key', [key], {})
+            return self._remotelib.run_keyword('get_parallel_value_for_key',
+                                               [key], {})
         return _PabotLib.get_parallel_value_for_key(self, key)
 
     def acquire_lock(self, name):
         """
         Wait for a lock with name.
-        This will prevent other processes from acquiring the lock with the name while it is held.
-        Thus they will wait in the position where they are acquiring the lock until the process
-        that has it releases it.
+        This will prevent other processes from acquiring the lock with
+        the name while it is held. Thus they will wait in the position
+        where they are acquiring the lock until the process that has it
+        releases it.
         """
         if self._remotelib:
             try:
-                while not self._remotelib.run_keyword('acquire_lock', [name, self._my_id], {}):
+                while not self._remotelib.run_keyword('acquire_lock',
+                                                      [name, self._my_id], {}):
                     time.sleep(0.1)
                     logger.debug('waiting for lock to release')
                 return True
@@ -170,21 +183,23 @@ class PabotLib(_PabotLib):
         This will enable others to acquire the lock.
         """
         if self._remotelib:
-            self._remotelib.run_keyword('release_lock', [name, self._my_id], {})
+            self._remotelib.run_keyword('release_lock',
+                                        [name, self._my_id], {})
         else:
             _PabotLib.release_lock(self, name, self._my_id)
 
     def acquire_value_set(self):
         """
         Reserve a set of values for this execution.
-        No other process can reserve the same set of values while the set is reserved.
-        Acquired value set needs to be released after use to allow other processes
-        to access it.
+        No other process can reserve the same set of values while the set is
+        reserved. Acquired value set needs to be released after use to allow
+        other processes to access it.
         """
         if self._remotelib:
             try:
                 while True:
-                    value = self._remotelib.run_keyword('acquire_value_set', [self._my_id], {})
+                    value = self._remotelib.run_keyword('acquire_value_set',
+                                                        [self._my_id], {})
                     if value:
                         logger.info('Value set "%s" acquired' % value)
                         return value
@@ -201,7 +216,8 @@ class PabotLib(_PabotLib):
         """
         if self._remotelib:
             while True:
-                value = self._remotelib.run_keyword('get_value_from_set', [key, self._my_id], {})
+                value = self._remotelib.run_keyword('get_value_from_set',
+                                                    [key, self._my_id], {})
                 if value:
                     return value
                 time.sleep(0.1)
@@ -221,4 +237,5 @@ class PabotLib(_PabotLib):
 
 if __name__ == '__main__':
     import sys
-    RobotRemoteServer(_PabotLib(sys.argv[1]), host=sys.argv[2], port=sys.argv[3], allow_stop=True)
+    RobotRemoteServer(_PabotLib(sys.argv[1]), host=sys.argv[2],
+                      port=sys.argv[3], allow_stop=True)
