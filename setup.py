@@ -9,13 +9,13 @@ name = 'Mikko Korpela'
 address = name.lower().replace(' ', '.')+chr(64)+'gmail.com'
 
 setup(name='robotframework-pabot',
-    version='0.26',
-    description='Parallel test runner for Robot Framework',
-    author=name,
-    author_email=address,
-    url='https://github.com/mkorpela/pabot',
-    packages=find_packages(),
-    scripts=[os.path.join('scripts', 'pabot'),
-             os.path.join('scripts', 'pabot.bat')],
-    license='Apache License, Version 2.0',
-    install_requires=['robotframework', 'robotremoteserver'])
+      version='0.26',
+      description='Parallel test runner for Robot Framework',
+      author=name,
+      author_email=address,
+      url='https://github.com/mkorpela/pabot',
+      packages=find_packages(),
+      scripts=[os.path.join('scripts', 'pabot'),
+               os.path.join('scripts', 'pabot.bat')],
+      license='Apache License, Version 2.0',
+      install_requires=['robotframework', 'robotremoteserver'])
