@@ -1,10 +1,11 @@
 import unittest
-from pabot.pabot import _parse_args
+import time
+from pabot import pabot
 
 class PabotTests(unittest.TestCase):
 
     def test_parse_args(self):
-        options, datasources, pabot_args = _parse_args(['--command', 'my_own_command.sh', '--end-command',
+        options, datasources, pabot_args = pabot._parse_args(['--command', 'my_own_command.sh', '--end-command',
                  '--processes', '12',
                  '--verbose',
                  '--resourcefile', 'resourcefile.ini',
@@ -21,6 +22,13 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(pabot_args['pabotlibport'], 4562)
         self.assertEqual(pabot_args['suitesfrom'], 'some.xml')
         self.assertEqual(datasources, ['suite'])
+
+    def test_start_and_stop_remote_library(self):
+        lib_process = pabot._start_remote_library({'pabotlib':True, 'pabotlibhost':'127.0.0.1', 'pabotlibport':8270})
+        self.assertTrue(lib_process.poll() is None)
+        time.sleep(0.3)
+        pabot._stop_remote_library(lib_process)
+        self.assertTrue(lib_process.poll() == 0)
 
 
 if __name__ == '__main__':
