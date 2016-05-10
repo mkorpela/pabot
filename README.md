@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/mkorpela/pabot.svg?branch=master)](https://travis-ci.org/mkorpela/pabot)
 [![Version](https://img.shields.io/pypi/v/robotframework-pabot.svg)](https://pypi.python.org/pypi/robotframework-pabot)
+[![Version](https://img.shields.io/pypi/dm/robotframework-pabot.svg)](https://pypi.python.org/pypi/robotframework-pabot)
 
 A parallel executor for [Robot Framework](http://www.robotframework.org) tests. With Pabot you can split one execution into multiple and save test execution time.
 
