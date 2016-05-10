@@ -25,7 +25,6 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(pabot_args['suitesfrom'], 'some.xml')
         self.assertEqual(datasources, ['suite'])
 
-
     def test_start_and_stop_remote_library(self):
         lib_process = pabot._start_remote_library(
             {'pabotlib': True,

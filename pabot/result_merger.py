@@ -64,7 +64,8 @@ class ResultMerger(SuiteVisitor):
 
     def _find_root(self, suite):
         if self.root.name != suite.name:
-            raise ValueError('self.root.name "%s" != suite.name "%s"' % (self.root.name, suite.name))
+            raise ValueError('self.root.name "%s" != suite.name "%s"' %
+                             (self.root.name, suite.name))
         return self.root
 
     def _find(self, items, name):
@@ -90,7 +91,8 @@ class ResultMerger(SuiteVisitor):
             if self._tests_root_name:
                 suites_names[0] = self._tests_root_name
             prefix = '.'.join(suites_names)
-            msg.message = re.sub(r'"([^"]+\.png)"', r'"%s-\1"' % prefix, msg.message)
+            msg.message = re.sub(r'"([^"]+\.png)"',
+                                 r'"%s-\1"' % prefix, msg.message)
 
 
 class ResultsCombiner(CombinedResult):
@@ -112,7 +114,8 @@ def group_by_root(results, critical_tags, non_critical_tags):
 
 def merge_groups(results, critical_tags, non_critical_tags, tests_root_name):
     merged = []
-    for group in group_by_root(results, critical_tags, non_critical_tags).values():
+    for group in group_by_root(results, critical_tags,
+                               non_critical_tags).values():
         base = group[0]
         merger = ResultMerger(base, tests_root_name)
         for out in group:
@@ -124,7 +127,8 @@ def merge_groups(results, critical_tags, non_critical_tags, tests_root_name):
 def merge(result_files, rebot_options, tests_root_name):
     assert len(result_files) > 0
     settings = RebotSettings(rebot_options)
-    merged = merge_groups(result_files, settings.critical_tags, settings.non_critical_tags, tests_root_name)
+    merged = merge_groups(result_files, settings.critical_tags,
+                          settings.non_critical_tags, tests_root_name)
     if len(merged) == 1:
         return merged[0]
     else:
