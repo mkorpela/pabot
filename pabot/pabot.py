@@ -341,11 +341,13 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
     pool = ThreadPool(pabot_args['processes'])
     result = pool.map_async(execute_and_wait_with,
-                            ((datasources, outs_dir, options, suite, pabot_args['command'], pabot_args['verbose'])
+                            ((datasources, outs_dir, options, suite,
+                              pabot_args['command'], pabot_args['verbose'])
                               for suite in suite_names))
     pool.close()
     while not result.ready():
-        # keyboard interrupt is executed in main thread and needs this loop to get time to get executed
+        # keyboard interrupt is executed in main thread
+        # and needs this loop to get time to get executed
         try:
             time.sleep(0.1)
         except IOError:
@@ -366,7 +368,7 @@ def _copy_screenshots(options):
     outputdir = options.get('outputdir', '.')
     for location, dir_names, file_names in os.walk(pabot_outputdir):
         for file_name in file_names:
-            if file_name.endswith(".png") : # We want ALL screenshots copied, not just selenium ones!
+            if file_name.endswith(".png"):  # We want ALL screenshots copied, not just selenium ones!
                 prefix = os.path.relpath(location, pabot_outputdir)
                 if os.sep in prefix :       # But not .png files in any sub-folders of "location"
                     continue
@@ -376,12 +378,16 @@ def _copy_screenshots(options):
 
 
 def _report_results(outs_dir, options, start_time_string, tests_root_name):
-    output_path = os.path.abspath(os.path.join(options.get('outputdir', '.'), options.get('output', 'output.xml')))
-    merge(sorted(glob(os.path.join(outs_dir, '**/*.xml'))), options, tests_root_name).save(output_path)
+    output_path = os.path.abspath(os.path.join(
+        options.get('outputdir', '.'),
+        options.get('output', 'output.xml')))
+    merge(sorted(glob(os.path.join(outs_dir, '**/*.xml'))),
+          options, tests_root_name).save(output_path)
     _copy_screenshots(options)
     print 'Output:  %s' % output_path
-    options['output'] = None # Do not write output again with rebot
-    return rebot(output_path, **_options_for_rebot(options, start_time_string, _now()))
+    options['output'] = None  # Do not write output again with rebot
+    return rebot(output_path, **_options_for_rebot(options,
+                                                   start_time_string, _now()))
 
 
 def _writer():
@@ -414,11 +420,16 @@ def _start_message_writer():
 def _start_remote_library(pabot_args):
     if not pabot_args['pabotlib']:
         return None
-    if pabot_args.get('resourcefile') and not os.path.exists(pabot_args['resourcefile']):
-        _write('Warning: specified resource file doesn\'t exist. Some tests may fail or continue forever.', Color.YELLOW)
+    if pabot_args.get('resourcefile') and not os.path.exists(
+            pabot_args['resourcefile']):
+        _write('Warning: specified resource file doesn\'t exist.'
+               ' Some tests may fail or continue forever.', Color.YELLOW)
         pabot_args['resourcefile'] = None
-    return subprocess.Popen('python %s %s %s %s' % (os.path.abspath(PabotLib.__file__),
-                                              pabot_args.get('resourcefile'), pabot_args['pabotlibhost'], pabot_args['pabotlibport']),
+    return subprocess.Popen('python %s %s %s %s' %
+                            (os.path.abspath(PabotLib.__file__),
+                             pabot_args.get('resourcefile'),
+                             pabot_args['pabotlibhost'],
+                             pabot_args['pabotlibport']),
                             shell=True)
 
 
@@ -430,7 +441,8 @@ def _stop_remote_library(process):
         time.sleep(0.1)
         i -= 1
     if i == 0:
-        print 'Could not stop PabotLib Process in 5 seconds - calling terminate'
+        print 'Could not stop PabotLib Process in 5 seconds ' \
+              '- calling terminate'
         process.terminate()
     else:
         print 'PabotLib process stopped'
@@ -447,24 +459,29 @@ def main(args):
     start_time = time.time()
     start_time_string = _now()
     lib_process = None
-    #NOTE: timeout option
+    # NOTE: timeout option
     try:
         _start_message_writer()
         options, datasources, pabot_args = _parse_args(args)
         global _PABOTLIBURI
-        _PABOTLIBURI = pabot_args['pabotlibhost'] + ':' + str(pabot_args['pabotlibport'])
+        _PABOTLIBURI = pabot_args['pabotlibhost'] + ':' + \
+                       str(pabot_args['pabotlibport'])
         lib_process = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
         if suite_names:
-            _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names)
-            sys.exit(_report_results(outs_dir, options, start_time_string, _get_suite_root_name(suite_names)))
+            _parallel_execute(datasources, options, outs_dir, pabot_args,
+                              suite_names)
+            sys.exit(_report_results(outs_dir, options, start_time_string,
+                                     _get_suite_root_name(suite_names)))
         else:
             print 'No tests to execute'
     except Information, i:
-        print """A parallel executor for Robot Framework test cases. Version 0.26.
+        print """A parallel executor for Robot Framework test cases.
+Version 0.26.
 
-Supports all Robot Framework command line options and also following options (these must be before normal RF options):
+Supports all Robot Framework command line options and also following
+options (these must be before normal RF options):
 
 --verbose
   more output
@@ -476,10 +493,12 @@ Supports all Robot Framework command line options and also following options (th
   How many parallel executors to use (default max of 2 and cpu count)
 
 --resourcefile [FILEPATH]
-  Indicator for a file that can contain shared variables for distributing resources.
+  Indicator for a file that can contain shared variables for
+  distributing resources.
 
 --pabotlib
-  Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
+  Start PabotLib remote server. This enables locking and resource
+  distribution between parallel test executions.
 
 --pabotlibhost [HOSTNAME]
   Host name of the PabotLib remote server (default is 127.0.0.1)
@@ -488,8 +507,8 @@ Supports all Robot Framework command line options and also following options (th
   Port number of the PabotLib remote server (default is 8270)
 
 --suitesfrom [FILEPATH TO OUTPUTXML]
-  Optionally read suites from output.xml file. Failed suites will run first and longer running ones
-  will be executed before shorter ones.
+  Optionally read suites from output.xml file. Failed suites will run
+  first and longer running ones will be executed before shorter ones.
 
 Copyright 2016 Mikko Korpela - Apache 2 License
 """
