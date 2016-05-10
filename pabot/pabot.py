@@ -175,7 +175,7 @@ def _parse_args(args):
     pabot_args = {'command': ['pybot'],
                   'verbose': False,
                   'pabotlib': False,
-                  'pabotlibhost':' 127.0.0.1',
+                  'pabotlibhost': ' 127.0.0.1',
                   'pabotlibport': 8270,
                   'processes': max(multiprocessing.cpu_count(), 2)}
     while args and args[0] in ['--'+param for param in ['command',
@@ -252,8 +252,8 @@ def _with_modified_robot():
                                                for c in cells]):
                     process = True
                 elif process:
-                    if cells[0].strip() != '' or (len(cells) > 1 and
-                                                          '[' in cells[1]):
+                    if cells[0].strip() != '' or \
+                            (len(cells) > 1 and '[' in cells[1]):
                         populator.add(cells)
                         first = True
                     elif first:
@@ -472,8 +472,8 @@ def main(args):
         _start_message_writer()
         options, datasources, pabot_args = _parse_args(args)
         global _PABOTLIBURI
-        _PABOTLIBURI = pabot_args['pabotlibhost'] + \
-                       ':' + str(pabot_args['pabotlibport'])
+        _PABOTLIBURI = '%s:%s' % (pabot_args['pabotlibhost'],
+                                  pabot_args['pabotlibport'])
         lib_process = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options,
