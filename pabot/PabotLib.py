@@ -16,7 +16,7 @@
 try:
     import configparser
 except:
-    import ConfigParser as configparser # Support Python 2
+    import ConfigParser as configparser  # Support Python 2
 
 import uuid
 from robot.libraries.BuiltIn import BuiltIn
@@ -41,7 +41,7 @@ class _PabotLib(object):
         conf = configparser.ConfigParser()
         conf.read(resourcefile)
         for section in conf.sections():
-            vals[section] = dict((k,conf.get(section, k))
+            vals[section] = dict((k, conf.get(section, k))
                                  for k in conf.options(section))
         return vals
 
