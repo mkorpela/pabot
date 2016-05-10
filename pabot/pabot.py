@@ -136,8 +136,8 @@ def _options_for_executor(options, outs_dir, suite_name):
     options['outputdir'] = outs_dir
     options['variable'] = options.get('variable')
     pabotLibURIVar = 'PABOTLIBURI:%s' % _PABOTLIBURI
-    if pabotLibURIVar not in options['variable'] :
-        # Prevent multiple appending of PABOTLIBURI variable setting
+    # Prevent multiple appending of PABOTLIBURI variable setting
+    if pabotLibURIVar not in options['variable']:
         options['variable'].append(pabotLibURIVar)
     return _set_terminal_coloring_options(options)
 
@@ -170,13 +170,14 @@ def _options_to_cli_arguments(opts):
                     res += ['--' + str(k), str(value)]
     return res
 
+
 def _parse_args(args):
-    pabot_args = {'command':['pybot'],
-                  'verbose':False,
-                  'pabotlib':False,
-                  'pabotlibhost':'127.0.0.1',
-                  'pabotlibport':8270,
-                  'processes':max(multiprocessing.cpu_count(), 2)}
+    pabot_args = {'command': ['pybot'],
+                  'verbose': False,
+                  'pabotlib': False,
+                  'pabotlibhost':' 127.0.0.1',
+                  'pabotlibport': 8270,
+                  'processes': max(multiprocessing.cpu_count(), 2)}
     while args and args[0] in ['--'+param for param in ['command',
                                                         'processes',
                                                         'verbose',
@@ -244,12 +245,15 @@ def _with_modified_robot():
             first = True
             for row in Utf8Reader(tsvfile).readlines():
                 row = self._process_row(row)
-                cells = [self._process_cell(cell) for cell in self.split_row(row)]
+                cells = [self._process_cell(cell)
+                         for cell in self.split_row(row)]
                 if cells and cells[0].strip().startswith('*') and \
-                        populator.start_table([c.replace('*', '') for c in cells]):
+                        populator.start_table([c.replace('*', '')
+                                               for c in cells]):
                     process = True
                 elif process:
-                    if cells[0].strip() != '' or (len(cells) > 1 and '[' in cells[1]):
+                    if cells[0].strip() != '' or (len(cells) > 1 and
+                                                          '[' in cells[1]):
                         populator.add(cells)
                         first = True
                     elif first:
@@ -276,7 +280,9 @@ class SuiteNotPassingsAndTimes(ResultVisitor):
 
     def start_suite(self, suite):
         if len(suite.tests) > 0:
-            self.suites.append((not suite.passed, suite.elapsedtime, suite.longname))
+            self.suites.append((not suite.passed,
+                                suite.elapsedtime,
+                                suite.longname))
 
 
 def _suites_from_outputxml(outputxml):
@@ -343,7 +349,7 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
     result = pool.map_async(execute_and_wait_with,
                             ((datasources, outs_dir, options, suite,
                               pabot_args['command'], pabot_args['verbose'])
-                              for suite in suite_names))
+                             for suite in suite_names))
     pool.close()
     while not result.ready():
         # keyboard interrupt is executed in main thread
@@ -368,9 +374,11 @@ def _copy_screenshots(options):
     outputdir = options.get('outputdir', '.')
     for location, dir_names, file_names in os.walk(pabot_outputdir):
         for file_name in file_names:
-            if file_name.endswith(".png"):  # We want ALL screenshots copied, not just selenium ones!
+            # We want ALL screenshots copied, not just selenium ones!
+            if file_name.endswith(".png"):
                 prefix = os.path.relpath(location, pabot_outputdir)
-                if os.sep in prefix :       # But not .png files in any sub-folders of "location"
+                # But not .png files in any sub-folders of "location"
+                if os.sep in prefix:
                     continue
                 dst_file_name = '-'.join([prefix, file_name])
                 shutil.copyfile(os.path.join(location, file_name),
@@ -464,11 +472,12 @@ def main(args):
         _start_message_writer()
         options, datasources, pabot_args = _parse_args(args)
         global _PABOTLIBURI
-        _PABOTLIBURI = pabot_args['pabotlibhost'] + ':' + \
-                       str(pabot_args['pabotlibport'])
+        _PABOTLIBURI = pabot_args['pabotlibhost'] + \
+                       ':' + str(pabot_args['pabotlibport'])
         lib_process = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
-        suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
+        suite_names = solve_suite_names(outs_dir, datasources, options,
+                                        pabot_args)
         if suite_names:
             _parallel_execute(datasources, options, outs_dir, pabot_args,
                               suite_names)
