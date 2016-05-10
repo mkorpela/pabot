@@ -17,8 +17,10 @@
 #  partly based on work by Nokia Solutions and Networks Oyj
 
 
-
-import os, sys, time, datetime
+import os
+import sys
+import time
+import datetime
 import multiprocessing
 from glob import glob
 from StringIO import StringIO
@@ -39,16 +41,17 @@ import PabotLib
 from result_merger import merge
 import Queue
 
-ROBOT_LISTENER_API_VERSION=2
+ROBOT_LISTENER_API_VERSION = 2
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = Queue.Queue()
 _PABOTLIBURI = '127.0.0.1:8270'
-
 _DRY_RUN_SUITES = []
+
 
 def start_suite(_, attributes):
     if attributes['tests']:
         _DRY_RUN_SUITES.append(attributes['longname'])
+
 
 class Color:
     SUPPORTED_OSES = ['posix']
@@ -58,6 +61,7 @@ class Color:
     ENDC = '\033[0m'
     YELLOW = '\033[93m'
 
+
 def execute_and_wait_with(args):
     global CTRL_C_PRESSED
     if CTRL_C_PRESSED:
@@ -65,9 +69,12 @@ def execute_and_wait_with(args):
         return
     time.sleep(0)
     datasources, outs_dir, options, suite_name, command, verbose = args
-    datasources = [d.encode('utf-8') if isinstance(d, unicode) else d for d in datasources]
+    datasources = [d.encode('utf-8') if isinstance(d, unicode) else d
+                   for d in datasources]
     outs_dir = os.path.join(outs_dir, suite_name)
-    cmd = command + _options_for_custom_executor(options, outs_dir, suite_name) + datasources
+    cmd = command + _options_for_custom_executor(options,
+                                                 outs_dir,
+                                                 suite_name) + datasources
     cmd = [c if (' ' not in c) and (';' not in c) else '"%s"' % c for c in cmd]
     os.makedirs(outs_dir)
     with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
@@ -78,16 +85,19 @@ def execute_and_wait_with(args):
     else:
         _write('PASSED %s' % suite_name, Color.GREEN)
 
+
 def _run(cmd, stderr, stdout, suite_name, verbose):
     process = subprocess.Popen(' '.join(cmd),
                                shell=True,
                                stderr=stderr,
                                stdout=stdout)
     if verbose:
-        _write('[PID:%s] EXECUTING PARALLEL SUITE %s with command:\n%s' % (process.pid, suite_name, ' '.join(cmd)))
+        _write('[PID:%s] EXECUTING PARALLEL SUITE %s with command:\n%s' %
+               (process.pid, suite_name, ' '.join(cmd)))
     else:
         _write('[PID:%s] EXECUTING %s' % (process.pid, suite_name))
     return process, _wait_for_return_code(process, suite_name)
+
 
 def _wait_for_return_code(process, suite_name):
     rc = None
@@ -100,16 +110,22 @@ def _wait_for_return_code(process, suite_name):
         if elapsed == ping_time:
             ping_interval += 50
             ping_time += ping_interval
-            _write('[PID:%s] still running %s after %s seconds (next ping in %s seconds)' % (process.pid, suite_name, elapsed / 10.0, ping_interval / 10.0))
+            _write('[PID:%s] still running %s after %s seconds '
+                   '(next ping in %s seconds)'
+                   % (process.pid, suite_name, elapsed / 10.0,
+                      ping_interval / 10.0))
     return rc
+
 
 def _execution_failed_message(suite_name, rc, verbose):
     if not verbose:
         return 'FAILED %s' % suite_name
     return 'Execution failed in %s with %d failing test(s)' % (suite_name, rc)
 
+
 def _options_for_custom_executor(*args):
     return _options_to_cli_arguments(_options_for_executor(*args))
+
 
 def _options_for_executor(options, outs_dir, suite_name):
     options = options.copy()
@@ -120,9 +136,11 @@ def _options_for_executor(options, outs_dir, suite_name):
     options['outputdir'] = outs_dir
     options['variable'] = options.get('variable')
     pabotLibURIVar = 'PABOTLIBURI:%s' % _PABOTLIBURI
-    if pabotLibURIVar not in options['variable'] :  # Prevent multiple appending of PABOTLIBURI variable setting
+    if pabotLibURIVar not in options['variable'] :
+        # Prevent multiple appending of PABOTLIBURI variable setting
         options['variable'].append(pabotLibURIVar)
     return _set_terminal_coloring_options(options)
+
 
 def _set_terminal_coloring_options(options):
     if ROBOT_VERSION >= '2.9':
@@ -133,6 +151,7 @@ def _set_terminal_coloring_options(options):
     if ROBOT_VERSION >= '2.8' and ROBOT_VERSION < '2.9':
         options['monitormarkers'] = 'off'
     return options
+
 
 def _options_to_cli_arguments(opts):
     res = []
@@ -158,8 +177,14 @@ def _parse_args(args):
                   'pabotlibhost':'127.0.0.1',
                   'pabotlibport':8270,
                   'processes':max(multiprocessing.cpu_count(), 2)}
-    while args and args[0] in ['--'+param for param in ['command', 'processes', 'verbose', 'resourcefile',
-                                                        'pabotlib', 'pabotlibhost', 'pabotlibport', 'suitesfrom']]:
+    while args and args[0] in ['--'+param for param in ['command',
+                                                        'processes',
+                                                        'verbose',
+                                                        'resourcefile',
+                                                        'pabotlib',
+                                                        'pabotlibhost',
+                                                        'pabotlibport',
+                                                        'suitesfrom']]:
         if args[0] == '--command':
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
@@ -185,7 +210,10 @@ def _parse_args(args):
         if args[0] == '--suitesfrom':
             pabot_args['suitesfrom'] = args[1]
             args = args[2:]
-    options, datasources = ArgumentParser(USAGE, auto_pythonpath=False, auto_argumentfile=False).parse_args(args)
+    options, datasources = ArgumentParser(USAGE,
+                                          auto_pythonpath=False,
+                                          auto_argumentfile=False).\
+        parse_args(args)
     keys = set()
     for k in options:
         if options[k] is None:
@@ -194,6 +222,7 @@ def _parse_args(args):
         del options[k]
     return options, datasources, pabot_args
 
+
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
     if 'suitesfrom' in pabot_args:
         return _suites_from_outputxml(pabot_args['suitesfrom'])
@@ -201,6 +230,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
     with _with_modified_robot():
         run(*datasources, **opts)
     return sorted(set(_DRY_RUN_SUITES))
+
 
 @contextmanager
 def _with_modified_robot():
@@ -238,6 +268,7 @@ def _with_modified_robot():
         if TsvReader:
             TsvReader.read = old_read
 
+
 class SuiteNotPassingsAndTimes(ResultVisitor):
 
     def __init__(self):
@@ -247,11 +278,13 @@ class SuiteNotPassingsAndTimes(ResultVisitor):
         if len(suite.tests) > 0:
             self.suites.append((not suite.passed, suite.elapsedtime, suite.longname))
 
+
 def _suites_from_outputxml(outputxml):
     res = ExecutionResult(outputxml)
     suite_times = SuiteNotPassingsAndTimes()
     res.visit(suite_times)
     return [suite for (_, _, suite) in reversed(sorted(suite_times.suites))]
+
 
 def _options_for_dryrun(options, outs_dir):
     options = options.copy()
@@ -270,6 +303,7 @@ def _options_for_dryrun(options, outs_dir):
     options['listener'] = [sys.modules[__name__]]
     return _set_terminal_coloring_options(options)
 
+
 def _options_for_rebot(options, start_time_string, end_time_string):
     rebot_options = options.copy()
     rebot_options['starttime'] = start_time_string
@@ -279,8 +313,10 @@ def _options_for_rebot(options, start_time_string, end_time_string):
         options['monitormarkers'] = 'off'
     return rebot_options
 
+
 def _now():
     return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
+
 
 def _print_elapsed(start, end):
     elapsed = end - start
@@ -295,9 +331,11 @@ def _print_elapsed(start, end):
     elapsed_string += '%d minutes %d.%d seconds' % (minutes, seconds, millis)
     print 'Elapsed time: '+elapsed_string
 
+
 def keyboard_interrupt(*args):
     global CTRL_C_PRESSED
     CTRL_C_PRESSED = True
+
 
 def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
@@ -313,6 +351,7 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
         except IOError:
             keyboard_interrupt()
     signal.signal(signal.SIGINT, original_signal_handler)
+
 
 def _output_dir(options, cleanup=True):
     outputdir = options.get('outputdir', '.')
@@ -344,27 +383,33 @@ def _report_results(outs_dir, options, start_time_string, tests_root_name):
     options['output'] = None # Do not write output again with rebot
     return rebot(output_path, **_options_for_rebot(options, start_time_string, _now()))
 
+
 def _writer():
     while True:
         message = MESSAGE_QUEUE.get()
         print message
         sys.stdout.flush()
 
+
 def _write(message, color=None):
     MESSAGE_QUEUE.put(_wrap_with(color, message))
+
 
 def _wrap_with(color, message):
     if _is_output_coloring_supported() and color:
         return "%s%s%s" % (color, message, Color.ENDC)
     return message
 
+
 def _is_output_coloring_supported():
     return sys.stdout.isatty() and os.name in Color.SUPPORTED_OSES
+
 
 def _start_message_writer():
     t = threading.Thread(target=_writer)
     t.setDaemon(True)
     t.start()
+
 
 def _start_remote_library(pabot_args):
     if not pabot_args['pabotlib']:
@@ -375,6 +420,7 @@ def _start_remote_library(pabot_args):
     return subprocess.Popen('python %s %s %s %s' % (os.path.abspath(PabotLib.__file__),
                                               pabot_args.get('resourcefile'), pabot_args['pabotlibhost'], pabot_args['pabotlibport']),
                             shell=True)
+
 
 def _stop_remote_library(process):
     print 'Stopping PabotLib process'
