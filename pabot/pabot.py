@@ -29,9 +29,10 @@ import subprocess
 import threading
 from contextlib import contextmanager
 from robot import run, rebot
-from robot.api import ExecutionResult, ResultVisitor
 from robot import __version__ as ROBOT_VERSION
+from robot.api import ExecutionResult
 from robot.errors import Information
+from robot.result.visitor import ResultVisitor
 from robot.libraries.Remote import Remote
 from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
@@ -41,16 +42,10 @@ import PabotLib
 from result_merger import merge
 import Queue
 
-ROBOT_LISTENER_API_VERSION = 2
+
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = Queue.Queue()
 _PABOTLIBURI = '127.0.0.1:8270'
-_DRY_RUN_SUITES = []
-
-
-def start_suite(_, attributes):
-    if attributes['tests']:
-        _DRY_RUN_SUITES.append(attributes['longname'])
 
 
 class Color:
@@ -171,6 +166,30 @@ def _options_to_cli_arguments(opts):
     return res
 
 
+class GatherSuiteNames(ResultVisitor):
+
+      def __init__(self):
+          self.result = []
+
+      def end_suite(self, suite):
+          if len(suite.tests):
+             self.result.append(suite.longname)
+
+
+def get_suite_names(output_file):
+    if not os.path.isfile(output_file):
+       print "get_suite_names: output_file='%s' does not exist" % output_file
+       return []
+    try:
+       e = ExecutionResult(output_file)
+       gatherer = GatherSuiteNames()
+       e.visit(gatherer)
+       return gatherer.result
+    except:
+       print "Exception in get_suite_names!"
+       return []
+
+
 def _parse_args(args):
     pabot_args = {'command': ['pybot'],
                   'verbose': False,
@@ -230,7 +249,9 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
     opts = _options_for_dryrun(options, outs_dir)
     with _with_modified_robot():
         run(*datasources, **opts)
-    return sorted(set(_DRY_RUN_SUITES))
+    output = os.path.join(outs_dir, opts['output'])
+    suite_names = get_suite_names(output)
+    return sorted(set(suite_names))
 
 
 @contextmanager
@@ -301,12 +322,12 @@ def _options_for_dryrun(options, outs_dir):
         options['dryrun'] = True
     else:
         options['runmode'] = 'DryRun'
-    options['output'] = 'NONE'
-    options['timestampoutputs'] = False
+    options['output'] = 'suite_names.xml'
+    options['timestampoutputs'] = False     # --timestampoutputs is not compatible with hard-coded suite_names.xml above
     options['outputdir'] = outs_dir
     options['stdout'] = StringIO()
     options['stderr'] = StringIO()
-    options['listener'] = [sys.modules[__name__]]
+    options['listener'] = []
     return _set_terminal_coloring_options(options)
 
 
@@ -487,7 +508,7 @@ def main(args):
             print 'No tests to execute'
     except Information, i:
         print """A parallel executor for Robot Framework test cases.
-Version 0.26.
+Version 0.27.
 
 Supports all Robot Framework command line options and also following
 options (these must be before normal RF options):
