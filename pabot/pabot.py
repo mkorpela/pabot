@@ -194,7 +194,7 @@ def _parse_args(args):
     pabot_args = {'command': ['pybot'],
                   'verbose': False,
                   'pabotlib': False,
-                  'pabotlibhost': ' 127.0.0.1',
+                  'pabotlibhost': '127.0.0.1',
                   'pabotlibport': 8270,
                   'processes': max(multiprocessing.cpu_count(), 2)}
     while args and args[0] in ['--'+param for param in ['command',
