@@ -323,7 +323,8 @@ def _options_for_dryrun(options, outs_dir):
     else:
         options['runmode'] = 'DryRun'
     options['output'] = 'suite_names.xml'
-    options['timestampoutputs'] = False     # --timestampoutputs is not compatible with hard-coded suite_names.xml above
+    # --timestampoutputs is not compatible with hard-coded suite_names.xml
+    options['timestampoutputs'] = False
     options['outputdir'] = outs_dir
     options['stdout'] = StringIO()
     options['stderr'] = StringIO()
