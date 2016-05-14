@@ -6,7 +6,10 @@ from pabot import pabot
 class PabotTests(unittest.TestCase):
 
     def setUp(self):
-        self._options, self._datasources, self._pabot_args = pabot._parse_args(['--pabotlib', 'tests/fixtures'])
+        self._options, self._datasources, self._pabot_args = pabot._parse_args(['--pabotlib',
+                                                                                '--resourcefile',
+                                                                                'tests/valueset.dat',
+                                                                                'tests/fixtures'])
         self._outs_dir = pabot._output_dir(self._options)
 
     def test_parse_args(self):

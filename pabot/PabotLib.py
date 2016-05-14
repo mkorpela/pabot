@@ -214,6 +214,7 @@ class PabotLib(_PabotLib):
         """
         Get a value from previously reserved value set.
         """
+        key = key.lower()
         if self._remotelib:
             while True:
                 value = self._remotelib.run_keyword('get_value_from_set',

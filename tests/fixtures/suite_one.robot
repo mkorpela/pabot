@@ -14,6 +14,14 @@ Suite Setup    run_only_once  setup123
   acquire_lock  MyLock
   release_lock  MyLock
 
+1.3 Test Value Set
+  acquire_value_set
+  ${value}=  get_value_from_set  mystuff
+  Should Be Equal  ${value}  FromSet
+  ${value}=  get_value_from_set  MYSTUFF
+  Should Be Equal  ${value}  FromSet
+  release_value_set
+
 *** Keywords ***
 setup123
   acquire_lock  setup123
