@@ -15,7 +15,41 @@
 #  limitations under the License.
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
+"""A parallel executor for Robot Framework test cases.
+Version 0.27.
 
+Supports all Robot Framework command line options and also following
+options (these must be before normal RF options):
+
+--verbose
+  more output
+
+--command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command
+  RF script for situations where pybot is not used directly
+
+--processes [NUMBER OF PROCESSES]
+  How many parallel executors to use (default max of 2 and cpu count)
+
+--resourcefile [FILEPATH]
+  Indicator for a file that can contain shared variables for
+  distributing resources.
+
+--pabotlib
+  Start PabotLib remote server. This enables locking and resource
+  distribution between parallel test executions.
+
+--pabotlibhost [HOSTNAME]
+  Host name of the PabotLib remote server (default is 127.0.0.1)
+
+--pabotlibport [PORT]
+  Port number of the PabotLib remote server (default is 8270)
+
+--suitesfrom [FILEPATH TO OUTPUTXML]
+  Optionally read suites from output.xml file. Failed suites will run
+  first and longer running ones will be executed before shorter ones.
+
+Copyright 2016 Mikko Korpela - Apache 2 License
+"""
 
 import os
 import sys
@@ -508,41 +542,7 @@ def main(args):
         else:
             print 'No tests to execute'
     except Information, i:
-        print """A parallel executor for Robot Framework test cases.
-Version 0.27.
-
-Supports all Robot Framework command line options and also following
-options (these must be before normal RF options):
-
---verbose
-  more output
-
---command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command
-  RF script for situations where pybot is not used directly
-
---processes [NUMBER OF PROCESSES]
-  How many parallel executors to use (default max of 2 and cpu count)
-
---resourcefile [FILEPATH]
-  Indicator for a file that can contain shared variables for
-  distributing resources.
-
---pabotlib
-  Start PabotLib remote server. This enables locking and resource
-  distribution between parallel test executions.
-
---pabotlibhost [HOSTNAME]
-  Host name of the PabotLib remote server (default is 127.0.0.1)
-
---pabotlibport [PORT]
-  Port number of the PabotLib remote server (default is 8270)
-
---suitesfrom [FILEPATH TO OUTPUTXML]
-  Optionally read suites from output.xml file. Failed suites will run
-  first and longer running ones will be executed before shorter ones.
-
-Copyright 2016 Mikko Korpela - Apache 2 License
-"""
+        print __doc__
         print i.message
     finally:
         if lib_process:
