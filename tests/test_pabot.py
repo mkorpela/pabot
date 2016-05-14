@@ -26,10 +26,8 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(datasources, ['suite'])
 
     def test_start_and_stop_remote_library(self):
-        lib_process = pabot._start_remote_library(
-            {'pabotlib': True,
-             'pabotlibhost': '127.0.0.1',
-             'pabotlibport': 8270})
+        _, _, pabot_args = pabot._parse_args(['--pabotlib', 'suite'])
+        lib_process = pabot._start_remote_library(pabot_args)
         self.assertTrue(lib_process.poll() is None)
         time.sleep(0.3)
         pabot._stop_remote_library(lib_process)
