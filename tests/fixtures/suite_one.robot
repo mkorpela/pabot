@@ -3,4 +3,5 @@
   Log  testing
 
 1.2 Test Case Two
-  Fail
+  Log  yep
+  Log  yep
