@@ -34,10 +34,15 @@ class PabotTests(unittest.TestCase):
         self.assertTrue(lib_process.poll() == 0)
 
     def test_solve_suite_names(self):
-        options, datasources, pabot_args = pabot._parse_args(['tests/fixtures'])
+        options, datasources, pabot_args = pabot._parse_args(
+            ['tests/fixtures'])
         outs_dir = pabot._output_dir(options)
-        suite_names = pabot.solve_suite_names(outs_dir=outs_dir, datasources=datasources, options=options, pabot_args=pabot_args)
-        self.assertEqual(['Fixtures.Suite One', 'Fixtures.Suite Second'], suite_names)
+        suite_names = pabot.solve_suite_names(outs_dir=outs_dir,
+                                              datasources=datasources,
+                                              options=options,
+                                              pabot_args=pabot_args)
+        self.assertEqual(['Fixtures.Suite One', 'Fixtures.Suite Second'],
+                         suite_names)
 
 
 if __name__ == '__main__':
