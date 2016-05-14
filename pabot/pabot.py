@@ -447,6 +447,9 @@ def _start_message_writer():
 
 
 def _start_remote_library(pabot_args):
+    global _PABOTLIBURI
+    _PABOTLIBURI = '%s:%s' % (pabot_args['pabotlibhost'],
+                              pabot_args['pabotlibport'])
     if not pabot_args['pabotlib']:
         return None
     if pabot_args.get('resourcefile') and not os.path.exists(
@@ -492,9 +495,6 @@ def main(args):
     try:
         _start_message_writer()
         options, datasources, pabot_args = _parse_args(args)
-        global _PABOTLIBURI
-        _PABOTLIBURI = '%s:%s' % (pabot_args['pabotlibhost'],
-                                  pabot_args['pabotlibport'])
         lib_process = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options,
