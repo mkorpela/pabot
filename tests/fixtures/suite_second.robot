@@ -1,5 +1,5 @@
 *** Settings ***
-Library  PabotLib
+Library  pabot.PabotLib
 
 *** Test Cases ***
 Testing Case One of Second
