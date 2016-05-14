@@ -3,4 +3,4 @@
   Log  testing
 
 1.2 Test Case Two
-  Log still testing
+  Fail

@@ -5,6 +5,10 @@ from pabot import pabot
 
 class PabotTests(unittest.TestCase):
 
+    def setUp(self):
+        self._options, self._datasources, self._pabot_args = pabot._parse_args(['--pabotlib', 'tests/fixtures'])
+        self._outs_dir = pabot._output_dir(self._options)
+
     def test_parse_args(self):
         options, datasources, pabot_args = pabot._parse_args(
             ['--command', 'my_own_command.sh', '--end-command',
@@ -26,23 +30,35 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(datasources, ['suite'])
 
     def test_start_and_stop_remote_library(self):
-        _, _, pabot_args = pabot._parse_args(['--pabotlib', 'suite'])
-        lib_process = pabot._start_remote_library(pabot_args)
+        lib_process = pabot._start_remote_library(self._pabot_args)
         self.assertTrue(lib_process.poll() is None)
-        time.sleep(0.3)
+        time.sleep(1)
         pabot._stop_remote_library(lib_process)
         self.assertTrue(lib_process.poll() == 0)
 
     def test_solve_suite_names(self):
-        options, datasources, pabot_args = pabot._parse_args(
-            ['tests/fixtures'])
-        outs_dir = pabot._output_dir(options)
-        suite_names = pabot.solve_suite_names(outs_dir=outs_dir,
-                                              datasources=datasources,
-                                              options=options,
-                                              pabot_args=pabot_args)
+        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                              datasources=self._datasources,
+                                              options=self._options,
+                                              pabot_args=self._pabot_args)
         self.assertEqual(['Fixtures.Suite One', 'Fixtures.Suite Second'],
                          suite_names)
+
+    def test_parallel_execution(self):
+        # datasources, options, outs_dir, pabot_args, suite_names
+        suite_names = ['Fixtures.Suite One',
+                       'Fixtures.Suite Second']
+        pabot._parallel_execute(datasources=self._datasources,
+                                options=self._options,
+                                outs_dir=self._outs_dir,
+                                pabot_args=self._pabot_args,
+                                suite_names=suite_names)
+        result_code = pabot._report_results(self._outs_dir,
+                                            self._options,
+                                            pabot._now(),
+                                            pabot._get_suite_root_name(
+                                                suite_names))
+        self.assertEqual(2, result_code)
 
 
 if __name__ == '__main__':
