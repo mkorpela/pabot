@@ -168,26 +168,26 @@ def _options_to_cli_arguments(opts):
 
 class GatherSuiteNames(ResultVisitor):
 
-      def __init__(self):
-          self.result = []
+    def __init__(self):
+        self.result = []
 
-      def end_suite(self, suite):
-          if len(suite.tests):
-             self.result.append(suite.longname)
+    def end_suite(self, suite):
+        if len(suite.tests):
+            self.result.append(suite.longname)
 
 
 def get_suite_names(output_file):
     if not os.path.isfile(output_file):
-       print "get_suite_names: output_file='%s' does not exist" % output_file
-       return []
+        print "get_suite_names: output_file='%s' does not exist" % output_file
+        return []
     try:
-       e = ExecutionResult(output_file)
-       gatherer = GatherSuiteNames()
-       e.visit(gatherer)
-       return gatherer.result
+        e = ExecutionResult(output_file)
+        gatherer = GatherSuiteNames()
+        e.visit(gatherer)
+        return gatherer.result
     except:
-       print "Exception in get_suite_names!"
-       return []
+        print "Exception in get_suite_names!"
+        return []
 
 
 def _parse_args(args):
