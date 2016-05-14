@@ -1,6 +1,9 @@
+*** Settings ***
+Library  PabotLib
+
 *** Test Cases ***
 Testing Case One of Second
-  Log  testing
+  set_parallel_value_for_key  Key  Value
 
 Testing Case One and a half Of Second
   Fail

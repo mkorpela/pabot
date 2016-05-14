@@ -501,18 +501,18 @@ def _start_remote_library(pabot_args):
 
 
 def _stop_remote_library(process):
-    print 'Stopping PabotLib process'
+    _write('Stopping PabotLib process')
     Remote(_PABOTLIBURI).run_keyword('stop_remote_server', [], {})
     i = 50
     while i > 0 and process.poll() is None:
         time.sleep(0.1)
         i -= 1
     if i == 0:
-        print 'Could not stop PabotLib Process in 5 seconds ' \
-              '- calling terminate'
+        _write('Could not stop PabotLib Process in 5 seconds ' \
+              '- calling terminate', Color.YELLOW)
         process.terminate()
     else:
-        print 'PabotLib process stopped'
+        _write('PabotLib process stopped')
 
 
 def _get_suite_root_name(suite_names):

@@ -45,9 +45,9 @@ class PabotTests(unittest.TestCase):
                          suite_names)
 
     def test_parallel_execution(self):
-        # datasources, options, outs_dir, pabot_args, suite_names
         suite_names = ['Fixtures.Suite One',
                        'Fixtures.Suite Second']
+        lib_process = pabot._start_remote_library(self._pabot_args)
         pabot._parallel_execute(datasources=self._datasources,
                                 options=self._options,
                                 outs_dir=self._outs_dir,
@@ -58,6 +58,7 @@ class PabotTests(unittest.TestCase):
                                             pabot._now(),
                                             pabot._get_suite_root_name(
                                                 suite_names))
+        pabot._stop_remote_library(lib_process)
         self.assertEqual(2, result_code)
 
 
