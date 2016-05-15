@@ -52,6 +52,7 @@ Copyright 2016 Mikko Korpela - Apache 2 License
 """
 
 import os
+import re
 import sys
 import time
 import datetime
@@ -230,7 +231,9 @@ def _parse_args(args):
                   'pabotlib': False,
                   'pabotlibhost': '127.0.0.1',
                   'pabotlibport': 8270,
-                  'processes': max(multiprocessing.cpu_count(), 2)}
+                  'processes': max(multiprocessing.cpu_count(), 2),
+                  'argumentfiles': []}
+    argsmatcher = re.compile(r'--argumentfile(\d+)')
     while args and args[0] in ['--'+param for param in ['command',
                                                         'processes',
                                                         'verbose',
@@ -238,7 +241,8 @@ def _parse_args(args):
                                                         'pabotlib',
                                                         'pabotlibhost',
                                                         'pabotlibport',
-                                                        'suitesfrom']]:
+                                                        'suitesfrom']] or \
+            argsmatcher.match(args[0]):
         if args[0] == '--command':
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
@@ -263,6 +267,9 @@ def _parse_args(args):
             args = args[2:]
         if args[0] == '--suitesfrom':
             pabot_args['suitesfrom'] = args[1]
+            args = args[2:]
+        if argsmatcher.match(args[0]):
+            pabot_args['argumentfiles'] += [args[1]]
             args = args[2:]
     options, datasources = ArgumentParser(USAGE,
                                           auto_pythonpath=False,

@@ -22,6 +22,8 @@ class PabotTests(unittest.TestCase):
              '--pabotlibhost', '123.123.233.123',
              '--pabotlibport', '4562',
              '--suitesfrom', 'some.xml',
+             '--argumentfile1', 'argfile1.txt',
+             '--argumentfile2', 'argfile2.txt',
              'suite'])
         self.assertEqual(pabot_args['command'], ['my_own_command.sh'])
         self.assertEqual(pabot_args['processes'], 12)
@@ -30,6 +32,7 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(pabot_args['pabotlibhost'], '123.123.233.123')
         self.assertEqual(pabot_args['pabotlibport'], 4562)
         self.assertEqual(pabot_args['suitesfrom'], 'some.xml')
+        self.assertEqual(pabot_args['argumentfiles'], ['argfile1.txt', 'argfile2.txt'])
         self.assertEqual(datasources, ['suite'])
 
     def test_start_and_stop_remote_library(self):
