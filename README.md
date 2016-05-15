@@ -2,7 +2,6 @@
 
 [![Build Status](https://travis-ci.org/mkorpela/pabot.svg?branch=master)](https://travis-ci.org/mkorpela/pabot)
 [![Version](https://img.shields.io/pypi/v/robotframework-pabot.svg)](https://pypi.python.org/pypi/robotframework-pabot)
-[![Version](https://img.shields.io/pypi/dm/robotframework-pabot.svg)](https://pypi.python.org/pypi/robotframework-pabot)
 
 A parallel executor for [Robot Framework](http://www.robotframework.org) tests. With Pabot you can split one execution into multiple and save test execution time.
 
@@ -54,6 +53,10 @@ Supports all Robot Framework command line options and also following options (th
 
 --resourcefile [FILEPATH]         
   Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with pabotlib option. Resource file syntax is same as Windows ini files. Where a section is a shared set of variables.
+
+--argumentfile[INTEGER] [FILEPATH]
+  Run same suite with multiple argumentfile options.
+  For example ´--argumentfile1 arg1.txt --argumentfile2 arg2.txt´ .
 
 Example usages:
 
