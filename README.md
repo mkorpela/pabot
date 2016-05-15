@@ -57,6 +57,7 @@ Supports all Robot Framework command line options and also following options (th
 --argumentfile[INTEGER] [FILEPATH]
   Run same suites with multiple argumentfile options.
   For example:
+
      --argumentfile1 arg1.txt --argumentfile2 arg2.txt
 
 Example usages:
