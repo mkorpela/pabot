@@ -14,6 +14,7 @@ setup(name='robotframework-pabot',
       author=name,
       author_email=address,
       url='https://github.com/mkorpela/pabot',
+      download_url='https://pypi.python.org/pypi/robotframework-pabot',
       packages=find_packages(),
       classifiers=[
             'Intended Audience :: Developers',
