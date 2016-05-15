@@ -282,6 +282,8 @@ def _parse_args(args):
                                           auto_pythonpath=False,
                                           auto_argumentfile=False).\
         parse_args(args)
+    if len(datasources) > 1 and options['name'] is None:
+        options['name'] = 'Suites'
     keys = set()
     for k in options:
         if options[k] is None:
