@@ -11,6 +11,8 @@ address = name.lower().replace(' ', '.')+chr(64)+'gmail.com'
 setup(name='robotframework-pabot',
       version='0.30',
       description='Parallel test runner for Robot Framework',
+      long_description='A parallel executor for Robot Framework tests.'
+                       'With Pabot you can split one execution into multiple and save test execution time.',
       author=name,
       author_email=address,
       url='https://github.com/mkorpela/pabot',
