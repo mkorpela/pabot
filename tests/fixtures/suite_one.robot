@@ -22,6 +22,9 @@ Suite Setup    run_only_once  setup123
   Should Be Equal  ${value}  FromSet
   release_value_set
 
+1.4 Testing arg file
+  Should Be Equal  ${PASSINGARG}  Yep
+
 *** Keywords ***
 setup123
   acquire_lock  setup123

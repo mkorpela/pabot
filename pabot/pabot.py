@@ -98,13 +98,14 @@ def execute_and_wait_with(args):
         # Keyboard interrupt has happened!
         return
     time.sleep(0)
-    datasources, outs_dir, options, suite_name, command, verbose = args
+    datasources, outs_dir, options, suite_name, command, verbose, (argfile_index, argfile) = args
     datasources = [d.encode('utf-8') if isinstance(d, unicode) else d
                    for d in datasources]
-    outs_dir = os.path.join(outs_dir, suite_name)
+    outs_dir = os.path.join(outs_dir, suite_name+("" if argfile is None else str(argfile_index)))
     cmd = command + _options_for_custom_executor(options,
                                                  outs_dir,
-                                                 suite_name) + datasources
+                                                 suite_name,
+                                                 argfile) + datasources
     cmd = [c if (' ' not in c) and (';' not in c) else '"%s"' % c for c in cmd]
     os.makedirs(outs_dir)
     with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
@@ -157,7 +158,7 @@ def _options_for_custom_executor(*args):
     return _options_to_cli_arguments(_options_for_executor(*args))
 
 
-def _options_for_executor(options, outs_dir, suite_name):
+def _options_for_executor(options, outs_dir, suite_name, argfile):
     options = options.copy()
     options['log'] = 'NONE'
     options['report'] = 'NONE'
@@ -169,6 +170,8 @@ def _options_for_executor(options, outs_dir, suite_name):
     # Prevent multiple appending of PABOTLIBURI variable setting
     if pabotLibURIVar not in options['variable']:
         options['variable'].append(pabotLibURIVar)
+    if argfile:
+        options['argumentfile'] = argfile
     return _set_terminal_coloring_options(options)
 
 
@@ -411,8 +414,9 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
     pool = ThreadPool(pabot_args['processes'])
     result = pool.map_async(execute_and_wait_with,
                             ((datasources, outs_dir, options, suite,
-                              pabot_args['command'], pabot_args['verbose'])
-                             for suite in suite_names))
+                              pabot_args['command'], pabot_args['verbose'], argfile)
+                             for suite in suite_names
+                             for argfile in enumerate(pabot_args['argumentfiles'] or None)))
     pool.close()
     while not result.ready():
         # keyboard interrupt is executed in main thread

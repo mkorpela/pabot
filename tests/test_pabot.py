@@ -7,6 +7,10 @@ class PabotTests(unittest.TestCase):
 
     def setUp(self):
         self._options, self._datasources, self._pabot_args = pabot._parse_args(['--pabotlib',
+                                                                                '--argumentfile1',
+                                                                                'tests/passingarg.txt',
+                                                                                '--argumentfile2',
+                                                                                'tests/failingarg.txt',
                                                                                 '--resourcefile',
                                                                                 'tests/valueset.dat',
                                                                                 'tests/fixtures'])
@@ -65,7 +69,7 @@ class PabotTests(unittest.TestCase):
                                             pabot._get_suite_root_name(
                                                 suite_names))
         pabot._stop_remote_library(lib_process)
-        self.assertEqual(2, result_code)
+        self.assertEqual(5, result_code)
 
 
 if __name__ == '__main__':
