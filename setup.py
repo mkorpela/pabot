@@ -19,7 +19,10 @@ setup(name='robotframework-pabot',
             'Intended Audience :: Developers',
             'Natural Language :: English',
             'Programming Language :: Python :: 2.7',
-            'Topic :: Software Development :: Testing'
+            'Topic :: Software Development :: Testing',
+            'License :: OSI Approved :: Apache Software License',
+            'Development Status :: 5 - Production/Stable',
+            'Framework :: Robot Framework'
       ],
       scripts=[os.path.join('scripts', 'pabot'),
                os.path.join('scripts', 'pabot.bat')],
