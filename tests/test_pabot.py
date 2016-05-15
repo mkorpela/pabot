@@ -64,6 +64,7 @@ class PabotTests(unittest.TestCase):
                                 pabot_args=self._pabot_args,
                                 suite_names=suite_names)
         result_code = pabot._report_results(self._outs_dir,
+                                            self._pabot_args,
                                             self._options,
                                             pabot._now(),
                                             pabot._get_suite_root_name(

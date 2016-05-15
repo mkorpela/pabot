@@ -81,7 +81,7 @@ import Queue
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = Queue.Queue()
 _PABOTLIBURI = '127.0.0.1:8270'
-
+ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
 
 class Color:
     SUPPORTED_OSES = ['posix']
@@ -101,7 +101,7 @@ def execute_and_wait_with(args):
     datasources, outs_dir, options, suite_name, command, verbose, (argfile_index, argfile) = args
     datasources = [d.encode('utf-8') if isinstance(d, unicode) else d
                    for d in datasources]
-    outs_dir = os.path.join(outs_dir, suite_name+("" if argfile is None else str(argfile_index)))
+    outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
     cmd = command + _options_for_custom_executor(options,
                                                  outs_dir,
                                                  suite_name,
@@ -236,7 +236,6 @@ def _parse_args(args):
                   'pabotlibport': 8270,
                   'processes': max(multiprocessing.cpu_count(), 2),
                   'argumentfiles': []}
-    argsmatcher = re.compile(r'--argumentfile(\d+)')
     while args and args[0] in ['--'+param for param in ['command',
                                                         'processes',
                                                         'verbose',
@@ -245,7 +244,7 @@ def _parse_args(args):
                                                         'pabotlibhost',
                                                         'pabotlibport',
                                                         'suitesfrom']] or \
-            argsmatcher.match(args[0]):
+            ARGSMATCHER.match(args[0]):
         if args[0] == '--command':
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
@@ -271,8 +270,9 @@ def _parse_args(args):
         if args[0] == '--suitesfrom':
             pabot_args['suitesfrom'] = args[1]
             args = args[2:]
-        if argsmatcher.match(args[0]):
-            pabot_args['argumentfiles'] += [args[1]]
+        match = ARGSMATCHER.match(args[0])
+        if ARGSMATCHER.match(args[0]):
+            pabot_args['argumentfiles'] += [(match.group(1), args[1])]
             args = args[2:]
     options, datasources = ArgumentParser(USAGE,
                                           auto_pythonpath=False,
@@ -416,7 +416,7 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
                             ((datasources, outs_dir, options, suite,
                               pabot_args['command'], pabot_args['verbose'], argfile)
                              for suite in suite_names
-                             for argfile in enumerate(pabot_args['argumentfiles'] or None)))
+                             for argfile in pabot_args['argumentfiles'] or [("", None)]))
     pool.close()
     while not result.ready():
         # keyboard interrupt is executed in main thread
@@ -452,17 +452,36 @@ def _copy_screenshots(options):
                                 os.path.join(outputdir, dst_file_name))
 
 
-def _report_results(outs_dir, options, start_time_string, tests_root_name):
-    output_path = os.path.abspath(os.path.join(
-        options.get('outputdir', '.'),
-        options.get('output', 'output.xml')))
-    merge(sorted(glob(os.path.join(outs_dir, '**/*.xml'))),
-          options, tests_root_name).save(output_path)
+def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root_name):
+    if pabot_args['argumentfiles']:
+        outputs = []
+        for index, _ in pabot_args['argumentfiles']:
+            outputs += [_merge_one_run(os.path.join(outs_dir, index), options, tests_root_name,
+                                       outputfile=os.path.join('pabot_results', 'output%s.xml' % index))]
+            _copy_screenshots(options)
+        options['output'] = 'output.xml'
+        return rebot(*outputs, **_options_for_rebot(options,
+                                                    start_time_string, _now()))
+    else:
+        return _report_results_for_one_run(outs_dir, options, start_time_string, tests_root_name)
+
+
+def _report_results_for_one_run(outs_dir, options, start_time_string, tests_root_name):
+    output_path = _merge_one_run(outs_dir, options, tests_root_name)
     _copy_screenshots(options)
     print 'Output:  %s' % output_path
     options['output'] = None  # Do not write output again with rebot
     return rebot(output_path, **_options_for_rebot(options,
                                                    start_time_string, _now()))
+
+
+def _merge_one_run(outs_dir, options, tests_root_name, outputfile='output.xml'):
+    output_path = os.path.abspath(os.path.join(
+        options.get('outputdir', '.'),
+        options.get('output', outputfile)))
+    merge(sorted(glob(os.path.join(outs_dir, '**/*.xml'))),
+          options, tests_root_name).save(output_path)
+    return output_path
 
 
 def _writer():
@@ -548,7 +567,7 @@ def main(args):
         if suite_names:
             _parallel_execute(datasources, options, outs_dir, pabot_args,
                               suite_names)
-            sys.exit(_report_results(outs_dir, options, start_time_string,
+            sys.exit(_report_results(outs_dir, pabot_args, options, start_time_string,
                                      _get_suite_root_name(suite_names)))
         else:
             print 'No tests to execute'
