@@ -15,6 +15,12 @@ setup(name='robotframework-pabot',
       author_email=address,
       url='https://github.com/mkorpela/pabot',
       packages=find_packages(),
+      classifiers=[
+            'Intended Audience :: Developers',
+            'Natural Language :: English',
+            'Programming Language :: Python :: 2.7',
+            'Topic :: Software Development :: Testing'
+      ],
       scripts=[os.path.join('scripts', 'pabot'),
                os.path.join('scripts', 'pabot.bat')],
       license='Apache License, Version 2.0',
