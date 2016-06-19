@@ -324,7 +324,8 @@ def _with_modified_robot():
                     process = True
                 elif process:
                     if cells[0].strip() != '' or \
-                            (len(cells) > 1 and '[' in cells[1]):
+                            (len(cells) > 1 and
+                                 ('[' in cells[1] or (first and '...' in cells[1]))):
                         populator.add(cells)
                         first = True
                     elif first:
