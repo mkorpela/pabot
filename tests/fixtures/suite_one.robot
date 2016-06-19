@@ -25,21 +25,6 @@ Suite Setup    run_only_once  setup123
 1.4 Testing arg file
   Should Be Equal  ${PASSINGARG}  Yep
 
-1.5 Testing ignored
-  [Tags]  ignorethis
-  Fail
-
-1.6 Testing ignored with dots
-  [Tags]  foo  bar
-  ...     ignorethis
-  Fail
-
-1.7 Testing not ignored with dots
-  [Tags]  something
-  No Operation
-  Log
-  ...    ignorethis
-
 *** Keywords ***
 setup123
   acquire_lock  setup123
