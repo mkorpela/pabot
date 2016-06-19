@@ -13,6 +13,8 @@ class PabotTests(unittest.TestCase):
                                                                                 'tests/failingarg.txt',
                                                                                 '--resourcefile',
                                                                                 'tests/valueset.dat',
+                                                                                '--exclude',
+                                                                                'ignorethis'
                                                                                 'tests/fixtures'])
         self._outs_dir = pabot._output_dir(self._options)
 
