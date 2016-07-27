@@ -76,7 +76,7 @@ Example usages:
 pabot.PabotLib provides keywords that will help communication and data sharing between the executor processes.
 These can be helpful when you must ensure that only one of the processes uses some piece of data or operates on some part of the system under test at a time.
 
-Docs are located at http://htmlpreview.github.io/?https://github.com/mkorpela/pabot/blob/master/PabotLib.html
+Docs are located at https://cdn.rawgit.com/mkorpela/pabot/master/PabotLib.html
 
 ### PabotLib example:
 
