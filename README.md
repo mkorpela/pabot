@@ -57,7 +57,7 @@ Supports all Robot Framework command line options and also following options (th
   Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with pabotlib option. Resource file syntax is same as Windows ini files. Where a section is a shared set of variables.
 
 --argumentfile[INTEGER]   [FILEPATH]          
-  Run same suites with multiple argumentfile options.
+  Run same suites with multiple [argumentfile](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files) options.
   For example:
 
      --argumentfile1 arg1.txt --argumentfile2 arg2.txt
