@@ -280,7 +280,8 @@ def _parse_args(args):
             args = args[2:]
     options, datasources = ArgumentParser(USAGE,
                                           auto_pythonpath=False,
-                                          auto_argumentfile=False).\
+                                          auto_argumentfile=False,
+                                          env_options='ROBOT_OPTIONS').\
         parse_args(args)
     if len(datasources) > 1 and options['name'] is None:
         options['name'] = 'Suites'
