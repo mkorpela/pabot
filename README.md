@@ -117,4 +117,10 @@ pabot call
 
       pabot --pabotlib --resourcefile valueset.dat test.robot
 
+### Global variables
+
+Pabot will insert following global variables to Robot Framework namespace. These are here to enable PabotLib functionality and for custom listeners etc. to get some information on the overall execution of pabot.
+
+      PABOTLIBURI - this contains the URI for the running PabotLib server
+      PABOTEXECUTIONPOOLID - this contains the pool id (an integer) for the current Robot Framework executor. This is helpful for example when visualizing the execution flow from your own listener.
  
