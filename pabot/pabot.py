@@ -84,6 +84,8 @@ import Queue
 
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = Queue.Queue()
+EXECUTION_POOL_IDS = []
+EXECUTION_POOL_ID_LOCK = threading.Lock()
 _PABOTLIBURI = '127.0.0.1:8270'
 ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
 
@@ -119,6 +121,15 @@ def execute_and_wait_with(args):
         _write(_execution_failed_message(suite_name, rc, verbose), Color.RED)
     else:
         _write('PASSED %s' % suite_name, Color.GREEN)
+
+
+def _make_id():
+    global EXECUTION_POOL_IDS, EXECUTION_POOL_ID_LOCK
+    thread_id = threading.current_thread().ident
+    with EXECUTION_POOL_ID_LOCK:
+        if thread_id not in EXECUTION_POOL_IDS:
+            EXECUTION_POOL_IDS += [thread_id]
+        return EXECUTION_POOL_IDS.index(thread_id)
 
 
 def _run(cmd, stderr, stdout, suite_name, verbose):
@@ -169,11 +180,14 @@ def _options_for_executor(options, outs_dir, suite_name, argfile):
     options['xunit'] = 'NONE'
     options['suite'] = suite_name
     options['outputdir'] = outs_dir
-    options['variable'] = options.get('variable')
+    options['variable'] = options.get('variable')[:]
     pabotLibURIVar = 'PABOTLIBURI:%s' % _PABOTLIBURI
     # Prevent multiple appending of PABOTLIBURI variable setting
     if pabotLibURIVar not in options['variable']:
         options['variable'].append(pabotLibURIVar)
+    pabotExecutionPoolId = "PABOTEXECUTIONPOOLID:%d" % _make_id()
+    if pabotExecutionPoolId not in options['variable']:
+        options['variable'].append(pabotExecutionPoolId)
     if argfile:
         options['argumentfile'] = argfile
     return _set_terminal_coloring_options(options)
