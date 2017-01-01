@@ -112,7 +112,7 @@ def execute_and_wait_with(args):
                                                  outs_dir,
                                                  suite_name,
                                                  argfile) + datasources
-    cmd = [c if (' ' not in c) and (';' not in c) else '"%s"' % c for c in cmd]
+    cmd = [c if (' ' not in c) and (';' not in c) and ('\\' not in c) else '"%s"' % c for c in cmd]
     os.makedirs(outs_dir)
     with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
         with open(os.path.join(outs_dir, 'stderr.txt'), 'w') as stderr:
