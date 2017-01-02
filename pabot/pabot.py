@@ -124,7 +124,7 @@ def execute_and_wait_with(args):
         _write_with_id(process, pool_id, 'PASSED %s in %s seconds' % (suite_name, elapsed), Color.GREEN)
 
 def _write_with_id(process, pool_id, message, color=None):
-    _write("%s [PID:%s][%s] %s" % (datetime.datetime.now(), process.pid, pool_id, message), color)
+    _write("%s [PID:%s] [%s] %s" % (datetime.datetime.now(), process.pid, pool_id, message), color)
 
 def _make_id():
     global EXECUTION_POOL_IDS, EXECUTION_POOL_ID_LOCK
