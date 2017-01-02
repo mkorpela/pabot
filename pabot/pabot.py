@@ -108,6 +108,7 @@ def execute_and_wait_with(args):
     datasources = [d.encode('utf-8') if isinstance(d, unicode) else d
                    for d in datasources]
     outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
+    pool_id = _make_id()
     cmd = command + _options_for_custom_executor(options,
                                                  outs_dir,
                                                  suite_name,
@@ -116,12 +117,14 @@ def execute_and_wait_with(args):
     os.makedirs(outs_dir)
     with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
         with open(os.path.join(outs_dir, 'stderr.txt'), 'w') as stderr:
-            process, rc = _run(cmd, stderr, stdout, suite_name, verbose)
+            process, (rc, elapsed) = _run(cmd, stderr, stdout, suite_name, verbose, pool_id)
     if rc != 0:
-        _write(_execution_failed_message(suite_name, rc, verbose), Color.RED)
+        _write_with_id(process, pool_id, _execution_failed_message(suite_name, rc, verbose), Color.RED)
     else:
-        _write('PASSED %s' % suite_name, Color.GREEN)
+        _write_with_id(process, pool_id, 'PASSED %s in %s seconds' % (suite_name, elapsed), Color.GREEN)
 
+def _write_with_id(process, pool_id, message, color=None):
+    _write("%s [PID:%s][%s] %s" % (datetime.datetime.now(), process.pid, pool_id, message), color)
 
 def _make_id():
     global EXECUTION_POOL_IDS, EXECUTION_POOL_ID_LOCK
@@ -132,20 +135,19 @@ def _make_id():
         return EXECUTION_POOL_IDS.index(thread_id)
 
 
-def _run(cmd, stderr, stdout, suite_name, verbose):
+def _run(cmd, stderr, stdout, suite_name, verbose, pool_id):
     process = subprocess.Popen(' '.join(cmd),
                                shell=True,
                                stderr=stderr,
                                stdout=stdout)
     if verbose:
-        _write('[PID:%s] EXECUTING PARALLEL SUITE %s with command:\n%s' %
-               (process.pid, suite_name, ' '.join(cmd)))
+        _write_with_id(process, pool_id, 'EXECUTING PARALLEL SUITE %s with command:\n%s' % (suite_name, ' '.join(cmd)))
     else:
-        _write('[PID:%s] EXECUTING %s' % (process.pid, suite_name))
-    return process, _wait_for_return_code(process, suite_name)
+        _write_with_id(process, pool_id, 'EXECUTING %s' % suite_name)
+    return process, _wait_for_return_code(process, suite_name, pool_id)
 
 
-def _wait_for_return_code(process, suite_name):
+def _wait_for_return_code(process, suite_name, pool_id):
     rc = None
     elapsed = 0
     ping_time = ping_interval = 150
@@ -156,11 +158,10 @@ def _wait_for_return_code(process, suite_name):
         if elapsed == ping_time:
             ping_interval += 50
             ping_time += ping_interval
-            _write('[PID:%s] still running %s after %s seconds '
+            _write_with_id(process, pool_id, 'still running %s after %s seconds '
                    '(next ping in %s seconds)'
-                   % (process.pid, suite_name, elapsed / 10.0,
-                      ping_interval / 10.0))
-    return rc
+                   % (suite_name, elapsed / 10.0, ping_interval / 10.0))
+    return rc, elapsed / 10.0
 
 
 def _execution_failed_message(suite_name, rc, verbose):
