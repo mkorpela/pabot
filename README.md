@@ -64,7 +64,7 @@ Supports all Robot Framework command line options and also following options (th
 
      --argumentfile1 arg1.txt --argumentfile2 arg2.txt
 
---suitesfrom [FILEPATH TO OUTPUTXML]
+--suitesfrom    [FILEPATH TO OUTPUTXML]
   Optionally read suites from output.xml file. Failed suites will run
   first and longer running ones will be executed before shorter ones.
 
