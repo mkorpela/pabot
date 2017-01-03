@@ -75,7 +75,7 @@ from robot.result.visitor import ResultVisitor
 from robot.libraries.Remote import Remote
 from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
-from robot.utils import ArgumentParser
+from robot.utils import ArgumentParser, SYSTEM_ENCODING
 import signal
 import PabotLib
 from result_merger import merge
@@ -115,9 +115,12 @@ def execute_and_wait_with(args):
                                                  argfile) + datasources
     cmd = [c if not any(bad in c for bad in [' ', ';','\\']) else '"%s"' % c for c in cmd]
     os.makedirs(outs_dir)
-    with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
-        with open(os.path.join(outs_dir, 'stderr.txt'), 'w') as stderr:
-            process, (rc, elapsed) = _run(cmd, stderr, stdout, suite_name, verbose, pool_id)
+    try:
+        with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
+            with open(os.path.join(outs_dir, 'stderr.txt'), 'w') as stderr:
+                process, (rc, elapsed) = _run(cmd, stderr, stdout, suite_name, verbose, pool_id)
+    except:
+        print(sys.exc_info()[0])
     if rc != 0:
         _write_with_id(process, pool_id, _execution_failed_message(suite_name, rc, verbose), Color.RED)
     else:
@@ -136,7 +139,7 @@ def _make_id():
 
 
 def _run(cmd, stderr, stdout, suite_name, verbose, pool_id):
-    process = subprocess.Popen(' '.join(cmd),
+    process = subprocess.Popen((' '.join(cmd)).decode('utf-8').encode(SYSTEM_ENCODING),
                                shell=True,
                                stderr=stderr,
                                stdout=stdout)
