@@ -126,8 +126,9 @@ def execute_and_wait_with(args):
     else:
         _write_with_id(process, pool_id, 'PASSED %s in %s seconds' % (suite_name, elapsed), Color.GREEN)
 
-def _write_with_id(process, pool_id, message, color=None):
-    _write("%s [PID:%s] [%s] %s" % (datetime.datetime.now(), process.pid, pool_id, message), color)
+def _write_with_id(process, pool_id, message, color=None, timestamp=None):
+    timestamp = timestamp or datetime.datetime.now()
+    _write("%s [PID:%s] [%s] %s" % (timestamp, process.pid, pool_id, message), color)
 
 def _make_id():
     global EXECUTION_POOL_IDS, EXECUTION_POOL_ID_LOCK
@@ -139,14 +140,16 @@ def _make_id():
 
 
 def _run(cmd, stderr, stdout, suite_name, verbose, pool_id):
+    timestamp = datetime.datetime.now()
     process = subprocess.Popen((' '.join(cmd)).decode('utf-8').encode(SYSTEM_ENCODING),
                                shell=True,
                                stderr=stderr,
                                stdout=stdout)
     if verbose:
-        _write_with_id(process, pool_id, 'EXECUTING PARALLEL SUITE %s with command:\n%s' % (suite_name, ' '.join(cmd)))
+        _write_with_id(process, pool_id, 'EXECUTING PARALLEL SUITE %s with command:\n%s' % (suite_name, ' '.join(cmd)),
+                       timestamp=timestamp)
     else:
-        _write_with_id(process, pool_id, 'EXECUTING %s' % suite_name)
+        _write_with_id(process, pool_id, 'EXECUTING %s' % suite_name, timestamp=timestamp)
     return process, _wait_for_return_code(process, suite_name, pool_id)
 
 
