@@ -256,20 +256,22 @@ def get_suite_names(output_file):
 def _parse_args(args):
     pabot_args = {'command': ['pybot'],
                   'verbose': False,
+                  'tutorial': True,
                   'pabotlib': False,
                   'pabotlibhost': '127.0.0.1',
                   'pabotlibport': 8270,
                   'processes': max(multiprocessing.cpu_count(), 2),
                   'argumentfiles': []}
-    while args and args[0] in ['--'+param for param in ['command',
+    while args and (args[0] in ['--'+param for param in ['command',
                                                         'processes',
                                                         'verbose',
+                                                        'tutorial',
                                                         'resourcefile',
                                                         'pabotlib',
                                                         'pabotlibhost',
                                                         'pabotlibport',
-                                                        'suitesfrom']] or \
-            ARGSMATCHER.match(args[0]):
+                                                        'suitesfrom']] or
+            ARGSMATCHER.match(args[0])):
         if args[0] == '--command':
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
@@ -299,6 +301,9 @@ def _parse_args(args):
         if ARGSMATCHER.match(args[0]):
             pabot_args['argumentfiles'] += [(match.group(1), args[1])]
             args = args[2:]
+        if args[0] == '--tutorial':
+            pabot_args['tutorial'] = True
+            args = args[1:]
     options, datasources = ArgumentParser(USAGE,
                                           auto_pythonpath=False,
                                           auto_argumentfile=False,
@@ -594,6 +599,12 @@ def _get_suite_root_name(suite_names):
     return ''
 
 
+def _run_tutorial():
+    print 'Hi, This is a short introduction to using Pabot.'
+    raw_input("Press Enter to continue...")
+    print 'This is another line in the tutorial.'
+
+
 def main(args):
     start_time = time.time()
     start_time_string = _now()
@@ -602,6 +613,9 @@ def main(args):
     try:
         _start_message_writer()
         options, datasources, pabot_args = _parse_args(args)
+        if pabot_args['tutorial']:
+            _run_tutorial()
+            sys.exit(0)
         lib_process = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options,
