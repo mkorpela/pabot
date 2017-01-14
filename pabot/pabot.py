@@ -306,7 +306,7 @@ def _parse_args(args):
         if args[0] == '--tutorial':
             pabot_args['tutorial'] = True
             args = args[1:]
-        if args[0] == '--help':
+        if args and args[0] == '--help':
             pabot_args['help'] = True
             args = args[1:]
     options, datasources = ArgumentParser(USAGE,
