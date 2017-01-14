@@ -256,7 +256,8 @@ def get_suite_names(output_file):
 def _parse_args(args):
     pabot_args = {'command': ['pybot'],
                   'verbose': False,
-                  'tutorial': True,
+                  'tutorial': False,
+                  'help': False,
                   'pabotlib': False,
                   'pabotlibhost': '127.0.0.1',
                   'pabotlibport': 8270,
@@ -270,7 +271,8 @@ def _parse_args(args):
                                                         'pabotlib',
                                                         'pabotlibhost',
                                                         'pabotlibport',
-                                                        'suitesfrom']] or
+                                                        'suitesfrom',
+                                                        'help']] or
             ARGSMATCHER.match(args[0])):
         if args[0] == '--command':
             end_index = args.index('--end-command')
@@ -303,6 +305,9 @@ def _parse_args(args):
             args = args[2:]
         if args[0] == '--tutorial':
             pabot_args['tutorial'] = True
+            args = args[1:]
+        if args[0] == '--help':
+            pabot_args['help'] = True
             args = args[1:]
     options, datasources = ArgumentParser(USAGE,
                                           auto_pythonpath=False,
@@ -615,6 +620,9 @@ def main(args):
         options, datasources, pabot_args = _parse_args(args)
         if pabot_args['tutorial']:
             _run_tutorial()
+            sys.exit(0)
+        if pabot_args['help']:
+            print __doc__
             sys.exit(0)
         lib_process = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
