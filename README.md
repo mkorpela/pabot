@@ -46,10 +46,12 @@ Supports all Robot Framework command line options and also following options (th
 --pabotlibhost   [HOSTNAME]          
   Host name of the PabotLib remote server (default is 127.0.0.1)
   If used with --pabotlib option, will change the host listen address of the created remote server (see https://github.com/robotframework/PythonRemoteServer)
-  If used without the --pabotlib option, will connect to already running instance of the PabotLib remote server in the given host. The remote server can be started with:
-     python PabotLib.py <path_to_resourcefile> <host> <port>
-     python PabotLib.py resource.txt 192.168.1.123 8271
-  This enables sharing a resource with multiple Robot Framework instances
+  If used without the --pabotlib option, will connect to already running instance of the PabotLib remote server in the given host. The remote server can be also started with and executed separately from the pabot:
+  
+      python -m pabot.PabotLib <path_to_resourcefile> <host> <port>
+      python -m pabot.PabotLib resource.txt 192.168.1.123 8271
+  
+  This enables sharing a resource with multiple Robot Framework instances.
 
 --pabotlibport   [PORT]          
   Port number of the PabotLib remote server (default is 8270)
