@@ -113,7 +113,7 @@ def execute_and_wait_with(args):
                                                  outs_dir,
                                                  suite_name,
                                                  argfile) + datasources
-    cmd = [c if not any(bad in c for bad in [' ', ';','\\']) else '"%s"' % c for c in cmd]
+    cmd = [c if re.match("^[a-zA-Z0-9_]*$", c) else '"%s"' % c for c in cmd]
     os.makedirs(outs_dir)
     try:
         with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
