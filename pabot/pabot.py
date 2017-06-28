@@ -122,9 +122,9 @@ def execute_and_wait_with(args):
     except:
         print(sys.exc_info()[0])
     if rc != 0:
-        _write_with_id(process, pool_id, _execution_failed_message(suite_name, rc, verbose), Color.RED)
+        _write_with_id(process, pool_id, _execution_failed_message(suite_name, stdout, rc, verbose), Color.RED)
     else:
-        _write_with_id(process, pool_id, 'PASSED %s in %s seconds' % (suite_name, elapsed), Color.GREEN)
+        _write_with_id(process, pool_id, _execution_passed_message(suite_name, stdout, elapsed, verbose), Color.GREEN)
 
 def _write_with_id(process, pool_id, message, color=None, timestamp=None):
     timestamp = timestamp or datetime.datetime.now()
@@ -170,11 +170,21 @@ def _wait_for_return_code(process, suite_name, pool_id):
     return rc, elapsed / 10.0
 
 
-def _execution_failed_message(suite_name, rc, verbose):
+def _execution_failed_message(suite_name, stdout, rc, verbose):
+    with open(stdout.name, 'r') as content_file:
+        content = content_file.read()
+
     if not verbose:
         return 'FAILED %s' % suite_name
-    return 'Execution failed in %s with %d failing test(s)' % (suite_name, rc)
+    return 'Execution failed in %s with %d failing test(s)\n%s' % (suite_name, rc, content)
 
+def _execution_passed_message(suite_name, stdout, elapsed, verbose):
+    with open(stdout.name, 'r') as content_file:
+        content = content_file.read()
+
+    if not verbose:
+        return 'PASSED %s in %s seconds' % (suite_name, elapsed)
+    return 'PASSED %s in %s seconds\n%s' % (suite_name, elapsed, content)
 
 def _options_for_custom_executor(*args):
     return _options_to_cli_arguments(_options_for_executor(*args))
