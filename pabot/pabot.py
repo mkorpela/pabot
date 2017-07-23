@@ -107,7 +107,8 @@ def execute_and_wait_with(args):
     datasources, outs_dir, options, suite_name, command, verbose, (argfile_index, argfile) = args
     datasources = [d.encode('utf-8') if isinstance(d, unicode) else d
                    for d in datasources]
-    outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
+    mini_suiteName= re.sub(' ','-',(suite_name.split('.')[-1])
+    outs_dir = os.path.join(outs_dir, argfile_index, mini_suiteName)
     pool_id = _make_id()
     cmd = command + _options_for_custom_executor(options,
                                                  outs_dir,
