@@ -165,9 +165,13 @@ def _wait_for_return_code(process, suite_name, pool_id):
         if elapsed == ping_time:
             ping_interval += 50
             ping_time += ping_interval
-            _write_with_id(process, pool_id, 'still running %s after %s seconds '
-                   '(next ping in %s seconds)'
-                   % (suite_name, elapsed / 10.0, ping_interval / 10.0))
+            #_write_with_id(process, pool_id, 'still running %s after %s seconds '
+            #       '(next ping in %s seconds)'
+            #       % (suite_name, elapsed / 10.0, ping_interval / 10.0))
+        if elapsed >= 3600:
+            CTRL_C_PRESSED
+            rc = 255
+
     return rc, elapsed / 10.0
 
 
