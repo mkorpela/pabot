@@ -51,12 +51,13 @@ class PabotTests(unittest.TestCase):
                                               datasources=self._datasources,
                                               options=self._options,
                                               pabot_args=self._pabot_args)
-        self.assertEqual(['Fixtures.Suite One', 'Fixtures.Suite Second'],
+        self.assertEqual(['Fixtures.Suite One', 'Fixtures.Suite Second', 'Fixtures.Suite With&(Specia|)Chars'],
                          suite_names)
 
     def test_parallel_execution(self):
         suite_names = ['Fixtures.Suite One',
-                       'Fixtures.Suite Second']
+                       'Fixtures.Suite Second',
+                       'Fixtures.Suite With&(Specia|)Chars']
         lib_process = pabot._start_remote_library(self._pabot_args)
         pabot._parallel_execute(datasources=self._datasources,
                                 options=self._options,
