@@ -7,6 +7,7 @@ class PabotTests(unittest.TestCase):
 
     def setUp(self):
         self._options, self._datasources, self._pabot_args = pabot._parse_args(['--pabotlib',
+                                                                                '--verbose',
                                                                                 '--argumentfile1',
                                                                                 'tests/passingarg.txt',
                                                                                 '--argumentfile2',
