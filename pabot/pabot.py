@@ -88,6 +88,7 @@ EXECUTION_POOL_IDS = []
 EXECUTION_POOL_ID_LOCK = threading.Lock()
 _PABOTLIBURI = '127.0.0.1:8270'
 ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
+_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # does not contain '"'
 
 class Color:
     SUPPORTED_OSES = ['posix']
@@ -113,7 +114,7 @@ def execute_and_wait_with(args):
                                                  outs_dir,
                                                  suite_name,
                                                  argfile) + datasources
-    cmd = [c if not any(bad in c for bad in [' ', ';','\\']) else '"%s"' % c for c in cmd]
+    cmd = [c if not any(bad in c for bad in _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE) else '"%s"' % c for c in cmd]
     os.makedirs(outs_dir)
     try:
         with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
