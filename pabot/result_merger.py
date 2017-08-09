@@ -33,6 +33,7 @@ class ResultMerger(SuiteVisitor):
 
     def __init__(self, result, tests_root_name):
         self.root = result.suite
+        self.errors = result.errors
         self.current = None
         self._skip_until = None
         self._tests_root_name = tests_root_name
@@ -40,6 +41,7 @@ class ResultMerger(SuiteVisitor):
     def merge(self, merged):
         try:
             merged.suite.visit(self)
+            self.errors.add(merged.errors)
         except:
             print 'Error while merging result %s' % merged.source
             raise
@@ -118,7 +120,7 @@ def merge_groups(results, critical_tags, non_critical_tags, tests_root_name):
                                non_critical_tags).values():
         base = group[0]
         merger = ResultMerger(base, tests_root_name)
-        for out in group:
+        for out in group[1:]:
             merger.merge(out)
         merged.append(base)
     return merged
