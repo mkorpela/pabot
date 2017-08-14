@@ -93,7 +93,7 @@ class PabotLib(_PabotLib):
     def __init__(self):
         _PabotLib.__init__(self)
         self.__remotelib = None
-        self._my_id = uuid.uuid4().get_hex()
+        self._my_id = uuid.uuid4().hex
 
     @property
     def _remotelib(self):
