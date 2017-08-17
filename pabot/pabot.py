@@ -64,7 +64,7 @@ import time
 import datetime
 import multiprocessing
 from glob import glob
-from io import BytesIO
+from io import StringIO
 import shutil
 import subprocess
 import threading
@@ -79,7 +79,7 @@ from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
 from robot.utils import ArgumentParser, SYSTEM_ENCODING
 import signal
-from . import PabotLib
+from . import pabotlib
 from .result_merger import merge
 try:
     import queue
@@ -414,8 +414,8 @@ def _options_for_dryrun(options, outs_dir):
     # --timestampoutputs is not compatible with hard-coded suite_names.xml
     options['timestampoutputs'] = False
     options['outputdir'] = outs_dir
-    options['stdout'] = BytesIO()
-    options['stderr'] = BytesIO()
+    options['stdout'] = StringIO()
+    options['stderr'] = StringIO()
     options['listener'] = []
     return _set_terminal_coloring_options(options)
 
@@ -580,7 +580,7 @@ def _start_remote_library(pabot_args):
                ' Some tests may fail or continue forever.', Color.YELLOW)
         pabot_args['resourcefile'] = None
     return subprocess.Popen('python %s %s %s %s' %
-                            (os.path.abspath(PabotLib.__file__),
+                            (os.path.abspath(pabotlib.__file__),
                              pabot_args.get('resourcefile'),
                              pabot_args['pabotlibhost'],
                              pabot_args['pabotlibport']),
