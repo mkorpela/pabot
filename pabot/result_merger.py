@@ -15,6 +15,7 @@
 #  partly based on work by Pekka Klarck
 #  by Nokia Solutions and Networks
 #  that was licensed under Apache License Version 2.0
+from __future__ import absolute_import
 
 from robot.api import ExecutionResult
 from robot.conf import RebotSettings

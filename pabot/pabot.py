@@ -55,6 +55,8 @@ options (these must be before normal RF options):
 Copyright 2016 Mikko Korpela - Apache 2 License
 """
 
+from __future__ import absolute_import
+
 import os
 import re
 import sys
@@ -77,8 +79,8 @@ from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
 from robot.utils import ArgumentParser, SYSTEM_ENCODING
 import signal
-import PabotLib
-from result_merger import merge
+from . import PabotLib
+from .result_merger import merge
 import Queue
 
 
