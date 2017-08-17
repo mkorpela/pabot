@@ -81,11 +81,14 @@ from robot.utils import ArgumentParser, SYSTEM_ENCODING
 import signal
 from . import PabotLib
 from .result_merger import merge
-import Queue
+try:
+    import queue
+except ImportError:
+    import Queue as queue
 
 
 CTRL_C_PRESSED = False
-MESSAGE_QUEUE = Queue.Queue()
+MESSAGE_QUEUE = queue.Queue()
 EXECUTION_POOL_IDS = []
 EXECUTION_POOL_ID_LOCK = threading.Lock()
 _PABOTLIBURI = '127.0.0.1:8270'
