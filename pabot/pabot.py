@@ -64,7 +64,7 @@ import time
 import datetime
 import multiprocessing
 from glob import glob
-from io import StringIO
+from io import BytesIO
 import shutil
 import subprocess
 import threading
@@ -414,8 +414,8 @@ def _options_for_dryrun(options, outs_dir):
     # --timestampoutputs is not compatible with hard-coded suite_names.xml
     options['timestampoutputs'] = False
     options['outputdir'] = outs_dir
-    options['stdout'] = StringIO()
-    options['stderr'] = StringIO()
+    options['stdout'] = BytesIO()
+    options['stderr'] = BytesIO()
     options['listener'] = []
     return _set_terminal_coloring_options(options)
 
