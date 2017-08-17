@@ -62,7 +62,7 @@ import time
 import datetime
 import multiprocessing
 from glob import glob
-from StringIO import StringIO
+from io import StringIO
 import shutil
 import subprocess
 import threading
