@@ -241,7 +241,7 @@ class GatherSuiteNames(ResultVisitor):
 
 def get_suite_names(output_file):
     if not os.path.isfile(output_file):
-        print "get_suite_names: output_file='%s' does not exist" % output_file
+        print("get_suite_names: output_file='%s' does not exist" % output_file)
         return []
     try:
         e = ExecutionResult(output_file)
@@ -249,7 +249,7 @@ def get_suite_names(output_file):
         e.visit(gatherer)
         return gatherer.result
     except:
-        print "Exception in get_suite_names!"
+        print("Exception in get_suite_names!")
         return []
 
 
@@ -440,7 +440,7 @@ def _print_elapsed(start, end):
     if elapsed_hours > 0:
         elapsed_string += '%d hours ' % elapsed_hours
     elapsed_string += '%d minutes %d.%d seconds' % (minutes, seconds, millis)
-    print 'Elapsed time: '+elapsed_string
+    print('Elapsed time: '+elapsed_string)
 
 
 def keyboard_interrupt(*args):
@@ -508,7 +508,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
 def _report_results_for_one_run(outs_dir, options, start_time_string, tests_root_name):
     output_path = _merge_one_run(outs_dir, options, tests_root_name)
     _copy_screenshots(options)
-    print 'Output:  %s' % output_path
+    print('Output:  %s' % output_path)
     options['output'] = None  # Do not write output again with rebot
     return rebot(output_path, **_options_for_rebot(options,
                                                    start_time_string, _now()))
@@ -539,7 +539,7 @@ def _glob_escape(pathname):
 def _writer():
     while True:
         message = MESSAGE_QUEUE.get()
-        print message
+        print(message)
         sys.stdout.flush()
 
 
@@ -605,9 +605,9 @@ def _get_suite_root_name(suite_names):
 
 
 def _run_tutorial():
-    print 'Hi, This is a short introduction to using Pabot.'
+    print('Hi, This is a short introduction to using Pabot.')
     raw_input("Press Enter to continue...")
-    print 'This is another line in the tutorial.'
+    print('This is another line in the tutorial.')
 
 
 def main(args):
@@ -622,7 +622,7 @@ def main(args):
             _run_tutorial()
             sys.exit(0)
         if pabot_args['help']:
-            print __doc__
+            print(__doc__)
             sys.exit(0)
         lib_process = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
@@ -634,10 +634,10 @@ def main(args):
             sys.exit(_report_results(outs_dir, pabot_args, options, start_time_string,
                                      _get_suite_root_name(suite_names)))
         else:
-            print 'No tests to execute'
-    except Information, i:
-        print __doc__
-        print i.message
+            print('No tests to execute')
+    except Information as i:
+        print(__doc__)
+        print(i.message)
     finally:
         if lib_process:
             _stop_remote_library(lib_process)

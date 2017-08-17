@@ -41,7 +41,7 @@ class ResultMerger(SuiteVisitor):
         try:
             merged.suite.visit(self)
         except:
-            print 'Error while merging result %s' % merged.source
+            print('Error while merging result %s' % merged.source)
             raise
 
     def start_suite(self, suite):
