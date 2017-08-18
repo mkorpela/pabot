@@ -81,11 +81,11 @@ from robot.utils import ArgumentParser, SYSTEM_ENCODING
 import signal
 from . import pabotlib
 from .result_merger import merge
+
 try:
     import queue
 except ImportError:
     import Queue as queue
-
 
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = queue.Queue()
@@ -93,6 +93,7 @@ EXECUTION_POOL_IDS = []
 EXECUTION_POOL_ID_LOCK = threading.Lock()
 _PABOTLIBURI = '127.0.0.1:8270'
 ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
+
 
 class Color:
     SUPPORTED_OSES = ['posix']
@@ -118,7 +119,7 @@ def execute_and_wait_with(args):
                                                  outs_dir,
                                                  suite_name,
                                                  argfile) + datasources
-    cmd = [c if not any(bad in c for bad in [' ', ';','\\']) else '"%s"' % c for c in cmd]
+    cmd = [c if not any(bad in c for bad in [' ', ';', '\\']) else '"%s"' % c for c in cmd]
     os.makedirs(outs_dir)
     try:
         with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
@@ -131,9 +132,11 @@ def execute_and_wait_with(args):
     else:
         _write_with_id(process, pool_id, 'PASSED %s in %s seconds' % (suite_name, elapsed), Color.GREEN)
 
+
 def _write_with_id(process, pool_id, message, color=None, timestamp=None):
     timestamp = timestamp or datetime.datetime.now()
     _write("%s [PID:%s] [%s] %s" % (timestamp, process.pid, pool_id, message), color)
+
 
 def _make_id():
     global EXECUTION_POOL_IDS, EXECUTION_POOL_ID_LOCK
@@ -170,8 +173,8 @@ def _wait_for_return_code(process, suite_name, pool_id):
             ping_interval += 50
             ping_time += ping_interval
             _write_with_id(process, pool_id, 'still running %s after %s seconds '
-                   '(next ping in %s seconds)'
-                   % (suite_name, elapsed / 10.0, ping_interval / 10.0))
+                                             '(next ping in %s seconds)'
+                           % (suite_name, elapsed / 10.0, ping_interval / 10.0))
     return rc, elapsed / 10.0
 
 
@@ -235,7 +238,6 @@ def _options_to_cli_arguments(opts):
 
 
 class GatherSuiteNames(ResultVisitor):
-
     def __init__(self):
         self.result = []
 
@@ -268,21 +270,21 @@ def _parse_args(args):
                   'pabotlibport': 8270,
                   'processes': max(multiprocessing.cpu_count(), 2),
                   'argumentfiles': []}
-    while args and (args[0] in ['--'+param for param in ['command',
-                                                        'processes',
-                                                        'verbose',
-                                                        'tutorial',
-                                                        'resourcefile',
-                                                        'pabotlib',
-                                                        'pabotlibhost',
-                                                        'pabotlibport',
-                                                        'suitesfrom',
-                                                        'help']] or
-            ARGSMATCHER.match(args[0])):
+    while args and (args[0] in ['--' + param for param in ['command',
+                                                           'processes',
+                                                           'verbose',
+                                                           'tutorial',
+                                                           'resourcefile',
+                                                           'pabotlib',
+                                                           'pabotlibhost',
+                                                           'pabotlibport',
+                                                           'suitesfrom',
+                                                           'help']] or
+                        ARGSMATCHER.match(args[0])):
         if args[0] == '--command':
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
-            args = args[end_index+1:]
+            args = args[end_index + 1:]
         if args[0] == '--processes':
             pabot_args['processes'] = int(args[1])
             args = args[2:]
@@ -317,7 +319,7 @@ def _parse_args(args):
     options, datasources = ArgumentParser(USAGE,
                                           auto_pythonpath=False,
                                           auto_argumentfile=False,
-                                          env_options='ROBOT_OPTIONS').\
+                                          env_options='ROBOT_OPTIONS'). \
         parse_args(args)
     if len(datasources) > 1 and options['name'] is None:
         options['name'] = 'Suites'
@@ -383,7 +385,6 @@ def _with_modified_robot():
 
 
 class SuiteNotPassingsAndTimes(ResultVisitor):
-
     def __init__(self):
         self.suites = []
 
@@ -438,14 +439,14 @@ def _print_elapsed(start, end):
     elapsed = end - start
     millis = int((elapsed * 1000) % 1000)
     seconds = int(elapsed) % 60
-    elapsed_minutes = (int(elapsed)-seconds)/60
+    elapsed_minutes = (int(elapsed) - seconds) / 60
     minutes = elapsed_minutes % 60
-    elapsed_hours = (elapsed_minutes-minutes)/60
+    elapsed_hours = (elapsed_minutes - minutes) / 60
     elapsed_string = ''
     if elapsed_hours > 0:
         elapsed_string += '%d hours ' % elapsed_hours
     elapsed_string += '%d minutes %d.%d seconds' % (minutes, seconds, millis)
-    print('Elapsed time: '+elapsed_string)
+    print('Elapsed time: ' + elapsed_string)
 
 
 def keyboard_interrupt(*args):
@@ -530,8 +531,10 @@ def _merge_one_run(outs_dir, options, tests_root_name, outputfile='output.xml'):
     merge(files, options, tests_root_name).save(output_path)
     return output_path
 
+
 # This is from https://github.com/django/django/blob/master/django/utils/glob.py
 _magic_check = re.compile('([*?[])')
+
 
 def _glob_escape(pathname):
     """
@@ -540,6 +543,7 @@ def _glob_escape(pathname):
     drive, pathname = os.path.splitdrive(pathname)
     pathname = _magic_check.sub(r'[\1]', pathname)
     return drive + pathname
+
 
 def _writer():
     while True:
@@ -579,12 +583,13 @@ def _start_remote_library(pabot_args):
         _write('Warning: specified resource file doesn\'t exist.'
                ' Some tests may fail or continue forever.', Color.YELLOW)
         pabot_args['resourcefile'] = None
-    return subprocess.Popen('python %s %s %s %s' %
-                            (os.path.abspath(pabotlib.__file__),
-                             pabot_args.get('resourcefile'),
-                             pabot_args['pabotlibhost'],
-                             pabot_args['pabotlibport']),
-                            shell=True)
+    return subprocess.Popen('{python} {pabotlibpath} {resourcefile} {pabotlibhost} {pabotlibport}'.format(
+        python=sys.executable,
+        pabotlibpath=os.path.abspath(pabotlib.__file__),
+        resourcefile=pabot_args.get('resourcefile'),
+        pabotlibhost=pabot_args['pabotlibhost'],
+        pabotlibport=pabot_args['pabotlibport']),
+        shell=True)
 
 
 def _stop_remote_library(process):
@@ -596,7 +601,7 @@ def _stop_remote_library(process):
         i -= 1
     if i == 0:
         _write('Could not stop PabotLib Process in 5 seconds ' \
-              '- calling terminate', Color.YELLOW)
+               '- calling terminate', Color.YELLOW)
         process.terminate()
     else:
         _write('PabotLib process stopped')
