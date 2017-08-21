@@ -55,7 +55,7 @@ options (these must be before normal RF options):
 Copyright 2016 Mikko Korpela - Apache 2 License
 """
 
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import os
 import re
@@ -64,7 +64,7 @@ import time
 import datetime
 import multiprocessing
 from glob import glob
-from io import StringIO
+from io import BytesIO, StringIO
 import shutil
 import subprocess
 import threading
@@ -77,7 +77,7 @@ from robot.result.visitor import ResultVisitor
 from robot.libraries.Remote import Remote
 from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
-from robot.utils import ArgumentParser, SYSTEM_ENCODING
+from robot.utils import ArgumentParser, SYSTEM_ENCODING, is_unicode
 import signal
 from . import pabotlib
 from .result_merger import merge
@@ -111,7 +111,7 @@ def execute_and_wait_with(args):
         return
     time.sleep(0)
     datasources, outs_dir, options, suite_name, command, verbose, (argfile_index, argfile) = args
-    datasources = [d.encode('utf-8') if isinstance(d, unicode) else d
+    datasources = [d.encode('utf-8') if is_unicode(d) else d
                    for d in datasources]
     outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
     pool_id = _make_id()
@@ -415,8 +415,12 @@ def _options_for_dryrun(options, outs_dir):
     # --timestampoutputs is not compatible with hard-coded suite_names.xml
     options['timestampoutputs'] = False
     options['outputdir'] = outs_dir
-    options['stdout'] = StringIO()
-    options['stderr'] = StringIO()
+    if sys.version_info < (3,):
+        options['stdout'] = BytesIO()
+        options['stderr'] = BytesIO()
+    else:
+        options['stdout'] = StringIO()
+        options['stderr'] = StringIO()
     options['listener'] = []
     return _set_terminal_coloring_options(options)
 
