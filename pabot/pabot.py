@@ -77,8 +77,8 @@ from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
 from robot.utils import ArgumentParser, SYSTEM_ENCODING, is_unicode
 import signal
-import PabotLib
-from result_merger import merge
+from . import pabotlib
+from .result_merger import merge
 
 try:
     import queue
@@ -587,7 +587,7 @@ def _start_remote_library(pabot_args):
         pabot_args['resourcefile'] = None
     return subprocess.Popen('{python} {pabotlibpath} {resourcefile} {pabotlibhost} {pabotlibport}'.format(
         python=sys.executable,
-        pabotlibpath=os.path.abspath(PabotLib.__file__),
+        pabotlibpath=os.path.abspath(pabotlib.__file__),
         resourcefile=pabot_args.get('resourcefile'),
         pabotlibhost=pabot_args['pabotlibhost'],
         pabotlibport=pabot_args['pabotlibport']),
@@ -618,7 +618,7 @@ def _get_suite_root_name(suite_names):
 
 def _run_tutorial():
     print('Hi, This is a short introduction to using Pabot.')
-    raw_input("Press Enter to continue...")
+    input("Press Enter to continue...")
     print('This is another line in the tutorial.')
 
 
