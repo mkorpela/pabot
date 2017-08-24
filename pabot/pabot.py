@@ -75,7 +75,7 @@ from robot.result.visitor import ResultVisitor
 from robot.libraries.Remote import Remote
 from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
-from robot.utils import ArgumentParser, SYSTEM_ENCODING, is_unicode
+from robot.utils import ArgumentParser, SYSTEM_ENCODING, is_unicode, PY2
 import signal
 from . import pabotlib
 from .result_merger import merge
@@ -109,7 +109,7 @@ def execute_and_wait_with(args):
         return
     time.sleep(0)
     datasources, outs_dir, options, suite_name, command, verbose, (argfile_index, argfile) = args
-    datasources = [d.encode('utf-8') if sys.version_info < (3,) and is_unicode(d) else d
+    datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d
                    for d in datasources]
     outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
     pool_id = _make_id()
@@ -147,7 +147,7 @@ def _make_id():
 
 def _run(cmd, stderr, stdout, suite_name, verbose, pool_id):
     timestamp = datetime.datetime.now()
-    if sys.version_info < (3,):
+    if PY2:
         cmd = ' '.join(cmd).decode('utf-8').encode(SYSTEM_ENCODING)
     else:
         cmd = ' '.join(cmd)
@@ -226,13 +226,13 @@ def _options_to_cli_arguments(opts):
     for k, v in opts.items():
         if isinstance(v, str):
             res += ['--' + str(k), str(v)]
-        elif sys.version_info < (3,) and is_unicode(v):
+        elif PY2 and is_unicode(v):
             res += ['--' + str(k), v.encode('utf-8')]
         elif isinstance(v, bool) and (v is True):
             res += ['--' + str(k)]
         elif isinstance(v, list):
             for value in v:
-                if sys.version_info < (3,) and is_unicode(value):
+                if PY2 and is_unicode(value):
                     res += ['--' + str(k), value.encode('utf-8')]
                 else:
                     res += ['--' + str(k), str(value)]
@@ -417,7 +417,7 @@ def _options_for_dryrun(options, outs_dir):
     # --timestampoutputs is not compatible with hard-coded suite_names.xml
     options['timestampoutputs'] = False
     options['outputdir'] = outs_dir
-    if sys.version_info < (3,):
+    if PY2:
         options['stdout'] = BytesIO()
         options['stderr'] = BytesIO()
     else:
