@@ -16,7 +16,7 @@
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
 """A parallel executor for Robot Framework test cases.
-Version 0.36.
+Version 0.37.
 
 Supports all Robot Framework command line options and also following
 options (these must be before normal RF options):
@@ -52,7 +52,7 @@ options (these must be before normal RF options):
   Run same suite with multiple argumentfile options.
   For example "--argumentfile1 arg1.txt --argumentfile2 arg2.txt".
 
-Copyright 2016 Mikko Korpela - Apache 2 License
+Copyright 2017 Mikko Korpela - Apache 2 License
 """
 
 import os
@@ -91,6 +91,7 @@ EXECUTION_POOL_IDS = []
 EXECUTION_POOL_ID_LOCK = threading.Lock()
 _PABOTLIBURI = '127.0.0.1:8270'
 ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
+_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # does not contain '"'
 
 
 class Color:
@@ -117,7 +118,7 @@ def execute_and_wait_with(args):
                                                  outs_dir,
                                                  suite_name,
                                                  argfile) + datasources
-    cmd = [c if not any(bad in c for bad in [' ', ';', '\\']) else '"%s"' % c for c in cmd]
+    cmd = [c if not any(bad in c for bad in _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE) else '"%s"' % c for c in cmd]
     os.makedirs(outs_dir)
     try:
         with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
@@ -126,9 +127,9 @@ def execute_and_wait_with(args):
     except:
         print(sys.exc_info()[0])
     if rc != 0:
-        _write_with_id(process, pool_id, _execution_failed_message(suite_name, rc, verbose), Color.RED)
+        _write_with_id(process, pool_id, _execution_failed_message(suite_name, stdout, stderr, rc, verbose), Color.RED)
     else:
-        _write_with_id(process, pool_id, 'PASSED %s in %s seconds' % (suite_name, elapsed), Color.GREEN)
+        _write_with_id(process, pool_id, _execution_passed_message(suite_name, stdout, stderr, elapsed, verbose), Color.GREEN)
 
 
 def _write_with_id(process, pool_id, message, color=None, timestamp=None):
@@ -179,12 +180,23 @@ def _wait_for_return_code(process, suite_name, pool_id):
                            % (suite_name, elapsed / 10.0, ping_interval / 10.0))
     return rc, elapsed / 10.0
 
+def _read_file(file_handle):
+    try:
+        with open(file_handle.name, 'r') as content_file:
+            content = content_file.read()
+        return content
+    except:
+        return 'Unable to read file %s' % file_handle
 
-def _execution_failed_message(suite_name, rc, verbose):
+def _execution_failed_message(suite_name, stdout, stderr, rc, verbose):
     if not verbose:
         return 'FAILED %s' % suite_name
-    return 'Execution failed in %s with %d failing test(s)' % (suite_name, rc)
+    return 'Execution failed in %s with %d failing test(s)\n%s\n%s' % (suite_name, rc, _read_file(stdout), _read_file(stderr))
 
+def _execution_passed_message(suite_name, stdout, stderr, elapsed, verbose):
+    if not verbose:
+        return 'PASSED %s in %s seconds' % (suite_name, elapsed)
+    return 'PASSED %s in %s seconds\n%s\n%s' % (suite_name, elapsed, _read_file(stdout), _read_file(stderr))
 
 def _options_for_custom_executor(*args):
     return _options_to_cli_arguments(_options_for_executor(*args))
