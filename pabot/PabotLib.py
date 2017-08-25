@@ -18,7 +18,6 @@ try:
 except:
     import ConfigParser as configparser  # Support Python 2
 
-import uuid
 from robot.libraries.BuiltIn import BuiltIn
 from robotremoteserver import RobotRemoteServer
 from robot.libraries.Remote import Remote
@@ -65,6 +64,13 @@ class _PabotLib(object):
         if self._locks[name][1] == 0:
             del self._locks[name]
 
+    def release_locks(self, caller_id):
+        for key in self._locks.keys():
+            if self._locks[key][0] == caller_id:
+                self._locks[key][1] -= 1
+                if self._locks[key][1] == 0:
+                    del self._locks[key]
+
     def acquire_value_set(self, caller_id):
         if not self._values:
             raise AssertionError(
@@ -84,7 +90,6 @@ class _PabotLib(object):
             raise AssertionError('No value for key "%s"' % key)
         return self._owner_to_values[caller_id][key]
 
-
 class PabotLib(_PabotLib):
 
     __version__ = 0.28
@@ -93,7 +98,15 @@ class PabotLib(_PabotLib):
     def __init__(self):
         _PabotLib.__init__(self)
         self.__remotelib = None
-        self._my_id = uuid.uuid4().get_hex()
+        self.__my_id = None
+
+    @property
+    def _my_id(self):
+        if self.__my_id is None:
+            my_id = BuiltIn().get_variable_value('${CALLER_ID}')
+            logger.debug('Caller ID is  %r' % my_id)
+            self.__my_id = my_id if my_id else None
+        return self.__my_id
 
     @property
     def _remotelib(self):
@@ -187,6 +200,16 @@ class PabotLib(_PabotLib):
                                         [name, self._my_id], {})
         else:
             _PabotLib.release_lock(self, name, self._my_id)
+
+    def release_locks(self):
+        """
+        Release all locks called by instance.
+        """
+        if self._remotelib:
+            self._remotelib.run_keyword('release_locks',
+                                        [self._my_id], {})
+        else:
+            _PabotLib.release_locks(self, self._my_id)
 
     def acquire_value_set(self):
         """

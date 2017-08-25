@@ -61,6 +61,7 @@ import sys
 import time
 import datetime
 import multiprocessing
+import uuid
 from glob import glob
 from StringIO import StringIO
 import shutil
@@ -110,10 +111,12 @@ def execute_and_wait_with(args):
                    for d in datasources]
     outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
     pool_id = _make_id()
+    caller_id = uuid.uuid4().get_hex()
     cmd = command + _options_for_custom_executor(options,
                                                  outs_dir,
                                                  suite_name,
-                                                 argfile) + datasources
+                                                 argfile,
+                                                 caller_id) + datasources
     cmd = [c if not any(bad in c for bad in _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE) else '"%s"' % c for c in cmd]
     os.makedirs(outs_dir)
     try:
@@ -124,6 +127,7 @@ def execute_and_wait_with(args):
         print(sys.exc_info()[0])
     if rc != 0:
         _write_with_id(process, pool_id, _execution_failed_message(suite_name, stdout, stderr, rc, verbose), Color.RED)
+        Remote(_PABOTLIBURI).run_keyword('release_locks', [caller_id], {})
     else:
         _write_with_id(process, pool_id, _execution_passed_message(suite_name, stdout, stderr, elapsed, verbose), Color.GREEN)
 
@@ -192,7 +196,7 @@ def _options_for_custom_executor(*args):
     return _options_to_cli_arguments(_options_for_executor(*args))
 
 
-def _options_for_executor(options, outs_dir, suite_name, argfile):
+def _options_for_executor(options, outs_dir, suite_name, argfile, caller_id):
     options = options.copy()
     options['log'] = 'NONE'
     options['report'] = 'NONE'
@@ -200,6 +204,7 @@ def _options_for_executor(options, outs_dir, suite_name, argfile):
     options['suite'] = suite_name
     options['outputdir'] = outs_dir
     options['variable'] = options.get('variable')[:]
+    options['variable'].append('CALLER_ID:%s' % caller_id)
     pabotLibURIVar = 'PABOTLIBURI:%s' % _PABOTLIBURI
     # Prevent multiple appending of PABOTLIBURI variable setting
     if pabotLibURIVar not in options['variable']:
