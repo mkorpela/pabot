@@ -80,7 +80,13 @@ class ResultMerger(SuiteVisitor):
         if self._skip_until == suite:
             self._skip_until = None
             return
+        self.merge_time(suite)
         self.current = self.current.parent
+
+    def merge_time(self, suite):
+        cur = self.current
+        cur.endtime = max([cur.endtime, suite.endtime])
+        cur.starttime = min([cur.starttime, suite.starttime])
 
     def visit_message(self, msg):
         if msg.html and re.search(r'src="([^"]+\.png)"', msg.message):
