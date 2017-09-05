@@ -88,6 +88,7 @@ MESSAGE_QUEUE = Queue.Queue()
 EXECUTION_POOL_IDS = []
 EXECUTION_POOL_ID_LOCK = threading.Lock()
 _PABOTLIBURI = '127.0.0.1:8270'
+_PABOTLIBPROCESS = None
 ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
 _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # does not contain '"'
 
@@ -127,7 +128,8 @@ def execute_and_wait_with(args):
         print(sys.exc_info()[0])
     if rc != 0:
         _write_with_id(process, pool_id, _execution_failed_message(suite_name, stdout, stderr, rc, verbose), Color.RED)
-        Remote(_PABOTLIBURI).run_keyword('release_locks', [caller_id], {})
+        if _PABOTLIBPROCESS:
+            Remote(_PABOTLIBURI).run_keyword('release_locks', [caller_id], {})
     else:
         _write_with_id(process, pool_id, _execution_passed_message(suite_name, stdout, stderr, elapsed, verbose), Color.GREEN)
 
@@ -628,9 +630,9 @@ def _run_tutorial():
 
 
 def main(args):
+    global _PABOTLIBPROCESS
     start_time = time.time()
     start_time_string = _now()
-    lib_process = None
     # NOTE: timeout option
     try:
         _start_message_writer()
@@ -641,7 +643,7 @@ def main(args):
         if pabot_args['help']:
             print __doc__
             sys.exit(0)
-        lib_process = _start_remote_library(pabot_args)
+        _PABOTLIBPROCESS = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options,
                                         pabot_args)
@@ -656,8 +658,8 @@ def main(args):
         print __doc__
         print i.message
     finally:
-        if lib_process:
-            _stop_remote_library(lib_process)
+        if _PABOTLIBPROCESS:
+            _stop_remote_library(_PABOTLIBPROCESS)
         _print_elapsed(start_time, time.time())
 
 
