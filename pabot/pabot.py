@@ -128,7 +128,7 @@ def execute_and_wait_with(args):
         print(sys.exc_info()[0])
     if rc != 0:
         _write_with_id(process, pool_id, _execution_failed_message(suite_name, stdout, stderr, rc, verbose), Color.RED)
-        if _PABOTLIBPROCESS:
+        if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
             Remote(_PABOTLIBURI).run_keyword('release_locks', [caller_id], {})
     else:
         _write_with_id(process, pool_id, _execution_passed_message(suite_name, stdout, stderr, elapsed, verbose), Color.GREEN)
