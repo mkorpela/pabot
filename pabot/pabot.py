@@ -16,7 +16,7 @@
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
 """A parallel executor for Robot Framework test cases.
-Version 0.37.
+Version 0.38.
 
 Supports all Robot Framework command line options and also following
 options (these must be before normal RF options):
@@ -61,6 +61,7 @@ import sys
 import time
 import datetime
 import multiprocessing
+import uuid
 from glob import glob
 from io import BytesIO, StringIO
 import shutil
@@ -90,6 +91,7 @@ MESSAGE_QUEUE = queue.Queue()
 EXECUTION_POOL_IDS = []
 EXECUTION_POOL_ID_LOCK = threading.Lock()
 _PABOTLIBURI = '127.0.0.1:8270'
+_PABOTLIBPROCESS = None
 ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
 _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # does not contain '"'
 
@@ -114,10 +116,12 @@ def execute_and_wait_with(args):
                    for d in datasources]
     outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
     pool_id = _make_id()
+    caller_id = uuid.uuid4().get_hex()
     cmd = command + _options_for_custom_executor(options,
                                                  outs_dir,
                                                  suite_name,
-                                                 argfile) + datasources
+                                                 argfile,
+                                                 caller_id) + datasources
     cmd = [c if not any(bad in c for bad in _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE) else '"%s"' % c for c in cmd]
     os.makedirs(outs_dir)
     try:
@@ -128,6 +132,8 @@ def execute_and_wait_with(args):
         print(sys.exc_info()[0])
     if rc != 0:
         _write_with_id(process, pool_id, _execution_failed_message(suite_name, stdout, stderr, rc, verbose), Color.RED)
+        if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
+            Remote(_PABOTLIBURI).run_keyword('release_locks', [caller_id], {})
     else:
         _write_with_id(process, pool_id, _execution_passed_message(suite_name, stdout, stderr, elapsed, verbose), Color.GREEN)
 
@@ -202,7 +208,7 @@ def _options_for_custom_executor(*args):
     return _options_to_cli_arguments(_options_for_executor(*args))
 
 
-def _options_for_executor(options, outs_dir, suite_name, argfile):
+def _options_for_executor(options, outs_dir, suite_name, argfile, caller_id):
     options = options.copy()
     options['log'] = 'NONE'
     options['report'] = 'NONE'
@@ -210,6 +216,7 @@ def _options_for_executor(options, outs_dir, suite_name, argfile):
     options['suite'] = suite_name
     options['outputdir'] = outs_dir
     options['variable'] = options.get('variable')[:]
+    options['variable'].append('CALLER_ID:%s' % caller_id)
     pabotLibURIVar = 'PABOTLIBURI:%s' % _PABOTLIBURI
     # Prevent multiple appending of PABOTLIBURI variable setting
     if pabotLibURIVar not in options['variable']:
@@ -639,9 +646,9 @@ def _run_tutorial():
 
 
 def main(args):
+    global _PABOTLIBPROCESS
     start_time = time.time()
     start_time_string = _now()
-    lib_process = None
     # NOTE: timeout option
     try:
         _start_message_writer()
@@ -652,7 +659,7 @@ def main(args):
         if pabot_args['help']:
             print(__doc__)
             sys.exit(0)
-        lib_process = _start_remote_library(pabot_args)
+        _PABOTLIBPROCESS = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options,
                                         pabot_args)
@@ -667,8 +674,8 @@ def main(args):
         print(__doc__)
         print(i.message)
     finally:
-        if lib_process:
-            _stop_remote_library(lib_process)
+        if _PABOTLIBPROCESS:
+            _stop_remote_library(_PABOTLIBPROCESS)
         _print_elapsed(start_time, time.time())
 
 
