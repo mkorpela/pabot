@@ -641,6 +641,8 @@ def _get_suite_root_name(suite_names):
 
 def _run_tutorial():
     print('Hi, This is a short introduction to using Pabot.')
+    if PY2:
+        input = raw_input
     input("Press Enter to continue...")
     print('This is another line in the tutorial.')
 
