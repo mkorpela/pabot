@@ -116,7 +116,7 @@ def execute_and_wait_with(args):
                    for d in datasources]
     outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
     pool_id = _make_id()
-    caller_id = uuid.uuid4().get_hex()
+    caller_id = uuid.uuid4().hex
     cmd = command + _options_for_custom_executor(options,
                                                  outs_dir,
                                                  suite_name,
