@@ -48,6 +48,9 @@ options (these must be before normal RF options):
   Optionally read suites from output.xml file. Failed suites will run
   first and longer running ones will be executed before shorter ones.
 
+--orderfrom [FILEPATH TO OUTPUTXML]
+  Reads suites from output.xml file and use it as a guide to run included TAGS.
+
 --argumentfile[INTEGER] [FILEPATH]
   Run same suite with multiple argumentfile options.
   For example "--argumentfile1 arg1.txt --argumentfile2 arg2.txt".
@@ -291,6 +294,7 @@ def _parse_args(args):
                                                         'pabotlibhost',
                                                         'pabotlibport',
                                                         'suitesfrom',
+                                                        'orderfrom',
                                                         'help']] or
             ARGSMATCHER.match(args[0])):
         if args[0] == '--command':
@@ -317,6 +321,9 @@ def _parse_args(args):
             args = args[2:]
         if args[0] == '--suitesfrom':
             pabot_args['suitesfrom'] = args[1]
+            args = args[2:]
+        if args[0] == '--orderfrom':
+            pabot_args['orderfrom'] = args[1]
             args = args[2:]
         match = ARGSMATCHER.match(args[0])
         if ARGSMATCHER.match(args[0]):
@@ -351,8 +358,29 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
     with _with_modified_robot():
         run(*datasources, **opts)
     output = os.path.join(outs_dir, opts['output'])
-    suite_names = get_suite_names(output)
-    return sorted(set(suite_names))
+    suite_names = sorted(get_suite_names(output))
+
+    # suitesfrom passed: get order from output.xml and merge with passed code
+    if 'orderfrom' in pabot_args:
+        order_from = _suites_from_outputxml(pabot_args['orderfrom'])
+
+        # iterate over suite_names, add suites that are not in xml
+        # this will keep order from xml and run last, suites that are not
+        # listed
+        for suite in suite_names:
+            if suite not in order_from:
+                order_from.append(suite)
+
+        # sanity check: iterate over last list merge and check if there is items at
+        # order_from that not exist on suites_names
+        intersect = []
+        for suite in order_from:
+            if suite in suite_names:
+                intersect.append(suite)
+
+        suite_names = intersect
+
+    return suite_names
 
 
 @contextmanager
