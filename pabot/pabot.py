@@ -608,7 +608,10 @@ def _start_remote_library(pabot_args):
 
 def _stop_remote_library(process):
     _write('Stopping PabotLib process')
-    Remote(_PABOTLIBURI).run_keyword('stop_remote_server', [], {})
+    try:
+        Remote(_PABOTLIBURI).run_keyword('stop_remote_server', [], {})
+    except RuntimeError as e:
+        _write('Problem in executing stop keyword from PabotLib: "%s"' % e)
     i = 50
     while i > 0 and process.poll() is None:
         time.sleep(0.1)
