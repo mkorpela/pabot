@@ -81,7 +81,7 @@ from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
 from robot.utils import ArgumentParser, SYSTEM_ENCODING
 import signal
-import PabotLib
+from . import PabotLib
 from result_merger import merge
 import Queue
 
