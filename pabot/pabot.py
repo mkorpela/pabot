@@ -81,7 +81,7 @@ from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
 from robot.utils import ArgumentParser, SYSTEM_ENCODING
 import signal
-from result_merger import merge
+from .result_merger import merge
 import Queue
 
 CTRL_C_PRESSED = False
