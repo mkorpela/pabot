@@ -81,10 +81,8 @@ from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
 from robot.utils import ArgumentParser, SYSTEM_ENCODING
 import signal
-from . import PabotLib
 from result_merger import merge
 import Queue
-
 
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = Queue.Queue()
@@ -597,7 +595,7 @@ def _start_remote_library(pabot_args):
                ' Some tests may fail or continue forever.', Color.YELLOW)
         pabot_args['resourcefile'] = None
     return subprocess.Popen('python %s %s %s %s' %
-                            (os.path.abspath(PabotLib.__file__),
+                            (os.path.join(os.path.dirname(__file__), "PabotLib.py"),
                              pabot_args.get('resourcefile'),
                              pabot_args['pabotlibhost'],
                              pabot_args['pabotlibport']),
