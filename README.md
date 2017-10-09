@@ -33,7 +33,7 @@ There are several ways you can help in improving this tool:
 
    - Report an issue or an improvement idea to the [issue tracker](https://github.com/mkorpela/pabot/issues)
    - Contribute by programming and making a pull request (easiest way is to work on an issue from the issue tracker)
-   - Donate [ether](https://ethereum.org/) to address 0x721135918214c477ee8a7f5c8323c17aa965cc98
+   - Donate [ether](https://ethereum.org/) to address (0x721135918214c477ee8a7f5c8323c17aa965cc98)[https://etherscan.io/address/0x721135918214c477ee8a7f5c8323c17aa965cc98]
 
 ## Command-line options
 
