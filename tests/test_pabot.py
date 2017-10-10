@@ -40,7 +40,7 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(pabot_args['argumentfiles'], [('1', 'argfile1.txt'), ('2', 'argfile2.txt')])
         self.assertEqual(datasources, ['suite'])
 
-    def _test_start_and_stop_remote_library(self):
+    def test_start_and_stop_remote_library(self):
         lib_process = pabot._start_remote_library(self._pabot_args)
         self.assertTrue(lib_process.poll() is None)
         time.sleep(1)
