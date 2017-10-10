@@ -89,7 +89,11 @@ except ImportError:
 
 try:
     UNICODE_EXISTS = bool(type(unicode))
+    def transcode(data):
+        return data.encode('utf-8') if isinstance(data, unicode) else data
 except NameError:
+    def transcode(data):
+        return data
     unicode = str
 
 CTRL_C_PRESSED = False
@@ -117,8 +121,7 @@ def execute_and_wait_with(args):
         return
     time.sleep(0)
     datasources, outs_dir, options, suite_name, command, verbose, (argfile_index, argfile) = args
-    datasources = [d.encode('utf-8') if isinstance(d, unicode) else d
-                   for d in datasources]
+    datasources = [transcode(d) for d in datasources]
     outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
     pool_id = _make_id()
     caller_id = uuid.uuid4().hex
@@ -157,7 +160,7 @@ def _make_id():
 
 def _run(cmd, stderr, stdout, suite_name, verbose, pool_id):
     timestamp = datetime.datetime.now()
-    process = subprocess.Popen((' '.join(cmd)).decode('utf-8').encode(SYSTEM_ENCODING),
+    process = subprocess.Popen(transcode(' '.join(cmd)).encode(SYSTEM_ENCODING),
                                shell=True,
                                stderr=stderr,
                                stdout=stdout)
@@ -245,13 +248,13 @@ def _options_to_cli_arguments(opts):
         if isinstance(v, str):
             res += ['--' + str(k), str(v)]
         elif isinstance(v, unicode):
-            res += ['--' + str(k), v.encode('utf-8')]
+            res += ['--' + str(k), transcode(v)]
         elif isinstance(v, bool) and (v is True):
             res += ['--' + str(k)]
         elif isinstance(v, list):
             for value in v:
                 if isinstance(value, unicode):
-                    res += ['--' + str(k), value.encode('utf-8')]
+                    res += ['--' + str(k), transcode(value)]
                 else:
                     res += ['--' + str(k), str(value)]
     return res
