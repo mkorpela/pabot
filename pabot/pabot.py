@@ -87,6 +87,11 @@ try:
 except ImportError:
     import queue
 
+try:
+    UNICODE_EXISTS = bool(type(unicode))
+except NameError:
+    unicode = str
+
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = queue.Queue()
 EXECUTION_POOL_IDS = []
