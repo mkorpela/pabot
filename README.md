@@ -33,10 +33,7 @@ There are several ways you can help in improving this tool:
 
    - Report an issue or an improvement idea to the [issue tracker](https://github.com/mkorpela/pabot/issues)
    - Contribute by programming and making a pull request (easiest way is to work on an issue from the issue tracker)
-
-Cryptocoins allow transfer of value without borders or intermediaries in same way as does open source software collaboriation. 
-
-   - Donate [ether](https://ethereum.org/) to address [0x721135918214c477ee8a7f5c8323c17aa965cc98](https://etherscan.io/address/0x721135918214c477ee8a7f5c8323c17aa965cc98)
+   - Cryptocoins allow transfer of value without borders or intermediaries in the same way as does open source software collaboriation. You can donate [ether](https://ethereum.org/) to address [0x721135918214c477ee8a7f5c8323c17aa965cc98](https://etherscan.io/address/0x721135918214c477ee8a7f5c8323c17aa965cc98)
 
 ## Command-line options
 
