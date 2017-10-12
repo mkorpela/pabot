@@ -55,6 +55,8 @@ options (these must be before normal RF options):
 Copyright 2017 Mikko Korpela - Apache 2 License
 """
 
+from __future__ import absolute_import, print_function
+
 import os
 import re
 import sys
@@ -154,10 +156,9 @@ def _make_id():
 
 def _run(cmd, stderr, stdout, suite_name, verbose, pool_id):
     timestamp = datetime.datetime.now()
+    cmd = ' '.join(cmd)
     if PY2:
-        cmd = ' '.join(cmd).decode('utf-8').encode(SYSTEM_ENCODING)
-    else:
-        cmd = ' '.join(cmd)
+        cmd = cmd.decode('utf-8').encode(SYSTEM_ENCODING)
     process = subprocess.Popen(cmd,
                                shell=True,
                                stderr=stderr,
