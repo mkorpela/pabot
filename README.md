@@ -27,6 +27,14 @@ OR clone this repository and run:
    - Pabot will split test execution from suite files and not from individual test level.
    - In general case you can't count on tests that haven't designed to be executed parallely to work out of the box when executing parallely. For example if the tests manipulate or use the same data, you might get yourself in trouble (one test suite logs in to the system while another logs the same session out etc.). PabotLib can help you solve these problems of concurrency. Also see [TRICKS](./TRICKS.md) for helpful tips.
 
+## Contributing to the project
+
+There are several ways you can help in improving this tool:
+
+   - Report an issue or an improvement idea to the [issue tracker](https://github.com/mkorpela/pabot/issues)
+   - Contribute by programming and making a pull request (easiest way is to work on an issue from the issue tracker)
+   - Cryptocoins allow transfer of value without borders or intermediaries in the same way as does open source software collaboriation. You can donate [ether](https://ethereum.org/) to address [0x721135918214c477ee8a7f5c8323c17aa965cc98](https://etherscan.io/address/0x721135918214c477ee8a7f5c8323c17aa965cc98)
+
 ## Command-line options
 
 Supports all Robot Framework command line options and also following options (these must be before normal RF options):
