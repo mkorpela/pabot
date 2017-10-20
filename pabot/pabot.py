@@ -156,7 +156,9 @@ def _make_id():
 
 def _run(cmd, stderr, stdout, suite_name, verbose, pool_id):
     timestamp = datetime.datetime.now()
+    # isinstance(cmd,list)==True
     cmd = ' '.join(cmd)
+    # isinstance(cmd,basestring if PY2 else str)==True
     if PY2:
         cmd = cmd.decode('utf-8').encode(SYSTEM_ENCODING)
     process = subprocess.Popen(cmd,
@@ -164,8 +166,7 @@ def _run(cmd, stderr, stdout, suite_name, verbose, pool_id):
                                stderr=stderr,
                                stdout=stdout)
     if verbose:
-        _write_with_id(process, pool_id, 'EXECUTING PARALLEL SUITE %s with command:\n%s' % (suite_name, ' '.join(cmd)),
-                       timestamp=timestamp)
+        _write_with_id(process, pool_id, 'EXECUTING PARALLEL SUITE %s with command:\n%s' % (suite_name, cmd),timestamp=timestamp)
     else:
         _write_with_id(process, pool_id, 'EXECUTING %s' % suite_name, timestamp=timestamp)
     return process, _wait_for_return_code(process, suite_name, pool_id)
