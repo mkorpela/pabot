@@ -488,7 +488,7 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
                             ((datasources, outs_dir, options, suite,
                               pabot_args['command'], pabot_args['verbose'], argfile)
                              for suite in suite_names
-                             for argfile in pabot_args['argumentfiles'] or [("", None)]))
+                             for argfile in pabot_args['argumentfiles'] or [("", None)]),1)
     pool.close()
     while not result.ready():
         # keyboard interrupt is executed in main thread
