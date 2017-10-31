@@ -283,6 +283,13 @@ def get_suite_names(output_file):
         return []
 
 
+def _processes_count():
+    try:
+        return max(multiprocessing.cpu_count(), 2)
+    except NotImplementedError:
+        return 2
+
+
 def _parse_args(args):
     pabot_args = {'command': ['pybot'],
                   'verbose': False,
@@ -291,7 +298,7 @@ def _parse_args(args):
                   'pabotlib': False,
                   'pabotlibhost': '127.0.0.1',
                   'pabotlibport': 8270,
-                  'processes': max(multiprocessing.cpu_count(), 2),
+                  'processes': _processes_count(),
                   'argumentfiles': []}
     while args and (args[0] in ['--' + param for param in ['command',
                                                            'processes',
