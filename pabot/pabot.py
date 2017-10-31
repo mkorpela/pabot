@@ -364,10 +364,16 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
     output = os.path.join(outs_dir, opts['output'])
     suite_names = get_suite_names(output)
     if not suite_names:
-        print("stdout from suite search:")
-        print(opts['stdout'].read())
-        print("stderr from suite search:")
-        print(opts['stderr'].read())
+        stdout_value = opts['stdout'].getvalue()
+        if stdout_value:
+            print("[STDOUT] from suite search:")
+            print(stdout_value)
+            print("[STDOUT] end")
+        stderr_value = opts['stderr'].getvalue()
+        if stderr_value:
+            print("[STDERR] from suite search:")
+            print(stderr_value)
+            print("[STDERR] end")
     return sorted(set(suite_names))
 
 
