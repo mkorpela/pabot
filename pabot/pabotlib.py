@@ -17,14 +17,14 @@ from __future__ import absolute_import
 
 try:
     import configparser
-except:
+except ImportError:
     import ConfigParser as configparser  # Support Python 2
 
+import time
 from robot.libraries.BuiltIn import BuiltIn
-from robotremoteserver import RobotRemoteServer
 from robot.libraries.Remote import Remote
 from robot.api import logger
-import time
+from robotremoteserver import RobotRemoteServer
 
 
 class _PabotLib(object):
