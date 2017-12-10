@@ -63,7 +63,10 @@ import datetime
 import multiprocessing
 import uuid
 from glob import glob
-from StringIO import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 import shutil
 import subprocess
 import threading
@@ -78,13 +81,23 @@ from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
 from robot.utils import ArgumentParser, SYSTEM_ENCODING
 import signal
-import PabotLib
-from result_merger import merge
-import Queue
+from .result_merger import merge
+try:
+    import Queue as queue
+except ImportError:
+    import queue
 
+try:
+    UNICODE_EXISTS = bool(type(unicode))
+    def transcode(data):
+        return data.encode('utf-8') if isinstance(data, unicode) else data
+except NameError:
+    def transcode(data):
+        return data
+    unicode = str
 
 CTRL_C_PRESSED = False
-MESSAGE_QUEUE = Queue.Queue()
+MESSAGE_QUEUE = queue.Queue()
 EXECUTION_POOL_IDS = []
 EXECUTION_POOL_ID_LOCK = threading.Lock()
 _PABOTLIBURI = '127.0.0.1:8270'
@@ -107,21 +120,17 @@ def execute_and_wait_with(args):
         # Keyboard interrupt has happened!
         return
     time.sleep(0)
-
     datasources, outs_dir, options, suite_name, command, verbose, (argfile_index, argfile) = args
-    datasources = [d.encode('utf-8') if isinstance(d, unicode) else d
-                   for d in datasources]
-
-    outs_dir = os.path.join(outs_dir, argfile_index, suite_name[0])
+    datasources = [transcode(d) for d in datasources]
+    outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
     pool_id = _make_id()
-    caller_id = uuid.uuid4().get_hex()
+    caller_id = uuid.uuid4().hex
     cmd = command + _options_for_custom_executor(options,
                                                  outs_dir,
                                                  suite_name,
                                                  argfile,
                                                  caller_id) + datasources
     cmd = [c if not any(bad in c for bad in _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE) else '"%s"' % c for c in cmd]
-
     os.makedirs(outs_dir)
     try:
         with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
@@ -151,7 +160,7 @@ def _make_id():
 
 def _run(cmd, stderr, stdout, suite_name, verbose, pool_id):
     timestamp = datetime.datetime.now()
-    process = subprocess.Popen((' '.join(cmd)).decode('utf-8').encode(SYSTEM_ENCODING),
+    process = subprocess.Popen(transcode(' '.join(cmd)).encode(SYSTEM_ENCODING),
                                shell=True,
                                stderr=stderr,
                                stdout=stdout)
@@ -239,16 +248,15 @@ def _options_to_cli_arguments(opts):
         if isinstance(v, str):
             res += ['--' + str(k), str(v)]
         elif isinstance(v, unicode):
-            res += ['--' + str(k), v.encode('utf-8')]
+            res += ['--' + str(k), transcode(v)]
         elif isinstance(v, bool) and (v is True):
             res += ['--' + str(k)]
         elif isinstance(v, list):
             for value in v:
                 if isinstance(value, unicode):
-                    res += ['--' + str(k), value.encode('utf-8')]
+                    res += ['--' + str(k), transcode(value)]
                 else:
                     res += ['--' + str(k), str(value)]
-
     return res
 
 
@@ -264,7 +272,7 @@ class GatherSuiteNames(ResultVisitor):
 
 def get_suite_names(output_file):
     if not os.path.isfile(output_file):
-        print "get_suite_names: output_file='%s' does not exist" % output_file
+        print("get_suite_names: output_file='%s' does not exist" % output_file)
         return []
     try:
         e = ExecutionResult(output_file)
@@ -272,7 +280,7 @@ def get_suite_names(output_file):
         e.visit(gatherer)
         return gatherer.result
     except:
-        print "Exception in get_suite_names!"
+        print("Exception in get_suite_names!")
         return []
 
 
@@ -296,7 +304,6 @@ def _parse_args(args):
                                                         'pabotlibhost',
                                                         'pabotlibport',
                                                         'suitesfrom',
-                                                        'parallelgranularity',
                                                         'help']] or
             ARGSMATCHER.match(args[0])):
         if args[0] == '--command':
@@ -360,11 +367,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
     cli_opts = _options_to_cli_arguments(opts)
     with _with_modified_robot():
         # run() doesn't support argument file
-        # run(*datasources, **opts)
         # don't exit
-        f = open(os.devnull, 'w')
-        sys.stdout = f
-        sys.stderr = f
         run_cli(cli_opts + datasources, False)
     output = os.path.join(outs_dir, opts['output'])
     suite_names = get_suite_names(output)
@@ -475,7 +478,7 @@ def _print_elapsed(start, end):
     if elapsed_hours > 0:
         elapsed_string += '%d hours ' % elapsed_hours
     elapsed_string += '%d minutes %d.%d seconds' % (minutes, seconds, millis)
-    print 'Elapsed time: '+elapsed_string
+    print('Elapsed time: '+elapsed_string)
 
 
 def keyboard_interrupt(*args):
@@ -489,10 +492,9 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names, a
 
     argfilesmaps = []
     # use chunksize to save context switch, process creation, ...
-
-    # parallel by processes
     chunksize = pabot_args['parallelgranularity']
     if chunksize == 0:
+        # parallel by processes
         chunksize = len(suite_names) / pabot_args['processes']
 
     for argf, suites in argfile2suites_map:
@@ -582,7 +584,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
 def _report_results_for_one_run(outs_dir, options, start_time_string, tests_root_name):
     output_path = _merge_one_run(outs_dir, options, tests_root_name)
     _copy_screenshots(options)
-    print 'Output:  %s' % output_path
+    print('Output:  %s' % output_path)
     options['output'] = None  # Do not write output again with rebot
     return rebot(output_path, **_options_for_rebot(options,
                                                    start_time_string, _now()))
@@ -613,7 +615,7 @@ def _glob_escape(pathname):
 def _writer():
     while True:
         message = MESSAGE_QUEUE.get()
-        #print message
+        # print message didn't work, just workaround
         sys.__stdout__.write(message + "\n")
         sys.__stdout__.flush()
         sys.stdout.flush()
@@ -650,8 +652,9 @@ def _start_remote_library(pabot_args):
         _write('Warning: specified resource file doesn\'t exist.'
                ' Some tests may fail or continue forever.', Color.YELLOW)
         pabot_args['resourcefile'] = None
-    return subprocess.Popen('python %s %s %s %s' %
-                            (os.path.abspath(PabotLib.__file__),
+    return subprocess.Popen('%s %s %s %s %s' %
+                            (sys.executable,
+                             os.path.join(os.path.dirname(__file__), "PabotLib.py"),
                              pabot_args.get('resourcefile'),
                              pabot_args['pabotlibhost'],
                              pabot_args['pabotlibport']),
@@ -660,7 +663,10 @@ def _start_remote_library(pabot_args):
 
 def _stop_remote_library(process):
     _write('Stopping PabotLib process')
-    Remote(_PABOTLIBURI).run_keyword('stop_remote_server', [], {})
+    try:
+        Remote(_PABOTLIBURI).run_keyword('stop_remote_server', [], {})
+    except RuntimeError as e:
+        _write('Problem in executing stop keyword from PabotLib: "%s"' % e)
     i = 50
     while i > 0 and process.poll() is None:
         time.sleep(0.1)
@@ -681,9 +687,9 @@ def _get_suite_root_name(suite_names):
 
 
 def _run_tutorial():
-    print 'Hi, This is a short introduction to using Pabot.'
+    print('Hi, This is a short introduction to using Pabot.')
     raw_input("Press Enter to continue...")
-    print 'This is another line in the tutorial.'
+    print('This is another line in the tutorial.')
 
 
 def main(args):
@@ -698,7 +704,7 @@ def main(args):
             _run_tutorial()
             sys.exit(0)
         if pabot_args['help']:
-            print __doc__
+            print(__doc__)
             sys.exit(0)
         _PABOTLIBPROCESS = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
@@ -733,10 +739,10 @@ def main(args):
             sys.exit(_report_results(outs_dir, pabot_args, options, start_time_string,
                                      _get_suite_root_name(suite_names)))
         else:
-            print 'No tests to execute'
-    except Information, i:
-        print __doc__
-        print i.message
+            print('No tests to execute')
+    except Information as i:
+        print(__doc__)
+        print(i.message)
     finally:
         if _PABOTLIBPROCESS:
             _stop_remote_library(_PABOTLIBPROCESS)
