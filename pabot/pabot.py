@@ -70,7 +70,7 @@ import shutil
 import subprocess
 import threading
 from contextlib import contextmanager
-from robot import run, rebot
+from robot import run, run_cli, rebot
 from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
 from robot.errors import Information
@@ -116,7 +116,9 @@ def execute_and_wait_with(args):
     datasources, outs_dir, options, suite_name, command, verbose, (argfile_index, argfile) = args
     datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d
                    for d in datasources]
-    outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
+    # suite_name were passed in as arrays always
+    # use the first suite name
+    outs_dir = os.path.join(outs_dir, argfile_index, suite_name[0])
     pool_id = _make_id()
     caller_id = uuid.uuid4().hex
     cmd = command + _options_for_custom_executor(options,
@@ -299,7 +301,8 @@ def _parse_args(args):
                   'pabotlibhost': '127.0.0.1',
                   'pabotlibport': 8270,
                   'processes': _processes_count(),
-                  'argumentfiles': []}
+                  'argumentfiles': [],
+                  'parallelgranularity': 1}
     while args and (args[0] in ['--' + param for param in ['command',
                                                            'processes',
                                                            'verbose',
@@ -309,6 +312,7 @@ def _parse_args(args):
                                                            'pabotlibhost',
                                                            'pabotlibport',
                                                            'suitesfrom',
+                                                           'parallelgranularity',
                                                            'help']] or
                         ARGSMATCHER.match(args[0])):
         if args[0] == '--command':
@@ -335,6 +339,9 @@ def _parse_args(args):
             args = args[2:]
         if args[0] == '--suitesfrom':
             pabot_args['suitesfrom'] = args[1]
+            args = args[2:]
+        if args[0] == '--parallelgranularity':
+            pabot_args['parallelgranularity'] = int(args[1])
             args = args[2:]
         match = ARGSMATCHER.match(args[0])
         if ARGSMATCHER.match(args[0]):
@@ -366,8 +373,9 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
     if 'suitesfrom' in pabot_args:
         return _suites_from_outputxml(pabot_args['suitesfrom'])
     opts = _options_for_dryrun(options, outs_dir)
+    cli_opts = _options_to_cli_arguments(opts)
     with _with_modified_robot():
-        run(*datasources, **opts)
+        run_cli(cli_opts + datasources, False)
     output = os.path.join(outs_dir, opts['output'])
     suite_names = get_suite_names(output)
     if not suite_names:
@@ -499,14 +507,49 @@ def keyboard_interrupt(*args):
     CTRL_C_PRESSED = True
 
 
-def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
+def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names, argfile2suites_map):
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
     pool = ThreadPool(pabot_args['processes'])
+    argfilesmaps = []
+     # use chunksize to save context switch, process creation, ...
+         # parallel by processes
+    chunksize = pabot_args['parallelgranularity']
+    if chunksize == 0:
+        chunksize = len(suite_names) / pabot_args['processes']
+    for argf, suites in argfile2suites_map:
+        argfilemaps = []
+        s = 0
+        # parallel by argumentfiles
+        if pabot_args['parallelgranularity'] == -1:
+            chunk = suites
+            chunksize = len(chunk)
+        else:
+            chunk = suites[s:chunksize]
+        while chunk:
+            argfilemaps += [(chunk, argf)]
+            s += chunksize
+            chunk = suites[s:s + chunksize]
+        argfilesmaps += [argfilemaps]
+
+     # try to do one chunk in each argument file in turn
+    import itertools
+    mapcmd = ''
+    for m in argfilesmaps:
+        if not mapcmd:
+            mapcmd = 'itertools.izip_longest(' + str(m)
+        else:
+            mapcmd += ', ' + str(m)
+
+    mapcmd += ')'
+    maps = eval(mapcmd)
+    jobs = []
+    for m in maps:
+        jobs += m
+
     result = pool.map_async(execute_and_wait_with,
                             ((datasources, outs_dir, options, suite,
                               pabot_args['command'], pabot_args['verbose'], argfile)
-                             for suite in suite_names
-                             for argfile in pabot_args['argumentfiles'] or [("", None)]),1)
+                             for suite, argfile in [ x for x in jobs if x is not None]), 1)
     pool.close()
     while not result.ready():
         # keyboard interrupt is executed in main thread
@@ -682,11 +725,32 @@ def main(args):
             sys.exit(0)
         _PABOTLIBPROCESS = _start_remote_library(pabot_args)
         outs_dir = _output_dir(options)
-        suite_names = solve_suite_names(outs_dir, datasources, options,
-                                        pabot_args)
+        suite_names = []
+        argfile2suites_map = []
+         # get more precise suites to remove noises
+        opts = options.copy()
+        opts['log'] = 'NONE'
+        opts['report'] = 'NONE'
+        opts['xunit'] = 'NONE'
+        opts['console'] = 'NONE'
+        for i, f in pabot_args['argumentfiles']:
+            opts['argumentfile'] = f
+            suites = solve_suite_names(outs_dir, datasources, opts,
+                pabot_args)
+            if suites:
+                suite_names += suites
+            argfile2suites_map += [((i, f), suites)]
+        # no argumentfiles
+        if not suite_names:
+            suites = solve_suite_names(outs_dir, datasources, opts,
+                pabot_args)
+            if suites:
+                suite_names += suites
+            argfile2suites_map += [((i, f), suites)]
+
         if suite_names:
             _parallel_execute(datasources, options, outs_dir, pabot_args,
-                              suite_names)
+                              suite_names, argfile2suites_map)
             sys.exit(_report_results(outs_dir, pabot_args, options, start_time_string,
                                      _get_suite_root_name(suite_names)))
         else:
