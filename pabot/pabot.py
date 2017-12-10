@@ -122,7 +122,7 @@ def execute_and_wait_with(args):
     time.sleep(0)
     datasources, outs_dir, options, suite_name, command, verbose, (argfile_index, argfile) = args
     datasources = [transcode(d) for d in datasources]
-    outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
+    outs_dir = os.path.join(outs_dir, argfile_index, suite_name[0])
     pool_id = _make_id()
     caller_id = uuid.uuid4().hex
     cmd = command + _options_for_custom_executor(options,
@@ -304,6 +304,7 @@ def _parse_args(args):
                                                         'pabotlibhost',
                                                         'pabotlibport',
                                                         'suitesfrom',
+                                                        'parallelgranularity',
                                                         'help']] or
             ARGSMATCHER.match(args[0])):
         if args[0] == '--command':
