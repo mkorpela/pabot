@@ -366,6 +366,17 @@ def _parse_args(args):
 
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
+    if not os.path.isfile(".pabotsuitenames"):
+        store_suite_names(generate_suite_names(outs_dir, datasources, options, pabot_args))
+    with open(".pabotsuitenames", "r") as suitenamesfile:
+        lines = [line.strip() for line in suitenamesfile.readlines()]
+    return [suite for suite in lines if suite]
+
+def store_suite_names(suite_names):
+    with open(".pabotsuitenames", "w") as suitenamesfile:
+        suitenamesfile.writelines(suite_name+'\n' for suite_name in suite_names)
+
+def generate_suite_names(outs_dir, datasources, options, pabot_args):
     if 'suitesfrom' in pabot_args:
         return _suites_from_outputxml(pabot_args['suitesfrom'])
     opts = _options_for_dryrun(options, outs_dir)
