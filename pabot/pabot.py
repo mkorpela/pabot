@@ -366,6 +366,17 @@ def _parse_args(args):
 
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
+    # TODO:
+    # Should regenerate the list:
+    # - when a new suite is added
+    # - when a suite is removed
+    # - when a suite is changed
+    # ==> check directory hash
+    # - when execution command changes
+    # - when an argument file is changed
+    # ==> execution command hash
+    # - when pabotsuitenames is changed
+    # ==> pabotsuitenames hash
     if not os.path.isfile(".pabotsuitenames"):
         store_suite_names(generate_suite_names(outs_dir, datasources, options, pabot_args))
     with open(".pabotsuitenames", "r") as suitenamesfile:
