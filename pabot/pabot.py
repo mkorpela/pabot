@@ -593,7 +593,7 @@ def _glob_escape(pathname):
 def _writer():
     while True:
         message = MESSAGE_QUEUE.get()
-        print(message)
+        print(message.encode("UTF-8"))
         sys.stdout.flush()
 
 
