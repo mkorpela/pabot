@@ -90,7 +90,6 @@ except ImportError:
 
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = queue.Queue()
-WRITER_THREAD = None
 EXECUTION_POOL_IDS = []
 EXECUTION_POOL_ID_LOCK = threading.Lock()
 _PABOTLIBURI = '127.0.0.1:8270'
@@ -614,15 +613,13 @@ def _is_output_coloring_supported():
 
 
 def _start_message_writer():
-    global WRITER_THREAD
-    WRITER_THREAD = threading.Thread(target=_writer)
-    WRITER_THREAD.daemon = True
-    WRITER_THREAD.start()
+    t = threading.Thread(target=_writer)
+    t.daemon = True
+    t.start()
 
 
 def _stop_message_writer():
     MESSAGE_QUEUE.join()
-    WRITER_THREAD.join(timeout=1.0)
 
 
 def _start_remote_library(pabot_args):
