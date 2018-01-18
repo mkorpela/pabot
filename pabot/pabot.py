@@ -619,13 +619,13 @@ def _is_output_coloring_supported():
 def _start_message_writer():
     global WRITER_THREAD
     WRITER_THREAD = threading.Thread(target=_writer)
-    WRITER_THREAD.setDaemon(True)
+    WRITER_THREAD.daemon = True
     WRITER_THREAD.start()
 
 
 def _stop_message_writer():
     MESSAGE_QUEUE.join()
-    WRITER_THREAD.join()
+    WRITER_THREAD.join(timeout=1.0)
 
 
 def _start_remote_library(pabot_args):
