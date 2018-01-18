@@ -494,7 +494,7 @@ def _print_elapsed(start, end):
     if elapsed_hours > 0:
         elapsed_string += '%d hours ' % elapsed_hours
     elapsed_string += '%d minutes %d.%d seconds' % (minutes, seconds, millis)
-    print('Elapsed time: ' + elapsed_string)
+    _write('Elapsed time: ' + elapsed_string)
 
 
 def keyboard_interrupt(*args):
