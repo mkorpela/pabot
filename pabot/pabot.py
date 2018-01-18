@@ -617,6 +617,7 @@ def _is_output_coloring_supported():
 
 
 def _start_message_writer():
+    global WRITER_THREAD
     WRITER_THREAD = threading.Thread(target=_writer)
     WRITER_THREAD.setDaemon(True)
     WRITER_THREAD.start()
