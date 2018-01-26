@@ -92,6 +92,7 @@ CTRL_C_PRESSED = False
 MESSAGE_QUEUE = queue.Queue()
 EXECUTION_POOL_IDS = []
 EXECUTION_POOL_ID_LOCK = threading.Lock()
+POPEN_LOCK = threading.Lock()
 _PABOTLIBURI = '127.0.0.1:8270'
 _PABOTLIBPROCESS = None
 ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
@@ -161,10 +162,12 @@ def _run(cmd, stderr, stdout, suite_name, verbose, pool_id):
     # isinstance(cmd,basestring if PY2 else str)==True
     if PY2:
         cmd = cmd.decode('utf-8').encode(SYSTEM_ENCODING)
-    process = subprocess.Popen(cmd,
-                               shell=True,
-                               stderr=stderr,
-                               stdout=stdout)
+    # avoid hitting https://bugs.python.org/issue10394
+    with POPEN_LOCK:
+        process = subprocess.Popen(cmd,
+                                   shell=True,
+                                   stderr=stderr,
+                                   stdout=stdout)
     if verbose:
         _write_with_id(process, pool_id, 'EXECUTING PARALLEL SUITE %s with command:\n%s' % (suite_name, cmd),timestamp=timestamp)
     else:
