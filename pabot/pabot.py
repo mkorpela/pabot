@@ -377,6 +377,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
     # ==> execution command hash
     # - when pabotsuitenames is changed
     # ==> pabotsuitenames hash
+    # * --suitesfrom changes!!
     if not os.path.isfile(".pabotsuitenames"):
         store_suite_names(generate_suite_names(outs_dir, datasources, options, pabot_args))
     with open(".pabotsuitenames", "r") as suitenamesfile:
