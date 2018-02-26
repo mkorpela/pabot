@@ -168,8 +168,6 @@ def _wait_for_return_code(process, suite_name, pool_id):
             _write_with_id(process, pool_id, 'still running %s after %s seconds '
                    '(next ping in %s seconds)'
                    % (suite_name, elapsed / 10.0, ping_interval / 10.0))
-
-
     return rc, elapsed / 10.0
 
 
