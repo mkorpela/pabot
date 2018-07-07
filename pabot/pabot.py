@@ -366,6 +366,9 @@ def _parse_args(args):
     return options, datasources, pabot_args
 
 def get_hash_of_dirs(directories):
+    #FIXME! DOES NOT CONSIDER FILE NAMES AND THE ORDER IS A BIT RANDOM!!!
+    # sorted(files) !!!
+    # HASH SHOULD CONTAIN THE FILE NAMES
     SHAhash = hashlib.md5()
     for directory in directories:
         for root, _, files in os.walk(directory):
@@ -394,6 +397,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         lines = [line.strip() for line in suitenamesfile.readlines()]
         hash_suites = lines[0].strip()
         if hash_suites != hash_of_dirs:
+            print("REGENERATE")
             suites = generate_suite_names(outs_dir, datasources, options, pabot_args)
             store_suite_names(hash_of_dirs, suites)
             return suites
