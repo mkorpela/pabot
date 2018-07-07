@@ -3,7 +3,7 @@
 
 -    25 minutes of Programming
 -    Programming is problem solving
--    Fail fast princible (my github projects)
+-    Fail fast principle (my github projects)
 -    Validating that we are:
      doing the right thing vs. doing things right
 -    Systematically going through every case
