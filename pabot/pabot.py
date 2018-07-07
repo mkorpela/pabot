@@ -58,6 +58,7 @@ Copyright 2017 Mikko Korpela - Apache 2 License
 from __future__ import absolute_import, print_function
 
 import os
+import hashlib
 import re
 import sys
 import time
@@ -364,28 +365,43 @@ def _parse_args(args):
         del options[k]
     return options, datasources, pabot_args
 
+def get_hash_of_dirs(directories):
+    SHAhash = hashlib.md5()
+    for directory in directories:
+        for root, _, files in os.walk(directory):
+            for names in files:
+                filepath = os.path.join(root,names)
+                with open(filepath, 'rb') as f1:
+                    while True:
+                        # Read file in as little chunks
+                        buf = f1.read(4096)
+                        if not buf : break
+                        SHAhash.update(hashlib.md5(buf).hexdigest().encode("utf-8"))
+    return SHAhash.hexdigest()
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
     # TODO:
-    # Should regenerate the list:
-    # - when a new suite is added
-    # - when a suite is removed
-    # - when a suite is changed
-    # ==> check directory hash
     # - when execution command changes
     # - when an argument file is changed
     # ==> execution command hash
     # - when pabotsuitenames is changed
     # ==> pabotsuitenames hash
     # * --suitesfrom changes!!
+    hash_of_dirs = get_hash_of_dirs(datasources)
     if not os.path.isfile(".pabotsuitenames"):
-        store_suite_names(generate_suite_names(outs_dir, datasources, options, pabot_args))
+        store_suite_names(hash_of_dirs, generate_suite_names(outs_dir, datasources, options, pabot_args))
     with open(".pabotsuitenames", "r") as suitenamesfile:
         lines = [line.strip() for line in suitenamesfile.readlines()]
-    return [suite for suite in lines if suite]
+        hash_suites = lines[0].strip()
+        if hash_suites != hash_of_dirs:
+            suites = generate_suite_names(outs_dir, datasources, options, pabot_args)
+            store_suite_names(hash_of_dirs, suites)
+            return suites
+    return [suite for suite in lines[1:] if suite]
 
-def store_suite_names(suite_names):
+def store_suite_names(hash_of_dirs, suite_names):
     with open(".pabotsuitenames", "w") as suitenamesfile:
+        suitenamesfile.write(hash_of_dirs+'\n')
         suitenamesfile.writelines(suite_name+'\n' for suite_name in suite_names)
 
 def generate_suite_names(outs_dir, datasources, options, pabot_args):
