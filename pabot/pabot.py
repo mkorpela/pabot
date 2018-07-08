@@ -384,7 +384,7 @@ def hash_directory(path):
 def get_hash_of_dirs(directories):
     digest = hashlib.sha1()
     for directory in directories:
-        digest.update(hash_directory(directory))
+        digest.update(hash_directory(directory)) # FIXME REUSE DIGEST!
     return digest.hexdigest()
 
 def get_hash_of_command(datasources, options):
