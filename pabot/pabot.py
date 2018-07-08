@@ -403,6 +403,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
     # ==> execution command hash
     
     hash_of_dirs = get_hash_of_dirs(datasources)
+    # FIXME: datasources already considered in the previous hash!
     hash_of_command = get_hash_of_command(datasources, options)
     if not os.path.isfile(".pabotsuitenames"):
         store_suite_names(hash_of_dirs, hash_of_command, generate_suite_names(outs_dir, datasources, options, pabot_args))
