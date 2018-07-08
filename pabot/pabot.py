@@ -384,6 +384,7 @@ def hash_directory(path):
 def get_hash_of_dirs(directories):
     digest = hashlib.sha1()
     for directory in directories:
+        #FIXME: UNITTESTS ARE FAILING
         digest.update(hash_directory(directory)) # FIXME REUSE DIGEST!
     return digest.hexdigest()
 
