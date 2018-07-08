@@ -365,22 +365,27 @@ def _parse_args(args):
         del options[k]
     return options, datasources, pabot_args
 
-def get_hash_of_dirs(directories):
-    #FIXME! DOES NOT CONSIDER FILE NAMES AND THE ORDER IS A BIT RANDOM!!!
-    # sorted(files) !!!
-    # HASH SHOULD CONTAIN THE FILE NAMES
-    SHAhash = hashlib.md5()
-    for directory in directories:
-        for root, _, files in os.walk(directory):
-            for names in files:
-                filepath = os.path.join(root,names)
-                with open(filepath, 'rb') as f1:
+def hash_directory(path):
+    digest = hashlib.sha1()
+    for root, _, files in os.walk(path):
+        for names in sorted(files):
+            file_path = os.path.join(root, names)
+            digest.update(hashlib.sha1(file_path[len(path):].encode()).digest())
+            #TODO: .txt .robot .html ..
+            if os.path.isfile(file_path):
+                with open(file_path, 'rb') as f_obj:
                     while True:
-                        # Read file in as little chunks
-                        buf = f1.read(4096)
-                        if not buf : break
-                        SHAhash.update(hashlib.md5(buf).hexdigest().encode("utf-8"))
-    return SHAhash.hexdigest()
+                        buf = f_obj.read(1024 * 1024)
+                        if not buf:
+                            break
+                        digest.update(buf)
+    return digest.hexdigest()
+
+def get_hash_of_dirs(directories):
+    digest = hashlib.sha1()
+    for directory in directories:
+        digest.update(hash_directory(directory))
+    return digest.hexdigest()
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
     # TODO:
