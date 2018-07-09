@@ -365,8 +365,7 @@ def _parse_args(args):
         del options[k]
     return options, datasources, pabot_args
 
-def hash_directory(path):
-    digest = hashlib.sha1()
+def hash_directory(digest, path):
     for root, _, files in os.walk(path):
         for names in sorted(files):
             file_path = os.path.join(root, names)
@@ -379,20 +378,16 @@ def hash_directory(path):
                         if not buf:
                             break
                         digest.update(buf)
-    return digest.hexdigest()
 
 def get_hash_of_dirs(directories):
     digest = hashlib.sha1()
     for directory in directories:
-        #FIXME: UNITTESTS ARE FAILING
-        digest.update(hash_directory(directory)) # FIXME REUSE DIGEST!
+        hash_directory(digest, directory)
     return digest.hexdigest()
 
-def get_hash_of_command(datasources, options):
+def get_hash_of_command(options):
     digest = hashlib.sha1()
-    for source in datasources:
-        digest.update(source)
-    digest.update(repr(sorted(options.items())))
+    digest.update(repr(sorted(options.items())).encode("utf-8"))
     return digest.hexdigest()
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
@@ -404,8 +399,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
     # ==> execution command hash
     
     hash_of_dirs = get_hash_of_dirs(datasources)
-    # FIXME: datasources already considered in the previous hash!
-    hash_of_command = get_hash_of_command(datasources, options)
+    hash_of_command = get_hash_of_command(options)
     if not os.path.isfile(".pabotsuitenames"):
         store_suite_names(hash_of_dirs, hash_of_command, generate_suite_names(outs_dir, datasources, options, pabot_args))
     with open(".pabotsuitenames", "r") as suitenamesfile:
