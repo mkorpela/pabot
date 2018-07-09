@@ -397,6 +397,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
     # * --suitesfrom changes!!
     # - when an argument file is changed
     # ==> execution command hash
+    # - .pabotsuitenames hash should ignore order
     
     hash_of_dirs = get_hash_of_dirs(datasources)
     hash_of_command = get_hash_of_command(options)
