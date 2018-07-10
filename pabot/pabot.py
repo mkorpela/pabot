@@ -405,20 +405,35 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         store_suite_names(hash_of_dirs, hash_of_command, generate_suite_names(outs_dir, datasources, options, pabot_args))
     with open(".pabotsuitenames", "r") as suitenamesfile:
         lines = [line.strip() for line in suitenamesfile.readlines()]
-        hash_suites = lines[0].strip()
-        hash_command = lines[1].strip()
+        hash_suites = lines[0]
+        hash_command = lines[1]
+        file_hash = lines[2]
+        hash_of_file = _file_hash(lines)
         if (hash_suites != hash_of_dirs or 
-        hash_command != hash_of_command):
+        hash_command != hash_of_command or
+        file_hash != hash_of_file):
             print("REGENERATE")
+            #FIXME! USE THE OLD ORDER OF SUITES IF POSSIBLE!!
             suites = generate_suite_names(outs_dir, datasources, options, pabot_args)
             store_suite_names(hash_of_dirs, hash_of_command, suites)
             return suites
-    return [suite for suite in lines[2:] if suite]
+    return [suite for suite in lines[3:] if suite]
+
+def _file_hash(lines):
+    digest = hashlib.sha1()
+    digest.update(lines[0].encode("utf-8"))
+    digest.update(lines[1].encode("utf-8"))
+    hashes = 0
+    for line in lines[3:]:
+        hashes |= hash(line)
+    digest.update(str(hashes).encode("utf-8"))
+    return digest.hexdigest()
 
 def store_suite_names(hash_of_dirs, hash_of_command, suite_names):
     with open(".pabotsuitenames", "w") as suitenamesfile:
         suitenamesfile.write(hash_of_dirs+'\n')
         suitenamesfile.write(hash_of_command+'\n')
+        suitenamesfile.write(_file_hash([hash_of_dirs, hash_of_command, None]+ suite_names)+'\n')
         suitenamesfile.writelines(suite_name+'\n' for suite_name in suite_names)
 
 def generate_suite_names(outs_dir, datasources, options, pabot_args):
