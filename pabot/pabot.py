@@ -372,12 +372,15 @@ def hash_directory(digest, path):
             digest.update(hashlib.sha1(file_path[len(path):].encode()).digest())
             #TODO: .txt .robot .html ..
             if os.path.isfile(file_path):
-                with open(file_path, 'rb') as f_obj:
-                    while True:
-                        buf = f_obj.read(1024 * 1024)
-                        if not buf:
-                            break
-                        digest.update(buf)
+                get_hash_of_file(file_path, digest)
+
+def get_hash_of_file(filename, digest):
+    with open(filename, 'rb') as f_obj:
+        while True:
+            buf = f_obj.read(1024 * 1024)
+            if not buf:
+                break
+            digest.update(buf)
 
 def get_hash_of_dirs(directories):
     digest = hashlib.sha1()
@@ -392,17 +395,19 @@ def get_hash_of_command(options):
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
     # TODO:
-    # - when pabotsuitenames is changed
-    # ==> pabotsuitenames hash
     # * --suitesfrom changes!!
     # - when an argument file is changed
     # ==> execution command hash
-    # - .pabotsuitenames hash should ignore order
     
     hash_of_dirs = get_hash_of_dirs(datasources)
     hash_of_command = get_hash_of_command(options)
+    hash_of_suitesfrom = "no-suites-from-option"
+    if "suitesfrom" in pabot_args:
+        digest = hashlib.sha1()
+        get_hash_of_file(pabot_args["suitesfrom"], digest)
+        hash_of_suitesfrom = digest.hexdigest()
     if not os.path.isfile(".pabotsuitenames"):
-        store_suite_names(hash_of_dirs, hash_of_command, generate_suite_names(outs_dir, datasources, options, pabot_args))
+        store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, generate_suite_names(outs_dir, datasources, options, pabot_args))
     with open(".pabotsuitenames", "r") as suitenamesfile:
         lines = [line.strip() for line in suitenamesfile.readlines()]
         hash_suites = lines[0]
@@ -413,27 +418,35 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         hash_command != hash_of_command or
         file_hash != hash_of_file):
             print("REGENERATE")
-            #FIXME! USE THE OLD ORDER OF SUITES IF POSSIBLE!!
             suites = generate_suite_names(outs_dir, datasources, options, pabot_args)
-            store_suite_names(hash_of_dirs, hash_of_command, suites)
+            suites = _preserve_order(suites, [suite for suite in lines[4:] if suite])
+            store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
             return suites
-    return [suite for suite in lines[3:] if suite]
+    return [suite for suite in lines[4:] if suite]
+
+def _preserve_order(new_suites, old_suites):
+    old_suites = [suite for suite in old_suites if new_suites]
+    exists_in_old_and_new = [s for s in old_suites if s in new_suites]
+    exists_only_in_new = [s for s in new_suites if s not in old_suites]
+    return exists_in_old_and_new + exists_only_in_new
 
 def _file_hash(lines):
     digest = hashlib.sha1()
-    digest.update(lines[0].encode("utf-8"))
-    digest.update(lines[1].encode("utf-8"))
+    digest.update(lines[0].encode())
+    digest.update(lines[1].encode())
+    digest.update(lines[2].encode())
     hashes = 0
-    for line in lines[3:]:
+    for line in lines[4:]:
         hashes |= hash(line)
-    digest.update(str(hashes).encode("utf-8"))
+    digest.update(str(hashes).encode())
     return digest.hexdigest()
 
-def store_suite_names(hash_of_dirs, hash_of_command, suite_names):
+def store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suite_names):
     with open(".pabotsuitenames", "w") as suitenamesfile:
         suitenamesfile.write(hash_of_dirs+'\n')
         suitenamesfile.write(hash_of_command+'\n')
-        suitenamesfile.write(_file_hash([hash_of_dirs, hash_of_command, None]+ suite_names)+'\n')
+        suitenamesfile.write(hash_of_suitesfrom+'\n')
+        suitenamesfile.write(_file_hash([hash_of_dirs, hash_of_command, hash_of_suitesfrom, None]+ suite_names)+'\n')
         suitenamesfile.writelines(suite_name+'\n' for suite_name in suite_names)
 
 def generate_suite_names(outs_dir, datasources, options, pabot_args):
