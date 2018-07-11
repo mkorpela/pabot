@@ -412,7 +412,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         lines = [line.strip() for line in suitenamesfile.readlines()]
         hash_suites = lines[0]
         hash_command = lines[1]
-        file_hash = lines[2]
+        file_hash = lines[2] # <-- THIS IS INDEX BUG!!
         hash_of_file = _file_hash(lines)
         if (hash_suites != hash_of_dirs or 
         hash_command != hash_of_command or
