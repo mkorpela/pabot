@@ -425,7 +425,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
     return [suite for suite in lines[4:] if suite]
 
 def _preserve_order(new_suites, old_suites):
-    old_suites = [suite for suite in old_suites if new_suites]
+    old_suites = [suite for suite in old_suites if new_suites] # <-- BUG FOUND DURING EDITING!! SHOULD NOT BE NEW_SUITES!!
     exists_in_old_and_new = [s for s in old_suites if s in new_suites]
     exists_only_in_new = [s for s in new_suites if s not in old_suites]
     return exists_in_old_and_new + exists_only_in_new
