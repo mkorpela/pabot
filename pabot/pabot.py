@@ -407,25 +407,34 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         get_hash_of_file(pabot_args["suitesfrom"], digest)
         hash_of_suitesfrom = digest.hexdigest()
     if not os.path.isfile(".pabotsuitenames"):
-        store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, generate_suite_names(outs_dir, datasources, options, pabot_args))
+        store_suite_names(hash_of_dirs, 
+                    hash_of_command, 
+                    hash_of_suitesfrom, 
+                    generate_suite_names(outs_dir, 
+                                        datasources, 
+                                        options, 
+                                        pabot_args))
     with open(".pabotsuitenames", "r") as suitenamesfile:
         lines = [line.strip() for line in suitenamesfile.readlines()]
         hash_suites = lines[0]
         hash_command = lines[1]
-        file_hash = lines[2] # <-- THIS IS INDEX BUG!!
+        suitesfrom_hash = lines[2]
+        file_hash = lines[3]
         hash_of_file = _file_hash(lines)
         if (hash_suites != hash_of_dirs or 
         hash_command != hash_of_command or
-        file_hash != hash_of_file):
+        file_hash != hash_of_file or
+        suitesfrom_hash != hash_of_suitesfrom):
             print("REGENERATE")
             suites = generate_suite_names(outs_dir, datasources, options, pabot_args)
-            suites = _preserve_order(suites, [suite for suite in lines[4:] if suite])
+            if suitesfrom_hash == hash_of_suitesfrom:
+                suites = _preserve_order(suites, [suite for suite in lines[4:] if suite])
             store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
             return suites
     return [suite for suite in lines[4:] if suite]
 
 def _preserve_order(new_suites, old_suites):
-    old_suites = [suite for suite in old_suites if new_suites] # <-- BUG FOUND DURING EDITING!! SHOULD NOT BE NEW_SUITES!!
+    old_suites = [suite for suite in old_suites if suite]
     exists_in_old_and_new = [s for s in old_suites if s in new_suites]
     exists_only_in_new = [s for s in new_suites if s not in old_suites]
     return exists_in_old_and_new + exists_only_in_new
