@@ -426,8 +426,19 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         file_hash != hash_of_file or
         suitesfrom_hash != hash_of_suitesfrom):
             print("REGENERATE")
-            suites = generate_suite_names(outs_dir, datasources, options, pabot_args)
-            if suitesfrom_hash == hash_of_suitesfrom:
+            if suitesfrom_hash != hash_of_suitesfrom and 'suitesfrom' in pabot_args:
+                print("SUITESFROM")
+                suites = _suites_from_outputxml(pabot_args['suitesfrom'])
+                if hash_suites != hash_of_dirs:
+                    print("DRYRUN")
+                    all_suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)   
+                else:
+                    print("SKIP DRYRUN")
+                    all_suites = [suite for suite in lines[4:] if suite]
+                suites = _preserve_order(all_suites, suites) 
+            else:
+                print("NORMAL")
+                suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
                 suites = _preserve_order(suites, [suite for suite in lines[4:] if suite])
             store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
             return suites
@@ -461,6 +472,9 @@ def store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suite_n
 def generate_suite_names(outs_dir, datasources, options, pabot_args):
     if 'suitesfrom' in pabot_args:
         return _suites_from_outputxml(pabot_args['suitesfrom'])
+    return generate_suite_names_with_dryrun(outs_dir, datasources, options)
+
+def generate_suite_names_with_dryrun(outs_dir, datasources, options):
     opts = _options_for_dryrun(options, outs_dir)
     with _with_modified_robot():
         run(*datasources, **opts)
