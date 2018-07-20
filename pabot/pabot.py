@@ -398,7 +398,6 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
     # * --suitesfrom changes!!
     # - when an argument file is changed
     # ==> execution command hash
-    
     hash_of_dirs = get_hash_of_dirs(datasources)
     hash_of_command = get_hash_of_command(options)
     hash_of_suitesfrom = "no-suites-from-option"
@@ -407,13 +406,15 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         get_hash_of_file(pabot_args["suitesfrom"], digest)
         hash_of_suitesfrom = digest.hexdigest()
     if not os.path.isfile(".pabotsuitenames"):
+        suite_names = generate_suite_names(outs_dir, 
+                                        datasources, 
+                                        options, 
+                                        pabot_args)
         store_suite_names(hash_of_dirs, 
                     hash_of_command, 
                     hash_of_suitesfrom, 
-                    generate_suite_names(outs_dir, 
-                                        datasources, 
-                                        options, 
-                                        pabot_args))
+                    suite_names)
+        return suite_names
     with open(".pabotsuitenames", "r") as suitenamesfile:
         lines = [line.strip() for line in suitenamesfile.readlines()]
         hash_suites = lines[0]

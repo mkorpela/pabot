@@ -1,5 +1,6 @@
 import unittest
 import time
+import os
 from pabot import pabot
 
 
@@ -47,13 +48,76 @@ class PabotTests(unittest.TestCase):
         pabot._stop_remote_library(lib_process)
         self.assertTrue(lib_process.poll() == 0)
 
-    def test_solve_suite_names(self):
+    def test_solve_suite_names_works_without_pabotsuitenames_file(self):
+        if os.path.isfile(".pabotsuitenames"):
+            os.remove(".pabotsuitenames")
         suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
                                               datasources=self._datasources,
                                               options=self._options,
                                               pabot_args=self._pabot_args)
         self.assertEqual(['Fixtures.Suite One', 'Fixtures.Suite Second', 'Fixtures.Suite&(Specia|)Chars'],
                          suite_names)
+        self.assertTrue(os.path.isfile(".pabotsuitenames"))
+        expected = ['d8ce00e644006f271e86b62cc14702b45caf6c8b\n',
+        '98e9291c984f1e6583248f87168b79afdf76d064\n',
+        'no-suites-from-option\n',
+        '4f22fc7af25040e0f3b9e3681b84594ccb0cdf9e\n',
+        'Fixtures.Suite One\n',
+        'Fixtures.Suite Second\n',
+        'Fixtures.Suite&(Specia|)Chars\n']
+        with open(".pabotsuitenames", "r") as f:
+            actual = f.readlines()
+        self.assertEqual(expected, actual)
+
+    def test_solve_suite_names_works_with_pabotsuitenames_file(self):
+        pabotsuitenames = ['d8ce00e644005f271e86b62cc14702b45caf6c8b\n',
+        '98e9291c984a1e6583248f87168b79afdf76d064\n',
+        'no-suites-from-option\n',
+        '4f22fc7af25040e0f3b9e3681b84594ccb0cdf9e\n',
+        'Fixtures.Suite&(Specia|)Chars\n',
+        'Fixtures.Suite Second\n',
+        'Fixtures.Suite One\n']
+        with open(".pabotsuitenames", "w") as f:
+            f.writelines(pabotsuitenames)
+        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                              datasources=self._datasources,
+                                              options=self._options,
+                                              pabot_args=self._pabot_args)
+        self.assertEqual([
+            'Fixtures.Suite&(Specia|)Chars',
+            'Fixtures.Suite Second',
+            'Fixtures.Suite One', 
+        ], suite_names)
+        expected = ['d8ce00e644006f271e86b62cc14702b45caf6c8b\n',
+        '98e9291c984f1e6583248f87168b79afdf76d064\n',
+        'no-suites-from-option\n',
+        '4f22fc7af25040e0f3b9e3681b84594ccb0cdf9e\n',
+        'Fixtures.Suite&(Specia|)Chars\n',
+        'Fixtures.Suite Second\n',
+        'Fixtures.Suite One\n'
+        ]
+        with open(".pabotsuitenames", "r") as f:
+            actual = f.readlines()
+        self.assertEqual(expected, actual)
+
+    def test_solve_suite_names_with_corrupted_pabotsuitenames_file(self):
+        pabotsuitenames_corrupted = ['d8ce00e644006f271e86b62cc14702b45caf6c8b\n',
+        '98e9291c984f1e6583248f87168b79afdf76d064\n',
+        'no-suites-from-option\n',
+        '4f2fc7af25040e0f3b9e3681b84594ccb0cdf9e\n',
+        'Fixtures.Suite&(Specia|)Chars\n',
+        'Fixtures.Suite Second\n']
+        with open(".pabotsuitenames", "w") as f:
+            f.writelines(pabotsuitenames_corrupted)
+        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                            datasources=self._datasources,
+                                            options=self._options,
+                                            pabot_args=self._pabot_args)
+        self.assertEqual([
+            'Fixtures.Suite&(Specia|)Chars',
+            'Fixtures.Suite Second',
+            'Fixtures.Suite One', 
+        ], suite_names)
 
     def test_parallel_execution(self):
         suite_names = ['Fixtures.Suite One',
