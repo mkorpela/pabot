@@ -108,6 +108,17 @@ class PabotTests(unittest.TestCase):
             'Fixtures.Suite Second',
             'Fixtures.Suite One', 
         ], suite_names)
+        expected = ['d8ce00e644006f271e86b62cc14702b45caf6c8b\n',
+        '98e9291c984f1e6583248f87168b79afdf76d064\n',
+        'no-suites-from-option\n',
+        '4f22fc7af25040e0f3b9e3681b84594ccb0cdf9e\n',
+        'Fixtures.Suite&(Specia|)Chars\n',
+        'Fixtures.Suite Second\n',
+        'Fixtures.Suite One\n'
+        ]
+        with open(".pabotsuitenames", "r") as f:
+            actual = f.readlines()
+        self.assertEqual(expected, actual)
 
     def test_parallel_execution(self):
         suite_names = ['Fixtures.Suite One',
