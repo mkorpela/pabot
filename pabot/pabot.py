@@ -412,7 +412,6 @@ def _with_modified_robot():
                         populator.add(cells)
                         first = True
                     elif first:
-                        populator.add(['', 'No Operation'])
                         first = False
             populator.eof()
 
