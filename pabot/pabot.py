@@ -294,7 +294,7 @@ def _processes_count():
 
 
 def _parse_args(args):
-    pabot_args = {'command': ['pybot'],
+    pabot_args = {'command': ['pybot' if ROBOT_VERSION < '3.1' else 'robot'],
                   'verbose': False,
                   'tutorial': False,
                   'help': False,
