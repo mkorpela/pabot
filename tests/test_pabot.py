@@ -69,6 +69,26 @@ class PabotTests(unittest.TestCase):
             actual = f.readlines()
         self.assertEqual(expected, actual)
 
+    def test_solve_suite_names_works_with_suitesfrom_option(self):
+        if os.path.isfile(".pabotsuitenames"):
+            os.remove(".pabotsuitenames")
+        pabot_args = dict(self._pabot_args)
+        pabot_args["suitesfrom"] = "tests/output.xml"
+        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                              datasources=self._datasources,
+                                              options=self._options,
+                                              pabot_args=pabot_args)
+        expected = ['d8ce00e644006f271e86b62cc14702b45caf6c8b\n',
+        'e8a497f81418cc647bbdd88c2b999d6971aa6116\n',
+        'b8368a7a5e1574965abcbb975b7b3521b2b4496b\n',
+        '10b6a5e90bde819d56bc881a8311e748244cb25e\n',
+        'Fixtures.Suite Second\n',
+        'Fixtures.Suite One\n',
+        'Fixtures.Suite&(Specia|)Chars\n']
+        with open(".pabotsuitenames", "r") as f:
+            actual = f.readlines()
+        self.assertEqual(expected, actual)
+
     def test_solve_suite_names_works_with_pabotsuitenames_file(self):
         pabotsuitenames = ['d8ce00e644006f271e86b62cc14702b45caf6c8b\n',
         '98e9291c984f1e6583248f87168b79afdf76d064\n',
