@@ -59,9 +59,9 @@ class PabotTests(unittest.TestCase):
                          suite_names)
         self.assertTrue(os.path.isfile(".pabotsuitenames"))
         expected = ['d8ce00e644006f271e86b62cc14702b45caf6c8b\n',
-        '98e9291c984f1e6583248f87168b79afdf76d064\n',
+        'e8a497f81418cc647bbdd88c2b999d6971aa6116\n',
         'no-suites-from-option\n',
-        '4f22fc7af25040e0f3b9e3681b84594ccb0cdf9e\n',
+        'cb7b13c2fcfa5284c74c15cf42e37f62b0b7a7b8\n',
         'Fixtures.Suite One\n',
         'Fixtures.Suite Second\n',
         'Fixtures.Suite&(Specia|)Chars\n']
@@ -96,6 +96,7 @@ class PabotTests(unittest.TestCase):
         'no-suites-from-optiosn\n',
         '4f2fc7af25040e0f3b9e2681b84594ccb0cdf9e\n',
         'Fixtures.Suite&(Specia|)Chars\n',
+        'NoneExisting\n',
         'Fixtures.Suite Second\n']
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames_corrupted)
@@ -109,9 +110,9 @@ class PabotTests(unittest.TestCase):
             'Fixtures.Suite One', 
         ], suite_names)
         expected = ['d8ce00e644006f271e86b62cc14702b45caf6c8b\n',
-        '98e9291c984f1e6583248f87168b79afdf76d064\n',
+        'e8a497f81418cc647bbdd88c2b999d6971aa6116\n',
         'no-suites-from-option\n',
-        '4f22fc7af25040e0f3b9e3681b84594ccb0cdf9e\n',
+        'cb7b13c2fcfa5284c74c15cf42e37f62b0b7a7b8\n',
         'Fixtures.Suite&(Specia|)Chars\n',
         'Fixtures.Suite Second\n',
         'Fixtures.Suite One\n'
