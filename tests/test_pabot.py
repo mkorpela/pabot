@@ -58,10 +58,10 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(['Fixtures.Suite One', 'Fixtures.Suite Second', 'Fixtures.Suite&(Specia|)Chars'],
                          suite_names)
         self.assertTrue(os.path.isfile(".pabotsuitenames"))
-        expected = ['d8ce00e644006f271e86b62cc14702b45caf6c8b\n',
-        'e8a497f81418cc647bbdd88c2b999d6971aa6116\n',
-        'no-suites-from-option\n',
-        'cb7b13c2fcfa5284c74c15cf42e37f62b0b7a7b8\n',
+        expected = [self._d('d8ce00e644006f271e86b62cc14702b45caf6c8b'),
+        'commandlineoptions:e8a497f81418cc647bbdd88c2b999d6971aa6116\n',
+        'suitesfrom:no-suites-from-option\n',
+        'pabotsuitenames:cb7b13c2fcfa5284c74c15cf42e37f62b0b7a7b8\n',
         'Fixtures.Suite One\n',
         'Fixtures.Suite Second\n',
         'Fixtures.Suite&(Specia|)Chars\n']
@@ -78,10 +78,10 @@ class PabotTests(unittest.TestCase):
                                               datasources=self._datasources,
                                               options=self._options,
                                               pabot_args=pabot_args)
-        expected = ['d8ce00e644006f271e86b62cc14702b45caf6c8b\n',
-        'e8a497f81418cc647bbdd88c2b999d6971aa6116\n',
-        'b8368a7a5e1574965abcbb975b7b3521b2b4496b\n',
-        '10b6a5e90bde819d56bc881a8311e748244cb25e\n',
+        expected = [self._d('d8ce00e644006f271e86b62cc14702b45caf6c8b'),
+        'commandlineoptions:e8a497f81418cc647bbdd88c2b999d6971aa6116\n',
+        'suitesfrom:b8368a7a5e1574965abcbb975b7b3521b2b4496b\n',
+        'pabotsuitenames:10b6a5e90bde819d56bc881a8311e748244cb25e\n',
         'Fixtures.Suite Second\n',
         'Fixtures.Suite One\n',
         'Fixtures.Suite&(Specia|)Chars\n']
@@ -90,20 +90,25 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def test_solve_suite_names_works_with_pabotsuitenames_file(self):
-        pabotsuitenames = ['d8ce00e644006f271e86b62cc14702b45caf6c8b\n',
-        '98e9291c984f1e6583248f87168b79afdf76d064\n',
-        'no-suites-from-option\n',
-        '4f22fc7af25040e0f3b9e3681b84594ccb0cdf9e\n',
+        pabotsuitenames = [self._d('d8ce00e644006f271e86b62cc14702b45caf6c8b'),
+        self._c('e8a497f81418cc647bbdd88c2b999d6971aa6116'),
+        'suitesfrom:no-suites-from-option\n',
+        'pabotsuitenames:c06f2afdfa35791e82e71618bf60415e927c41ae\n',
         'Fixtures.Suite&(Specia|)Chars\n',
         'Fixtures.Suite Second\n',
         'Fixtures.Suite One\n'
         ]
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames)
-        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
-                                              datasources=self._datasources,
-                                              options=self._options,
-                                              pabot_args=self._pabot_args)
+        original = pabot._regenerate
+        pabot._regenerate = lambda *args: 1/0
+        try:
+            suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                                datasources=self._datasources,
+                                                options=self._options,
+                                                pabot_args=self._pabot_args)
+        finally:
+            pabot._regenerate = original
         self.assertEqual([
             'Fixtures.Suite&(Specia|)Chars',
             'Fixtures.Suite Second',
@@ -111,8 +116,8 @@ class PabotTests(unittest.TestCase):
         ], suite_names)
 
     def test_solve_suite_names_with_corrupted_pabotsuitenames_file(self):
-        pabotsuitenames_corrupted = ['d8ce00e244006f271e86b62cc14702b45caf6c8b\n',
-        '98e9291c98411e6583248f87168b79afdf76d064\n',
+        pabotsuitenames_corrupted = [self._d('d8ce00e244006f271e86b62cc14702b45caf6c8b'),
+        self._c('98e9291c98411e6583248f87168b79afdf76d064'),
         'no-suites-from-optiosn\n',
         '4f2fc7af25040e0f3b9e2681b84594ccb0cdf9e\n',
         'Fixtures.Suite&(Specia|)Chars\n',
@@ -129,10 +134,10 @@ class PabotTests(unittest.TestCase):
             'Fixtures.Suite Second',
             'Fixtures.Suite One', 
         ], suite_names)
-        expected = ['d8ce00e644006f271e86b62cc14702b45caf6c8b\n',
-        'e8a497f81418cc647bbdd88c2b999d6971aa6116\n',
-        'no-suites-from-option\n',
-        'cb7b13c2fcfa5284c74c15cf42e37f62b0b7a7b8\n',
+        expected = [self._d('d8ce00e644006f271e86b62cc14702b45caf6c8b'),
+        self._c('e8a497f81418cc647bbdd88c2b999d6971aa6116'),
+        'suitesfrom:no-suites-from-option\n',
+        'pabotsuitenames:cb7b13c2fcfa5284c74c15cf42e37f62b0b7a7b8\n',
         'Fixtures.Suite&(Specia|)Chars\n',
         'Fixtures.Suite Second\n',
         'Fixtures.Suite One\n'
@@ -140,6 +145,14 @@ class PabotTests(unittest.TestCase):
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
         self.assertEqual(expected, actual)
+
+    #FIXME: Some way of knowing if we regenerated!!
+
+    def _d(self, h):
+        return 'datasources:%s\n' % h
+
+    def _c(self, h):
+        return 'commandlineoptions:%s\n' % h
 
     def test_parallel_execution(self):
         suite_names = ['Fixtures.Suite One',
