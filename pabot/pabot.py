@@ -421,7 +421,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         hash_suites = lines[0][len("datasources:"):]
         hash_command = lines[1][len("commandlineoptions:"):]
         suitesfrom_hash = lines[2][len("suitesfrom:"):]
-        file_hash = lines[3][len("pabotsuitenames:"):]
+        file_hash = lines[3][len("file:"):]
         hash_of_file = _file_hash(lines)
         if (hash_suites != hash_of_dirs or 
         hash_command != hash_of_command or
@@ -494,7 +494,7 @@ def store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suite_n
         suitenamesfile.write("datasources:"+hash_of_dirs+'\n')
         suitenamesfile.write("commandlineoptions:"+hash_of_command+'\n')
         suitenamesfile.write("suitesfrom:"+hash_of_suitesfrom+'\n')
-        suitenamesfile.write("pabotsuitenames:"+_file_hash([
+        suitenamesfile.write("file:"+_file_hash([
             "datasources:"+hash_of_dirs, 
             "commandlineoptions:"+hash_of_command, 
             "suitesfrom:"+hash_of_suitesfrom, None]+ suite_names)+'\n')
