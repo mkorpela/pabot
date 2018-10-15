@@ -61,7 +61,7 @@ class PabotTests(unittest.TestCase):
         expected = [self._d('d8ce00e644006f271e86b62cc14702b45caf6c8b'),
         'commandlineoptions:e8a497f81418cc647bbdd88c2b999d6971aa6116\n',
         'suitesfrom:no-suites-from-option\n',
-        'file:cb7b13c2fcfa5284c74c15cf42e37f62b0b7a7b8\n',
+        'file:c06f2afdfa35791e82e71618bf60415e927c41ae\n',
         'Fixtures.Suite One\n',
         'Fixtures.Suite Second\n',
         'Fixtures.Suite&(Specia|)Chars\n']
@@ -81,7 +81,7 @@ class PabotTests(unittest.TestCase):
         expected = [self._d('d8ce00e644006f271e86b62cc14702b45caf6c8b'),
         'commandlineoptions:e8a497f81418cc647bbdd88c2b999d6971aa6116\n',
         'suitesfrom:b8368a7a5e1574965abcbb975b7b3521b2b4496b\n',
-        'file:10b6a5e90bde819d56bc881a8311e748244cb25e\n',
+        'file:50d0c83b3c6b35ddc81c3289f5591d6574412c17\n',
         'Fixtures.Suite Second\n',
         'Fixtures.Suite One\n',
         'Fixtures.Suite&(Specia|)Chars\n']
@@ -137,7 +137,7 @@ class PabotTests(unittest.TestCase):
         expected = [self._d('d8ce00e644006f271e86b62cc14702b45caf6c8b'),
         self._c('e8a497f81418cc647bbdd88c2b999d6971aa6116'),
         'suitesfrom:no-suites-from-option\n',
-        'file:cb7b13c2fcfa5284c74c15cf42e37f62b0b7a7b8\n',
+        'file:c06f2afdfa35791e82e71618bf60415e927c41ae\n',
         'Fixtures.Suite&(Specia|)Chars\n',
         'Fixtures.Suite Second\n',
         'Fixtures.Suite One\n'
