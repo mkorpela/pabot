@@ -395,7 +395,6 @@ def get_hash_of_command(options):
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
     # TODO:
-    # * - add hash titles!
     # * --suitesfrom changes!!
     # - when an argument file is changed
     # ==> execution command hash
