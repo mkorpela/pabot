@@ -454,7 +454,6 @@ def _regenerate(
     if suitesfrom_hash != hash_of_suitesfrom \
         and 'suitesfrom' in pabot_args \
         and os.path.isfile(pabot_args['suitesfrom']):
-        1/0
         suites = _suites_from_outputxml(pabot_args['suitesfrom'])
         # MISSING A TEST CASE
         if hash_suites != hash_of_dirs:
