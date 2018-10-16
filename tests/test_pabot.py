@@ -105,6 +105,72 @@ class PabotTests(unittest.TestCase):
             actual = f.readlines()
         self.assertEqual(expected, actual)
 
+    def test_solve_suite_names_works_when_suitesfrom_file_added(self):
+        pabotsuitenames = self._psuitenames(
+            'd8ce00e644006f271e86b62cc14702b45caf6c8b',
+            'e8a497f81418cc647bbdd88c2b999d6971aa6116',
+            'no-suites-from-option',
+            'c06f2afdfa35791e82e71618bf60415e927c41ae',
+            'Fixtures.Suite One',
+            'Fixtures.Suite Second',
+            'Fixtures.Suite&(Specia|)Chars')
+        with open(".pabotsuitenames", "w") as f:
+            f.writelines(pabotsuitenames)
+        pabot_args = dict(self._pabot_args)
+        pabot_args["suitesfrom"] = "tests/output.xml"
+        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                                  datasources=self._datasources,
+                                                  options=self._options,
+                                                  pabot_args=pabot_args)
+        self.assertEqual(['Fixtures.Suite Second', 
+                          'Fixtures.Suite One',
+                          'Fixtures.Suite&(Specia|)Chars'],
+                         suite_names)
+        expected = self._psuitenames(
+            'd8ce00e644006f271e86b62cc14702b45caf6c8b',
+            'e8a497f81418cc647bbdd88c2b999d6971aa6116',
+            'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
+            '50d0c83b3c6b35ddc81c3289f5591d6574412c17',
+            'Fixtures.Suite Second',
+            'Fixtures.Suite One',
+            'Fixtures.Suite&(Specia|)Chars')
+        with open(".pabotsuitenames", "r") as f:
+            actual = f.readlines()
+        self.assertEqual(expected, actual)
+
+    def test_solve_suite_names_works_when_suitesfrom_file_added_and_directory(self):
+        pabotsuitenames = self._psuitenames(
+            'oldhashcode',
+            'e8a497f81418cc647bbdd88c2b999d6971aa6116',
+            'no-suites-from-option',
+            'c06f2afdfa35791e82e71618bf60415e927c41ae',
+            'Fixtures.Suite One',
+            'Fixtures.Suite Second',
+            'Fixtures.Suite&(Specia|)Chars')
+        with open(".pabotsuitenames", "w") as f:
+            f.writelines(pabotsuitenames)
+        pabot_args = dict(self._pabot_args)
+        pabot_args["suitesfrom"] = "tests/output.xml"
+        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                                  datasources=self._datasources,
+                                                  options=self._options,
+                                                  pabot_args=pabot_args)
+        self.assertEqual(['Fixtures.Suite Second', 
+                          'Fixtures.Suite One',
+                          'Fixtures.Suite&(Specia|)Chars'],
+                         suite_names)
+        expected = self._psuitenames(
+            'd8ce00e644006f271e86b62cc14702b45caf6c8b',
+            'e8a497f81418cc647bbdd88c2b999d6971aa6116',
+            'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
+            '50d0c83b3c6b35ddc81c3289f5591d6574412c17',
+            'Fixtures.Suite Second',
+            'Fixtures.Suite One',
+            'Fixtures.Suite&(Specia|)Chars')
+        with open(".pabotsuitenames", "r") as f:
+            actual = f.readlines()
+        self.assertEqual(expected, actual)
+
     def test_solve_suite_names_works_after_suitesfrom_file_removed(self):
         pabotsuitenames = self._psuitenames(
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',

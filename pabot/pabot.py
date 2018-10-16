@@ -455,7 +455,6 @@ def _regenerate(
         and 'suitesfrom' in pabot_args \
         and os.path.isfile(pabot_args['suitesfrom']):
         suites = _suites_from_outputxml(pabot_args['suitesfrom'])
-        # MISSING A TEST CASE
         if hash_suites != hash_of_dirs:
             all_suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)   
         else:
