@@ -352,18 +352,28 @@ def _parse_args(args):
             args = args[1:]
     options, datasources = ArgumentParser(USAGE,
                                           auto_pythonpath=False,
+                                          auto_argumentfile=True,
+                                          env_options='ROBOT_OPTIONS'). \
+        parse_args(args)
+    options_for_subprocesses, _ = ArgumentParser(USAGE,
+                                          auto_pythonpath=False,
                                           auto_argumentfile=False,
                                           env_options='ROBOT_OPTIONS'). \
         parse_args(args)
     if len(datasources) > 1 and options['name'] is None:
         options['name'] = 'Suites'
+        options_for_subprocesses['name'] = 'Suites'
+    _delete_none_keys(options)
+    _delete_none_keys(options_for_subprocesses)
+    return options, datasources, pabot_args, options_for_subprocesses
+
+def _delete_none_keys(d):
     keys = set()
-    for k in options:
-        if options[k] is None:
+    for k in d:
+        if d[k] is None:
             keys.add(k)
     for k in keys:
-        del options[k]
-    return options, datasources, pabot_args
+        del d[k]
 
 def hash_directory(digest, path):
     for root, _, files in os.walk(path):
@@ -813,7 +823,7 @@ def main(args):
     # NOTE: timeout option
     try:
         _start_message_writer()
-        options, datasources, pabot_args = _parse_args(args)
+        options, datasources, pabot_args, opts_for_run = _parse_args(args)
         if pabot_args['tutorial']:
             _run_tutorial()
             sys.exit(0)
@@ -825,7 +835,7 @@ def main(args):
         suite_names = solve_suite_names(outs_dir, datasources, options,
                                         pabot_args)
         if suite_names:
-            _parallel_execute(datasources, options, outs_dir, pabot_args,
+            _parallel_execute(datasources, opts_for_run, outs_dir, pabot_args,
                               suite_names)
             sys.exit(_report_results(outs_dir, pabot_args, options, start_time_string,
                                      _get_suite_root_name(suite_names)))

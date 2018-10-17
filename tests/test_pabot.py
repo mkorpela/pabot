@@ -7,7 +7,7 @@ from pabot import pabot
 class PabotTests(unittest.TestCase):
 
     def setUp(self):
-        self._options, self._datasources, self._pabot_args = pabot._parse_args(['--pabotlib',
+        self._options, self._datasources, self._pabot_args, _ = pabot._parse_args(['--pabotlib',
                                                                                 '--verbose',
                                                                                 '--argumentfile1',
                                                                                 'tests/passingarg.txt',
@@ -19,7 +19,7 @@ class PabotTests(unittest.TestCase):
         self._outs_dir = pabot._output_dir(self._options)
 
     def test_parse_args(self):
-        options, datasources, pabot_args = pabot._parse_args(
+        options, datasources, pabot_args, options_for_subprocesses = pabot._parse_args(
             ['--command', 'my_own_command.sh', '--end-command',
              '--processes', '12',
              '--verbose',
@@ -30,6 +30,7 @@ class PabotTests(unittest.TestCase):
              '--suitesfrom', 'some.xml',
              '--argumentfile1', 'argfile1.txt',
              '--argumentfile2', 'argfile2.txt',
+             '-A', 'tests/arguments.arg',
              'suite'])
         self.assertEqual(pabot_args['command'], ['my_own_command.sh'])
         self.assertEqual(pabot_args['processes'], 12)
@@ -39,6 +40,8 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(pabot_args['pabotlibport'], 4562)
         self.assertEqual(pabot_args['suitesfrom'], 'some.xml')
         self.assertEqual(pabot_args['argumentfiles'], [('1', 'argfile1.txt'), ('2', 'argfile2.txt')])
+        self.assertEqual(options['outputdir'], 'myoutputdir')
+        self.assertFalse('outputdir' in options_for_subprocesses)
         self.assertEqual(datasources, ['suite'])
 
     def test_start_and_stop_remote_library(self):
@@ -62,9 +65,9 @@ class PabotTests(unittest.TestCase):
         self.assertTrue(os.path.isfile(".pabotsuitenames"))
         expected = self._psuitenames(
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
-            'e8a497f81418cc647bbdd88c2b999d6971aa6116',
+            '02cec95f7bdaeb6739f3752d736cbd7ec79660c2',
             'no-suites-from-option',
-            'c06f2afdfa35791e82e71618bf60415e927c41ae',
+            'daaf667b4ed267b1e10c6cdfac54ac27afd4e694',
             'Fixtures.Suite One',
             'Fixtures.Suite Second',
             'Fixtures.Suite&(Specia|)Chars')
@@ -95,9 +98,9 @@ class PabotTests(unittest.TestCase):
                          suite_names)
         expected = self._psuitenames(
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
-            'e8a497f81418cc647bbdd88c2b999d6971aa6116',
+            '02cec95f7bdaeb6739f3752d736cbd7ec79660c2',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
-            '50d0c83b3c6b35ddc81c3289f5591d6574412c17',
+            'b4c1fcecea477f66e083a09d8c2657a9a01a6e63',
             'Fixtures.Suite Second',
             'Fixtures.Suite One',
             'Fixtures.Suite&(Specia|)Chars')
@@ -108,7 +111,7 @@ class PabotTests(unittest.TestCase):
     def test_solve_suite_names_works_when_suitesfrom_file_added(self):
         pabotsuitenames = self._psuitenames(
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
-            'e8a497f81418cc647bbdd88c2b999d6971aa6116',
+            '02cec95f7bdaeb6739f3752d736cbd7ec79660c2',
             'no-suites-from-option',
             'c06f2afdfa35791e82e71618bf60415e927c41ae',
             'Fixtures.Suite One',
@@ -128,9 +131,9 @@ class PabotTests(unittest.TestCase):
                          suite_names)
         expected = self._psuitenames(
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
-            'e8a497f81418cc647bbdd88c2b999d6971aa6116',
+            '02cec95f7bdaeb6739f3752d736cbd7ec79660c2',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
-            '50d0c83b3c6b35ddc81c3289f5591d6574412c17',
+            'b4c1fcecea477f66e083a09d8c2657a9a01a6e63',
             'Fixtures.Suite Second',
             'Fixtures.Suite One',
             'Fixtures.Suite&(Specia|)Chars')
@@ -161,9 +164,9 @@ class PabotTests(unittest.TestCase):
                          suite_names)
         expected = self._psuitenames(
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
-            'e8a497f81418cc647bbdd88c2b999d6971aa6116',
+            '02cec95f7bdaeb6739f3752d736cbd7ec79660c2',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
-            '50d0c83b3c6b35ddc81c3289f5591d6574412c17',
+            'b4c1fcecea477f66e083a09d8c2657a9a01a6e63',
             'Fixtures.Suite Second',
             'Fixtures.Suite One',
             'Fixtures.Suite&(Specia|)Chars')
@@ -174,7 +177,7 @@ class PabotTests(unittest.TestCase):
     def test_solve_suite_names_works_after_suitesfrom_file_removed(self):
         pabotsuitenames = self._psuitenames(
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
-            'e8a497f81418cc647bbdd88c2b999d6971aa6116',
+            '02cec95f7bdaeb6739f3752d736cbd7ec79660c2',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
             '50d0c83b3c6b35ddc81c3289f5591d6574412c17',
             'Fixtures.Suite Second',
@@ -198,9 +201,9 @@ class PabotTests(unittest.TestCase):
                          suite_names)
         expected = self._psuitenames(
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
-            'e8a497f81418cc647bbdd88c2b999d6971aa6116',
+            '02cec95f7bdaeb6739f3752d736cbd7ec79660c2',
             'da39a3ee5e6b4b0d3255bfef95601890afd80709',
-            'faff8c71930e561d56ed35002081d0ed8077a2ec',
+            '12a8ea6d7f4c95b4c0dc7a24215af309e7385dd1',
             'Fixtures.Suite Second',
             'Fixtures.Suite One',
             'Fixtures.Suite&(Specia|)Chars')
@@ -211,9 +214,9 @@ class PabotTests(unittest.TestCase):
     def test_solve_suite_names_works_with_pabotsuitenames_file(self):
         pabotsuitenames = self._psuitenames(
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
-            'e8a497f81418cc647bbdd88c2b999d6971aa6116',
+            '02cec95f7bdaeb6739f3752d736cbd7ec79660c2',
             'no-suites-from-option',
-            'c06f2afdfa35791e82e71618bf60415e927c41ae',
+            'daaf667b4ed267b1e10c6cdfac54ac27afd4e694',
             'Fixtures.Suite&(Specia|)Chars',
             'Fixtures.Suite Second',
             'Fixtures.Suite One')
@@ -256,9 +259,9 @@ class PabotTests(unittest.TestCase):
         ], suite_names)
         expected = self._psuitenames(
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
-            'e8a497f81418cc647bbdd88c2b999d6971aa6116',
+            '02cec95f7bdaeb6739f3752d736cbd7ec79660c2',
             'no-suites-from-option',
-            'c06f2afdfa35791e82e71618bf60415e927c41ae',
+            'daaf667b4ed267b1e10c6cdfac54ac27afd4e694',
             'Fixtures.Suite&(Specia|)Chars',
             'Fixtures.Suite Second',
             'Fixtures.Suite One')
