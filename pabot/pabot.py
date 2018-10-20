@@ -99,6 +99,7 @@ _PABOTLIBPROCESS = None
 ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
 _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # does not contain '"'
 
+_ROBOT_EXTENSIONS = ['.html', '.htm', '.xhtml', '.tsv', '.rst', '.rest', '.txt', '.robot']
 
 class Color:
     SUPPORTED_OSES = ['posix']
@@ -379,9 +380,9 @@ def hash_directory(digest, path):
     for root, _, files in os.walk(path):
         for names in sorted(files):
             file_path = os.path.join(root, names)
-            digest.update(hashlib.sha1(file_path[len(path):].encode()).digest())
-            #TODO: .txt .robot .html ..
-            if os.path.isfile(file_path):
+            if os.path.isfile(file_path) and \
+                any(file_path.endswith(p) for p in _ROBOT_EXTENSIONS):
+                digest.update(hashlib.sha1(file_path[len(path):].encode()).digest())
                 get_hash_of_file(file_path, digest)
 
 def get_hash_of_file(filename, digest):
@@ -406,6 +407,7 @@ def get_hash_of_command(options):
     return digest.hexdigest()
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
+    #FIXME: Travis-CI hash codes are different!??
     hash_of_dirs = get_hash_of_dirs(datasources)
     hash_of_command = get_hash_of_command(options)
     hash_of_suitesfrom = "no-suites-from-option"
