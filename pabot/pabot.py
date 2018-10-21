@@ -405,6 +405,8 @@ def get_hash_of_dirs(directories):
 def get_hash_of_command(options):
     digest = hashlib.sha1()
     hopts = dict(options)
+    #FIXME: Also add again the blacklist of ignored options
+    #FIXME: Add something to test options..
     for option in options:
         if options[option] == []:
             del hopts[option]
@@ -485,6 +487,7 @@ def _preserve_order(new_suites, old_suites):
     return exists_in_old_and_new + exists_only_in_new
 
 def _file_hash(lines):
+    #FIXME! Filehash on python3
     digest = hashlib.sha1()
     digest.update(lines[0].encode())
     digest.update(lines[1].encode())
