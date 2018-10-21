@@ -401,14 +401,18 @@ def get_hash_of_dirs(directories):
         hash_directory(digest, directory)
     return digest.hexdigest()
 
+_IGNORED_OPTIONS = ["flattenkeywords", "pythonpath", "metadata", "removekeywords"]
+
 def get_hash_of_command(options):
     digest = hashlib.sha1()
-    digest.update(repr(sorted(options.items())).encode("utf-8"))
+    hopts = dict(options)
+    for ignored in _IGNORED_OPTIONS:
+        if ignored in hopts:
+            del hopts[ignored]
+    digest.update(repr(sorted(hopts.items())).encode("utf-8"))
     return digest.hexdigest()
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
-    #FIXME: Travis-CI hash codes are different!??
-    #FIXME: Most likely it is pythonpath
     hash_of_dirs = get_hash_of_dirs(datasources)
     hash_of_command = get_hash_of_command(options)
     hash_of_suitesfrom = "no-suites-from-option"
