@@ -401,15 +401,13 @@ def get_hash_of_dirs(directories):
         hash_directory(digest, directory)
     return digest.hexdigest()
 
-_IGNORED_OPTIONS = ["flattenkeywords", "pythonpath", "metadata", "removekeywords"]
 
 def get_hash_of_command(options):
-    #FIXME: test and task options => empty options have to be removed!!!
     digest = hashlib.sha1()
     hopts = dict(options)
-    for ignored in _IGNORED_OPTIONS:
-        if ignored in hopts:
-            del hopts[ignored]
+    for option in options:
+        if options[option] == []:
+            del hopts[option]
     digest.update(repr(sorted(hopts.items())).encode("utf-8"))
     return digest.hexdigest()
 
