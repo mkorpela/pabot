@@ -409,6 +409,7 @@ def get_hash_of_command(options):
     for ignored in _IGNORED_OPTIONS:
         if ignored in hopts:
             del hopts[ignored]
+    print(repr(sorted(hopts.items())).encode("utf-8"))
     digest.update(repr(sorted(hopts.items())).encode("utf-8"))
     return digest.hexdigest()
 
