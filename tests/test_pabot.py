@@ -71,8 +71,8 @@ class PabotTests(unittest.TestCase):
                                             pabot._now(),
                                             pabot._get_suite_root_name(
                                                 suite_names))
-        pabot._stop_remote_library(lib_process)
         self.assertEqual(5, result_code)
+        pabot._stop_remote_library(lib_process)
 
 
 if __name__ == '__main__':
