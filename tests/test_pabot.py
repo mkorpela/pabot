@@ -53,6 +53,8 @@ class PabotTests(unittest.TestCase):
 
     #TODO: DO I have a test case for suite order not changing file hash?
 
+    #FIXME: Ensure working when pabotsuitenames can't be written
+
     def test_solve_suite_names_works_without_pabotsuitenames_file(self):
         if os.path.isfile(".pabotsuitenames"):
             os.remove(".pabotsuitenames")
