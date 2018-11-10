@@ -487,14 +487,13 @@ def _preserve_order(new_suites, old_suites):
     return exists_in_old_and_new + exists_only_in_new
 
 def _file_hash(lines):
-    #FIXME! Filehash on python3
     digest = hashlib.sha1()
     digest.update(lines[0].encode())
     digest.update(lines[1].encode())
     digest.update(lines[2].encode())
     hashes = 0
     for line in lines[4:]:
-        hashes |= hash(line)
+        hashes ^= int(hashlib.sha1(line.encode()).hexdigest(), 16)
     digest.update(str(hashes).encode())
     return digest.hexdigest()
 

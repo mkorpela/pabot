@@ -51,6 +51,8 @@ class PabotTests(unittest.TestCase):
         pabot._stop_remote_library(lib_process)
         self.assertTrue(lib_process.poll() == 0)
 
+    #TODO: DO I have a test case for suite order not changing file hash?
+
     def test_solve_suite_names_works_without_pabotsuitenames_file(self):
         if os.path.isfile(".pabotsuitenames"):
             os.remove(".pabotsuitenames")
@@ -67,7 +69,7 @@ class PabotTests(unittest.TestCase):
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
-            '826a8f56cb33bebf88fd1ac84ba58bbb68d80036',
+            'e3975df839ba56a167cbd81b30d800abbbfa26d9',
             'Fixtures.Suite One',
             'Fixtures.Suite Second',
             'Fixtures.Suite&(Specia|)Chars')
@@ -100,7 +102,7 @@ class PabotTests(unittest.TestCase):
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
-            '0377c628cec963bb8a071b6e9ffbd1ad73b590ed',
+            'b105a1b80434e0443d50637224b9611f188b8c48',
             'Fixtures.Suite Second',
             'Fixtures.Suite One',
             'Fixtures.Suite&(Specia|)Chars')
@@ -133,7 +135,7 @@ class PabotTests(unittest.TestCase):
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
-            '0377c628cec963bb8a071b6e9ffbd1ad73b590ed',
+            'b105a1b80434e0443d50637224b9611f188b8c48',
             'Fixtures.Suite Second',
             'Fixtures.Suite One',
             'Fixtures.Suite&(Specia|)Chars')
@@ -166,7 +168,7 @@ class PabotTests(unittest.TestCase):
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
-            '0377c628cec963bb8a071b6e9ffbd1ad73b590ed',
+            'b105a1b80434e0443d50637224b9611f188b8c48',
             'Fixtures.Suite Second',
             'Fixtures.Suite One',
             'Fixtures.Suite&(Specia|)Chars')
@@ -203,7 +205,7 @@ class PabotTests(unittest.TestCase):
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'da39a3ee5e6b4b0d3255bfef95601890afd80709',
-            'fafb550c175aa7aec28b11e4d70c61affb226aa4',
+            '301506c4c01f4be31dfaf597364213d3983f368b',
             'Fixtures.Suite Second',
             'Fixtures.Suite One',
             'Fixtures.Suite&(Specia|)Chars')
@@ -216,7 +218,7 @@ class PabotTests(unittest.TestCase):
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
-            '826a8f56cb33bebf88fd1ac84ba58bbb68d80036',
+            'e3975df839ba56a167cbd81b30d800abbbfa26d9',
             'Fixtures.Suite&(Specia|)Chars',
             'Fixtures.Suite Second',
             'Fixtures.Suite One')
@@ -261,7 +263,7 @@ class PabotTests(unittest.TestCase):
             'd8ce00e644006f271e86b62cc14702b45caf6c8b',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
-            '826a8f56cb33bebf88fd1ac84ba58bbb68d80036',
+            'e3975df839ba56a167cbd81b30d800abbbfa26d9',
             'Fixtures.Suite&(Specia|)Chars',
             'Fixtures.Suite Second',
             'Fixtures.Suite One')
