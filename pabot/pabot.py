@@ -449,13 +449,23 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                     suite_names)
         return suite_names
     with open(".pabotsuitenames", "r") as suitenamesfile:
+        #FIXME: Happy cases
         lines = [line.strip() for line in suitenamesfile.readlines()]
-        hash_suites = lines[0][len("datasources:"):]
-        hash_command = lines[1][len("commandlineoptions:"):]
-        suitesfrom_hash = lines[2][len("suitesfrom:"):]
-        file_hash = lines[3][len("file:"):]
-        hash_of_file = _file_hash(lines)
-        if (hash_suites != hash_of_dirs or 
+        corrupted = len(lines) < 5
+        if not corrupted:
+            hash_suites = lines[0][len("datasources:"):]
+            hash_command = lines[1][len("commandlineoptions:"):]
+            suitesfrom_hash = lines[2][len("suitesfrom:"):]
+            file_hash = lines[3][len("file:"):]
+            hash_of_file = _file_hash(lines)
+        else:
+            hash_suites = None
+            hash_command = None
+            suitesfrom_hash = None
+            file_hash = None
+            hash_of_file = None
+        if (corrupted or
+        hash_suites != hash_of_dirs or 
         hash_command != hash_of_command or
         file_hash != hash_of_file or
         suitesfrom_hash != hash_of_suitesfrom):
