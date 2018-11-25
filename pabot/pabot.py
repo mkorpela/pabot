@@ -401,14 +401,31 @@ def get_hash_of_dirs(directories):
         hash_directory(digest, directory)
     return digest.hexdigest()
 
+IGNORED_OPTIONS = [
+    "pythonpath",
+    "outputdir",
+    "output",
+    "log",
+    "report",
+    "removekeywords",
+    "flattenkeywords",
+    "tagstatinclude",
+    "tagstatexclude",
+    "tagstatcombine",
+    "critical",
+    "noncritical",
+    "tagstatlink",
+    "metadata",
+    "tagdoc"
+]
 
 def get_hash_of_command(options):
     digest = hashlib.sha1()
     hopts = dict(options)
-    #FIXME: Also add again the blacklist of ignored options
     #FIXME: Add something to test options..
     for option in options:
-        if options[option] == []:
+        if (option in IGNORED_OPTIONS or
+            options[option] == []):
             del hopts[option]
     digest.update(repr(sorted(hopts.items())).encode("utf-8"))
     return digest.hexdigest()
