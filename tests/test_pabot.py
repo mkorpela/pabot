@@ -51,9 +51,51 @@ class PabotTests(unittest.TestCase):
         pabot._stop_remote_library(lib_process)
         self.assertTrue(lib_process.poll() == 0)
 
-    #TODO: DO I have a test case for suite order not changing file hash?
+    def test_hash_of_command(self):
+        h1 = pabot.get_hash_of_command({})
+        h2 = pabot.get_hash_of_command({"key":"value"})
+        h3 = pabot.get_hash_of_command({"key2": [], "key":"value"})
+        h4 = pabot.get_hash_of_command({"pythonpath":"foobarzoo", "key":"value"})
+        h5 = pabot.get_hash_of_command({"key":"value", "key2": "value2"})
+        self.assertEqual("97d170e1550eee4afc0af065b78cda302a97674c", h1)
+        self.assertNotEqual(h1, h2)
+        self.assertEqual(h2, h3)
+        self.assertEqual(h2, h4)
+        self.assertNotEqual(h2, h5)
 
-    #FIXME: Ensure working when pabotsuitenames can't be written
+    def test_file_hash(self):
+        expected_hash = "e3975df839ba56a167cbd81b30d800abbbfa26d9"
+        h1 = pabot._file_hash([
+            "datasources:d8ce00e644006f271e86b62cc14702b45caf6c8b",
+            "commandlineoptions:97d170e1550eee4afc0af065b78cda302a97674c",
+            "suitesfrom:no-suites-from-option",
+            "file:"+expected_hash,
+            "Fixtures.Suite One",
+            "Fixtures.Suite Second",
+            "Fixtures.Suite&(Specia|)Chars"
+        ])
+        self.assertEqual(h1, expected_hash)
+        h2 = pabot._file_hash([
+            "datasources:d8ce00e644006f271e86b62cc14702b45caf6c8b",
+            "commandlineoptions:97d170e1550eee4afc0af065b78cda302a97674c",
+            "suitesfrom:no-suites-from-option",
+            "file:"+expected_hash,
+            "Fixtures.Suite Second",
+            "Fixtures.Suite One",
+            "Fixtures.Suite&(Specia|)Chars"
+        ])
+        self.assertEqual(h1, h2)
+        h3 = pabot._file_hash([
+            "datasources:d8ce00e644006f271e86b62cc14702b45caf6c8b",
+            "commandlineoptions:97d170e1550eee4afc0af065b78cda302a97674c",
+            "suitesfrom:no-suites-from-option",
+            "file:whatever",
+            "Fixtures.Suite Second",
+            "Fixtures.New Suite",
+            "Fixtures.Suite One",
+            "Fixtures.Suite&(Specia|)Chars"
+        ])
+        self.assertNotEqual(h1, h3)
 
     def test_solve_suite_names_works_without_pabotsuitenames_file(self):
         if os.path.isfile(".pabotsuitenames"):

@@ -422,7 +422,6 @@ IGNORED_OPTIONS = [
 def get_hash_of_command(options):
     digest = hashlib.sha1()
     hopts = dict(options)
-    #FIXME: Add something to test options..
     for option in options:
         if (option in IGNORED_OPTIONS or
             options[option] == []):
