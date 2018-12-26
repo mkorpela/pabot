@@ -438,48 +438,50 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         digest = hashlib.sha1()
         get_hash_of_file(pabot_args["suitesfrom"], digest)
         hash_of_suitesfrom = digest.hexdigest()
-    if not os.path.isfile(".pabotsuitenames"):
-        suite_names = generate_suite_names(outs_dir, 
-                                        datasources, 
-                                        options, 
-                                        pabot_args)
-        store_suite_names(hash_of_dirs, 
-                    hash_of_command, 
-                    hash_of_suitesfrom, 
-                    suite_names)
-        return suite_names
-    with open(".pabotsuitenames", "r") as suitenamesfile:
-        #FIXME: Happy cases
-        lines = [line.strip() for line in suitenamesfile.readlines()]
-        corrupted = len(lines) < 5
-        if not corrupted:
-            hash_suites = lines[0][len("datasources:"):]
-            hash_command = lines[1][len("commandlineoptions:"):]
-            suitesfrom_hash = lines[2][len("suitesfrom:"):]
-            file_hash = lines[3][len("file:"):]
-            hash_of_file = _file_hash(lines)
-        else:
-            hash_suites = None
-            hash_command = None
-            suitesfrom_hash = None
-            file_hash = None
-            hash_of_file = None
-        if (corrupted or
-        hash_suites != hash_of_dirs or 
-        hash_command != hash_of_command or
-        file_hash != hash_of_file or
-        suitesfrom_hash != hash_of_suitesfrom):
-            return _regenerate(suitesfrom_hash, 
-                               hash_of_suitesfrom,
-                               pabot_args,
-                               hash_suites,
-                               hash_of_dirs,
-                               outs_dir,
-                               datasources,
-                               options,
-                               lines,
-                               hash_of_command)
-    return [suite for suite in lines[4:] if suite]
+    try:
+        if not os.path.isfile(".pabotsuitenames"):
+            suite_names = generate_suite_names(outs_dir, 
+                                            datasources, 
+                                            options, 
+                                            pabot_args)
+            store_suite_names(hash_of_dirs, 
+                        hash_of_command, 
+                        hash_of_suitesfrom, 
+                        suite_names)
+            return suite_names
+        with open(".pabotsuitenames", "r") as suitenamesfile:
+            lines = [line.strip() for line in suitenamesfile.readlines()]
+            corrupted = len(lines) < 5
+            if not corrupted:
+                hash_suites = lines[0][len("datasources:"):]
+                hash_command = lines[1][len("commandlineoptions:"):]
+                suitesfrom_hash = lines[2][len("suitesfrom:"):]
+                file_hash = lines[3][len("file:"):]
+                hash_of_file = _file_hash(lines)
+            else:
+                hash_suites = None
+                hash_command = None
+                suitesfrom_hash = None
+                file_hash = None
+                hash_of_file = None
+            if (corrupted or
+            hash_suites != hash_of_dirs or 
+            hash_command != hash_of_command or
+            file_hash != hash_of_file or
+            suitesfrom_hash != hash_of_suitesfrom):
+                return _regenerate(suitesfrom_hash, 
+                                hash_of_suitesfrom,
+                                pabot_args,
+                                hash_suites,
+                                hash_of_dirs,
+                                outs_dir,
+                                datasources,
+                                options,
+                                lines,
+                                hash_of_command)
+        return [suite for suite in lines[4:] if suite]
+    except IOError:
+        return  generate_suite_names_with_dryrun(outs_dir, datasources, options)
 
 def _regenerate(
     suitesfrom_hash, 
@@ -497,7 +499,7 @@ def _regenerate(
         and os.path.isfile(pabot_args['suitesfrom']):
         suites = _suites_from_outputxml(pabot_args['suitesfrom'])
         if hash_suites != hash_of_dirs:
-            all_suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)   
+            all_suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
         else:
             all_suites = [suite for suite in lines[4:] if suite]
         suites = _preserve_order(all_suites, suites) 
