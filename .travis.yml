@@ -12,6 +12,6 @@ install:
   - "pip install ."
   # command to run tests
 script:
-  - nosetests --processes=1 --with-cov --with-tissue --cov=pabot --cov-report term-missing
+  - nosetests --with-cov --with-tissue --cov=pabot --cov-report term-missing
 after_success:
   - coveralls
