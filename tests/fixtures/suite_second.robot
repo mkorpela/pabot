@@ -4,9 +4,7 @@ Suite Setup    run_only_once  setup123
 
 *** Test Cases ***
 Testing Case One of Second
-  acquire_lock  MyLock
-  set_parallel_value_for_key  Key  Value
-  release_lock  MyLock
+  Log  passing
 
 Testing Case One and a half Of Second
   Fail

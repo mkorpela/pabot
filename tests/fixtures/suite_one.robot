@@ -9,10 +9,11 @@ Suite Setup    run_only_once  setup123
   Log  this is long running
 
 1.2 Test Case Two
-  ${VALUE}=  get_parallel_value_for_key  Key
-  Should Be Equal  ${VALUE}  Value
   acquire_lock  MyLock
+  ${VALUE}=  get_parallel_value_for_key  Key
+  set_parallel_value_for_key  Key  Value
   release_lock  MyLock
+  Should Be Equal  ${VALUE}  Value
 
 1.3 Test Value Set
   acquire_value_set
