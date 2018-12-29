@@ -339,7 +339,9 @@ class PabotTests(unittest.TestCase):
                                                 pabot._now(),
                                                 pabot._get_suite_root_name(
                                                     suite_names))
-            self.assertEqual(5, result_code)
+            with open(os.path.join(dtemp, 'output.xml'), 'r') as f:
+                lines = f.read()
+            self.assertEqual(5, result_code, lines)
         finally:
             pabot._stop_remote_library(lib_process)
             shutil.rmtree(dtemp)
