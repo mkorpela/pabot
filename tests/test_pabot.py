@@ -3,6 +3,7 @@ import time
 import os
 import tempfile
 import shutil
+import random
 from pabot import pabot
 
 
@@ -321,6 +322,7 @@ class PabotTests(unittest.TestCase):
         dtemp = tempfile.mkdtemp()
         outs_dir = os.path.join(dtemp, 'pabot_results')
         self._options['outputdir'] = dtemp
+        self._pabot_args['pabotlibport'] = 4000+random.randint(0, 1000)
         lib_process = pabot._start_remote_library(self._pabot_args)
         try:
             suite_names = ['Fixtures.Suite One',
