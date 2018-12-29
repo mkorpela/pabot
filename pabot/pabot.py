@@ -119,7 +119,7 @@ def execute_and_wait_with(args):
     datasources, outs_dir, options, suite_name, command, verbose, (argfile_index, argfile) = args
     datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d
                    for d in datasources]
-    outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
+    outs_dir = os.path.join(outs_dir, argfile_index, suite_name if not isinstance(suite_name, list) else suite_name[0])
     pool_id = _make_id()
     caller_id = uuid.uuid4().hex
     cmd = command + _options_for_custom_executor(options,
@@ -478,7 +478,17 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                                 options,
                                 lines,
                                 hash_of_command)
-        return [suite for suite in lines[4:] if suite]
+        suites = []
+        sequence = suites
+        for suite in lines[4:]:
+            if suite == "{":
+                sequence = []
+            elif suite == "}":
+                suites += [sequence]
+                sequence = suites
+            elif suite:
+                sequence += [suite]
+        return suites
     except IOError:
         return  generate_suite_names_with_dryrun(outs_dir, datasources, options)
 
@@ -521,7 +531,8 @@ def _file_hash(lines):
     digest.update(lines[2].encode())
     hashes = 0
     for line in lines[4:]:
-        hashes ^= int(hashlib.sha1(line.encode()).hexdigest(), 16)
+        if line != "{" and line != "}":
+            hashes ^= int(hashlib.sha1(line.encode()).hexdigest(), 16)
     digest.update(str(hashes).encode())
     return digest.hexdigest()
 
@@ -835,7 +846,10 @@ def _stop_remote_library(process):
 
 
 def _get_suite_root_name(suite_names):
-    top_names = [x.split('.')[0] for x in suite_names]
+    names = [name for name in suite_names if not isinstance(name, list)]
+    subnames = [name for sublist in suite_names if isinstance(sublist, list)
+                for name in sublist]
+    top_names = [x.split('.')[0] for x in names+subnames]
     if top_names.count(top_names[0]) == len(top_names):
         return top_names[0]
     return ''
