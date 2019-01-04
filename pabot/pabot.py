@@ -574,21 +574,21 @@ def generate_suite_names_with_dryrun(outs_dir, datasources, options):
 
 @contextmanager
 def _with_modified_robot():
-    TsvReader = None
+    RobotReader = None
     old_read = None
     try:
-        from robot.parsing.tsvreader import TsvReader, Utf8Reader
+        from robot.parsing.robotreader import RobotReader, Utf8Reader
 
-        def new_read(self, tsvfile, populator):
+        def read(self, file, populator, path=None):
+            path = path or getattr(file, 'name', '<file-like object>')
             process = False
             first = True
-            for row in Utf8Reader(tsvfile).readlines():
+            for row in Utf8Reader(file).readlines():
                 row = self._process_row(row)
-                cells = [self._process_cell(cell)
-                         for cell in self.split_row(row)]
+                cells = [self._process_cell(cell, path) for cell in self.split_row(row)]
+                self._deprecate_empty_data_cells_in_tsv_format(cells, path)
                 if cells and cells[0].strip().startswith('*') and \
-                        populator.start_table([c.replace('*', '')
-                                               for c in cells]):
+                        populator.start_table([c.replace('*', '') for c in cells]):
                     process = True
                 elif process:
                     if cells[0].strip() != '' or \
@@ -599,18 +599,18 @@ def _with_modified_robot():
                     elif first:
                         populator.add(['', 'No Operation'])
                         first = False
-            populator.eof()
+            return populator.eof()
 
-        old_read = TsvReader.read
-        TsvReader.read = new_read
+        old_read = RobotReader.read
+        RobotReader.read = new_read
     except:
         pass
 
     try:
         yield
     finally:
-        if TsvReader:
-            TsvReader.read = old_read
+        if RobotReader:
+            RobotReader.read = old_read
 
 
 class SuiteNotPassingsAndTimes(ResultVisitor):
