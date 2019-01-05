@@ -575,8 +575,10 @@ def generate_suite_names_with_dryrun(outs_dir, datasources, options):
 @contextmanager
 def _with_modified_robot():
     RobotReader = None
+    TsvReader = None
     old_read = None
     try:
+        # RF 3.1
         from robot.parsing.robotreader import RobotReader, Utf8Reader
 
         def new_read(self, file, populator, path=None):
@@ -603,6 +605,34 @@ def _with_modified_robot():
 
         old_read = RobotReader.read
         RobotReader.read = new_read
+    except ImportError:
+        # RF 3.0
+        from robot.parsing.tsvreader import TsvReader, Utf8Reader
+
+        def new_read(self, tsvfile, populator):
+            process = False
+            first = True
+            for row in Utf8Reader(tsvfile).readlines():
+                row = self._process_row(row)
+                cells = [self._process_cell(cell)
+                         for cell in self.split_row(row)]
+                if cells and cells[0].strip().startswith('*') and \
+                        populator.start_table([c.replace('*', '')
+                                               for c in cells]):
+                    process = True
+                elif process:
+                    if cells[0].strip() != '' or \
+                            (len(cells) > 1 and
+                                 ('[' in cells[1] or (first and '...' in cells[1]))):
+                        populator.add(cells)
+                        first = True
+                    elif first:
+                        populator.add(['', 'No Operation'])
+                        first = False
+            populator.eof()
+
+        old_read = TsvReader.read
+        TsvReader.read = new_read
     except:
         pass
 
@@ -611,6 +641,8 @@ def _with_modified_robot():
     finally:
         if RobotReader:
             RobotReader.read = old_read
+        if TsvReader:
+            TsvReader.read = old_read
 
 
 class SuiteNotPassingsAndTimes(ResultVisitor):
