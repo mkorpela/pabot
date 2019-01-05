@@ -130,6 +130,16 @@ pabot call
 
       pabot --pabotlib --resourcefile valueset.dat test.robot
 
+### Controlling execution order and level of parallelism
+
+.pabotsuitenames file contains the list of suites that will be executed.
+File is created during pabot execution if not already there.
+The file is a cache that pabot uses when re-executing same tests to speed up processing. 
+This file can be partially manually edited.
+First 4 rows contain information that should not be edited - pabot will edit these when something changes.
+After this come the suite names. The order of suites can be changed.
+If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row.
+
 ### Global variables
 
 Pabot will insert following global variables to Robot Framework namespace. These are here to enable PabotLib functionality and for custom listeners etc. to get some information on the overall execution of pabot.
