@@ -144,6 +144,31 @@ class PabotTests(unittest.TestCase):
             'file:%s\n' % fhash
         ] + [s+'\n' for s in suites]
 
+    def test_solve_suite_names_works_with_directory_suite(self):
+        pabotsuitenames = self._psuitenames(
+            '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
+            '97d170e1550eee4afc0af065b78cda302a97674c',
+            'no-suites-from-option',
+            'this-is-wrong',
+            'Fixtures')
+        with open(".pabotsuitenames", "w") as f:
+            f.writelines(pabotsuitenames)
+        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                              datasources=self._datasources,
+                                              options=self._options,
+                                              pabot_args=self._pabot_args)
+        self.assertEqual(['Fixtures'],
+                         suite_names)
+        expected = self._psuitenames(
+            '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
+            '97d170e1550eee4afc0af065b78cda302a97674c',
+            'no-suites-from-option',
+            '4e4446a4212545e826613360a9e80a735b8aaf62',
+            'Fixtures')
+        with open(".pabotsuitenames", "r") as f:
+            actual = f.readlines()
+        self.assertEqual(expected, actual)
+
     def test_solve_suite_names_works_with_suitesfrom_option(self):
         if os.path.isfile(".pabotsuitenames"):
             os.remove(".pabotsuitenames")
