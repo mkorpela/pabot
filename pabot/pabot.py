@@ -16,7 +16,7 @@
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
 """A parallel executor for Robot Framework test cases.
-Version 0.46.
+Version 0.47.
 
 Supports all Robot Framework command line options and also following
 options (these must be before normal RF options):
@@ -52,7 +52,7 @@ options (these must be before normal RF options):
   Run same suite with multiple argumentfile options.
   For example "--argumentfile1 arg1.txt --argumentfile2 arg2.txt".
 
-Copyright 2017 Mikko Korpela - Apache 2 License
+Copyright 2019 Mikko Korpela - Apache 2 License
 """
 
 from __future__ import absolute_import, print_function
