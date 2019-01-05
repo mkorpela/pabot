@@ -137,8 +137,12 @@ File is created during pabot execution if not already there.
 The file is a cache that pabot uses when re-executing same tests to speed up processing. 
 This file can be partially manually edited.
 First 4 rows contain information that should not be edited - pabot will edit these when something changes.
-After this come the suite names. The order of suites can be changed.
-If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row.
+After this come the suite names. 
+
+There are two possibilities to influence the execution:
+
+  * The order of suites can be changed.
+  * If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row.
 
 ### Global variables
 
