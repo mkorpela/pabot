@@ -509,7 +509,8 @@ def _regenerate(
     return suites
 
 def _preserve_order(new_suites, old_suites):
-    old_suites = [suite for suite in old_suites if suite]
+    old_suites = [suite for i, suite in enumerate(old_suites) 
+                    if suite and suite not in old_suites[i+1:]]
     ignorable = []
     preserve = []
     for containing_suite in old_suites:
@@ -517,6 +518,8 @@ def _preserve_order(new_suites, old_suites):
             if s.startswith(containing_suite+"."):
                 preserve.append(containing_suite)
                 ignorable.append(s)
+    preserve = [s for s in preserve 
+        if not any([i for i in preserve if s.startswith(i + ".")])]
     exists_in_old_and_new = [s for s in old_suites
                 if (s in new_suites and s not in ignorable)
                 or s in preserve]

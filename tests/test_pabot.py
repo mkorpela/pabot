@@ -190,6 +190,18 @@ class PabotTests(unittest.TestCase):
                 ['s1', 'sub.s2', 'sub.s3', 's4', 'subi'],
                 ['s1', 'sub', 'sub.s3', 's4']))
 
+    def test_suite_ordering_removes_directory_suite_subsuites_also_from_old_list(self):
+        self.assertEqual(['s'],
+            pabot._preserve_order(
+                ['s.s1', 's.sub.s2', 's.s3'],
+                ['s.sub', 's']))
+
+    def test_suite_ordering_removes_old_duplicate(self):
+        self.assertEqual(['s'],
+            pabot._preserve_order(
+                ['s'],
+                ['s', 's']))
+
     def test_solve_suite_names_works_with_suitesfrom_option(self):
         if os.path.isfile(".pabotsuitenames"):
             os.remove(".pabotsuitenames")
