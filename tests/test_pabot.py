@@ -169,6 +169,21 @@ class PabotTests(unittest.TestCase):
             actual = f.readlines()
         self.assertEqual(expected, actual)
 
+    def test_suite_ordering_adds_new_suite(self):
+        self.assertEqual(['newSuite'], pabot._preserve_order(['newSuite'], []))
+    
+    def test_suite_ordering_removes_old_suite(self):
+        self.assertEqual(['newSuite'], pabot._preserve_order(['newSuite'], ['oldSuite']))
+
+    def test_suite_ordering_uses_old_order(self):
+        self.assertEqual(['suite2', 'suite1'], pabot._preserve_order(['suite1', 'suite2'], ['suite2', 'suite1']))
+
+    def test_suite_ordering_adds_new_suites_to_end(self):
+        self.assertEqual(['s3', 's2', 's1'], pabot._preserve_order(['s1', 's2', 's3'], ['s3', 's2']))
+
+    def test_suite_ordering_preserves_directory_suites(self):
+        self.assertEqual(['s.sub', 's3'], pabot._preserve_order(['s.sub.s1', 's.sub.s2', 's3'], ['s.sub']))
+
     def test_solve_suite_names_works_with_suitesfrom_option(self):
         if os.path.isfile(".pabotsuitenames"):
             os.remove(".pabotsuitenames")
