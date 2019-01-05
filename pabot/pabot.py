@@ -517,8 +517,11 @@ def _preserve_order(new_suites, old_suites):
             if s.startswith(containing_suite+"."):
                 preserve.append(containing_suite)
                 ignorable.append(s)
-    exists_in_old_and_new = [s for s in old_suites if s in new_suites or s in preserve]
-    exists_only_in_new = [s for s in new_suites if s not in old_suites and s not in ignorable]
+    exists_in_old_and_new = [s for s in old_suites
+                if (s in new_suites and s not in ignorable)
+                or s in preserve]
+    exists_only_in_new = [s for s in new_suites
+                if s not in old_suites and s not in ignorable]
     return exists_in_old_and_new + exists_only_in_new
 
 def _file_hash(lines):
