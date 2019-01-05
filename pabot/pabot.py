@@ -579,7 +579,7 @@ def _with_modified_robot():
     try:
         from robot.parsing.robotreader import RobotReader, Utf8Reader
 
-        def read(self, file, populator, path=None):
+        def new_read(self, file, populator, path=None):
             path = path or getattr(file, 'name', '<file-like object>')
             process = False
             first = True
