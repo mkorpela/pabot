@@ -120,10 +120,10 @@ class PabotLib(_PabotLib):
 
     def run_only_once(self, keyword):
         """
-        This is an *experimental* keyword for building setups that
-        should be executed only once. As the keyword will be called
+        Runs a keyword only once in one of the parallel processes.
+        As the keyword will be called
         only in one process and the return value could basically be anything.
-        The "Run Only Once" can't return the actual value.
+        The "Run Only Once" can't return the actual return value.
         If the keyword fails, "Run Only Once" fails.
         Others executing "Run Only Once" wait before going through this
         keyword before the actual command has been executed.
