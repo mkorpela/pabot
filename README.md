@@ -13,7 +13,7 @@ A parallel executor for [Robot Framework](http://www.robotframework.org) tests. 
 [![Pabot presentation at robocon.io 2018](http://img.youtube.com/vi/i0RV6SJSIn8/0.jpg)](https://youtu.be/i0RV6SJSIn8 "Pabot presentation at robocon.io 2018")
 
 *My goal in creating this tool is to help you guys with big test sets. I've worked with a number of teams around the world that were doing test execution time optimisation before I created this tool. 
-I saw similarities in how Robot Framework testing systems have been built and came up with a quite good solution for the basic parallelisation problem. I hope this tool brings you joy and speeds up your test execution! If you are interested in professional support, please contact me through email firstname.lastname(at)gmail.com!* - Mikko Korpela ( those are my firstname and lastname :D )
+I saw similarities in how Robot Framework testing systems have been built and came up with a quite good solution for the basic parallelisation problem. I hope this tool brings you joy and speeds up your test execution!*
 
 ## Installation:
 
@@ -36,7 +36,6 @@ There are several ways you can help in improving this tool:
 
    - Report an issue or an improvement idea to the [issue tracker](https://github.com/mkorpela/pabot/issues)
    - Contribute by programming and making a pull request (easiest way is to work on an issue from the issue tracker)
-   - You can buy me a cup of coffee :coffee: if you find this project useful. Send [ether](https://ethereum.org/) to address [0x721135918214c477ee8a7f5c8323c17aa965cc98](https://etherscan.io/address/0x721135918214c477ee8a7f5c8323c17aa965cc98) OR old money with [PayPal](https://paypal.me/mikkorpela)
 
 ## Command-line options
 
