@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="378px" height="373px" viewBox="0 0 378 373" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Pabot</title>
+    <g id="pabot" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <circle id="Oval" fill="#000000" fill-rule="nonzero" cx="269.5" cy="90.5" r="62.5"></circle>
+        <circle id="Oval" fill="#000000" fill-rule="nonzero" cx="251.5" cy="301.5" r="62.5"></circle>
+        <circle id="Oval" fill="#000000" fill-rule="nonzero" cx="92.5" cy="228.5" r="62.5"></circle>
+        <circle id="Oval" fill="#000000" fill-rule="nonzero" cx="189.5" cy="187.5" r="91.5"></circle>
+        <g id="Group" transform="translate(149.000000, 148.000000)" fill="#FFFFFF" fill-rule="nonzero" stroke="#FFFFFF" stroke-width="8">
+            <rect id="Rectangle" x="0" y="0" width="80" height="80" rx="8"></rect>
+        </g>
+        <path d="M182.269231,163.3 L182.269231,168.15" id="Line-2" stroke="#000000" stroke-width="8" stroke-linecap="round" fill-rule="nonzero"></path>
+        <path d="M211.269231,163.3 L211.269231,168.15" id="Line-2" stroke="#000000" stroke-width="8" stroke-linecap="round" fill-rule="nonzero" transform="translate(211.000000, 166.000000) scale(-1, 1) translate(-211.000000, -166.000000) "></path>
+        <g id="Group" transform="translate(69.000000, 206.000000)" fill-rule="nonzero" stroke-width="8">
+            <rect id="Rectangle" stroke="#FFFFFF" fill="#FFFFFF" x="0" y="0" width="44" height="44" rx="8"></rect>
+            <path d="M4,36.5 L33,36.5" id="Line" stroke="#000000" stroke-linecap="round"></path>
+            <path d="M4.26923077,17.3 L4.26923077,22.15" id="Line-2" stroke="#000000" stroke-linecap="round"></path>
+            <path d="M33.2692308,17.3 L33.2692308,22.15" id="Line-2" stroke="#000000" stroke-linecap="round" transform="translate(33.000000, 20.000000) scale(-1, 1) translate(-33.000000, -20.000000) "></path>
+        </g>
+        <g id="Group" transform="translate(229.000000, 279.000000)" fill-rule="nonzero" stroke-width="8">
+            <rect id="Rectangle" stroke="#FFFFFF" fill="#FFFFFF" x="0" y="0" width="44" height="44" rx="8"></rect>
+            <path d="M7,31.5 L36,31.5" id="Line" stroke="#000000" stroke-linecap="round"></path>
+            <path d="M7.26923077,12.3 L7.26923077,18" id="Line-2" stroke="#000000" stroke-linecap="round"></path>
+            <path d="M36.2692308,12.3 L36.2692308,18" id="Line-2" stroke="#000000" stroke-linecap="round" transform="translate(36.000000, 15.000000) scale(-1, 1) translate(-36.000000, -15.000000) "></path>
+        </g>
+        <g id="Group" transform="translate(247.000000, 68.000000)" fill-rule="nonzero" stroke-width="8">
+            <rect id="Rectangle" stroke="#FFFFFF" fill="#FFFFFF" x="0" y="0" width="44" height="44" rx="8"></rect>
+            <path d="M9,27.5 L38,27.5" id="Line" stroke="#000000" stroke-linecap="round"></path>
+            <path d="M9.26923077,7.3 L9.26923077,13" id="Line-2" stroke="#000000" stroke-linecap="round"></path>
+            <path d="M38.2692308,7.3 L38.2692308,13" id="Line-2" stroke="#000000" stroke-linecap="round" transform="translate(38.000000, 10.000000) scale(-1, 1) translate(-38.000000, -10.000000) "></path>
+        </g>
+        <path d="M110,233 L149,218" id="Line-3" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" fill-rule="nonzero"></path>
+        <path d="M220.5,158.5 L255,108" id="Line-4" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" fill-rule="nonzero"></path>
+        <path d="M215,223 L243,279" id="Line-5" stroke="#FFFFFF" stroke-width="8" stroke-linecap="square" fill-rule="nonzero"></path>
+        <path d="M182.269231,218 L211,217.5" id="Line" stroke="#000000" stroke-width="8" stroke-linecap="round" fill-rule="nonzero"></path>
+    </g>
+</svg>
