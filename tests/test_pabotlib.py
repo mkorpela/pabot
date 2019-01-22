@@ -40,6 +40,15 @@ class PabotLibTests(unittest.TestCase):
         lib.release_lock("lock2")
         lib.release_lock("lockname")
 
+    def test_acquire_and_release_valueset(self):
+        lib = pabotlib.PabotLib()
+        lib._values = lib._parse_values(resourcefile=os.path.join("tests", "resourcefile.dat"))
+        vals = lib.acquire_value_set()
+        self.assertEqual(vals, "MyValueSet")
+        value = lib.get_value_from_set("key")
+        lib.release_value_set()
+        self.assertEqual(value, "someval")
+
 
 if __name__ == '__main__':
     unittest.main()
