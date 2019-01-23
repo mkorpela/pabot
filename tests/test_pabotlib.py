@@ -49,6 +49,18 @@ class PabotLibTests(unittest.TestCase):
         lib.release_value_set()
         self.assertEqual(value, "someval")
 
+    def test_acquire_and_release_valueset_with_tag(self):
+        lib = pabotlib.PabotLib()
+        lib._values = lib._parse_values(resourcefile=os.path.join("tests", "resourcefile.dat"))
+        vals = lib.acquire_value_set("laser")
+        self.assertEqual(vals, "TestSystemWithLasers")
+        value = lib.get_value_from_set("key")
+        lib.release_value_set()
+        vals = lib.acquire_value_set("tachyon")
+        self.assertEqual(vals, "TestSystemWithTachyonCannon")
+        value = lib.get_value_from_set("key")
+        lib.release_value_set()
+
 
 if __name__ == '__main__':
     unittest.main()

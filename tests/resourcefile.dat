@@ -1,2 +1,10 @@
 [MyValueSet]
 key = someval
+
+[TestSystemWithLasers]
+tags = laser,sometag
+key = laserkey
+
+[TestSystemWithTachyonCannon]
+tags = tachyon,sometag
+key = tachyonkey

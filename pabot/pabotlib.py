@@ -73,14 +73,15 @@ class _PabotLib(object):
                 if self._locks[key][1] == 0:
                     del self._locks[key]
 
-    def acquire_value_set(self, caller_id):
+    def acquire_value_set(self, caller_id, *tags):
         if not self._values:
             raise AssertionError(
                 'Value set cannot be aquired - it was never imported')
         for k in self._values:
-            if self._values[k] not in self._owner_to_values.values():
-                self._owner_to_values[caller_id] = self._values[k]
-                return k
+            if all("tags" in self._values[k] and tag in self._values[k]["tags"].split(",") for tag in tags):
+                if self._values[k] not in self._owner_to_values.values():
+                    self._owner_to_values[caller_id] = self._values[k]
+                    return k
 
     def release_value_set(self, caller_id):
         self._owner_to_values[caller_id] = None
@@ -213,7 +214,7 @@ class PabotLib(_PabotLib):
         else:
             _PabotLib.release_locks(self, self._my_id)
 
-    def acquire_value_set(self):
+    def acquire_value_set(self, *tags):
         """
         Reserve a set of values for this execution.
         No other process can reserve the same set of values while the set is
@@ -224,7 +225,7 @@ class PabotLib(_PabotLib):
             try:
                 while True:
                     value = self._remotelib.run_keyword('acquire_value_set',
-                                                        [self._my_id], {})
+                                                        [self._my_id]+list(*tags), {})
                     if value:
                         logger.info('Value set "%s" acquired' % value)
                         return value
@@ -233,7 +234,7 @@ class PabotLib(_PabotLib):
             except RuntimeError:
                 logger.warn('no connection')
                 self.__remotelib = None
-        return _PabotLib.acquire_value_set(self, self._my_id)
+        return _PabotLib.acquire_value_set(self, self._my_id, *tags)
 
     def get_value_from_set(self, key):
         """
