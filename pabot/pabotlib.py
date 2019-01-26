@@ -235,6 +235,7 @@ class PabotLib(_PabotLib):
         No other process can reserve the same set of values while the set is
         reserved. Acquired value set needs to be released after use to allow
         other processes to access it.
+        Add tags to limit the possible value sets that this returns.
         """
         setname = self._acquire_value_set(*tags)
         if setname is None:
