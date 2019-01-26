@@ -77,11 +77,15 @@ class _PabotLib(object):
         if not self._values:
             raise AssertionError(
                 'Value set cannot be aquired - it was never imported')
-        for k in self._values:
-            if all("tags" in self._values[k] and tag in self._values[k]["tags"].split(",") for tag in tags):
-                if self._values[k] not in self._owner_to_values.values():
-                    self._owner_to_values[caller_id] = self._values[k]
-                    return k
+        # CAN ONLY RESERVE ONE VALUE SET AT A TIME
+        if caller_id in self._owner_to_values and self._owner_to_values[caller_id] is not None:
+            return None
+        for valueset_key in self._values:
+            if all("tags" in self._values[valueset_key] and 
+            tag in self._values[valueset_key]["tags"].split(",") for tag in tags):
+                if self._values[valueset_key] not in self._owner_to_values.values():
+                    self._owner_to_values[caller_id] = self._values[valueset_key]
+                    return valueset_key
 
     def release_value_set(self, caller_id):
         self._owner_to_values[caller_id] = None
@@ -221,6 +225,12 @@ class PabotLib(_PabotLib):
         reserved. Acquired value set needs to be released after use to allow
         other processes to access it.
         """
+        setname = self._acquire_value_set(*tags)
+        if setname is None:
+            raise ValueError("Could not aquire a value set")
+        return setname
+
+    def _acquire_value_set(self, *tags):
         if self._remotelib:
             try:
                 while True:

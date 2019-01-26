@@ -63,6 +63,26 @@ class PabotLibTests(unittest.TestCase):
         self.assertEqual(value, "zump")
         lib.release_value_set()
 
+    def test_acquire_and_release_valueset_with_shared_tag(self):
+        lib = pabotlib.PabotLib()
+        lib._values = lib._parse_values(resourcefile=os.path.join("tests", "resourcefile.dat"))
+        vals = lib.acquire_value_set("commontag")
+        self.assertIn(vals, ["TestSystemWithLasers", "TestSystemWithTachyonCannon"])
+        value = lib.get_value_from_set("commonval")
+        lib.release_value_set()
+        self.assertEqual(value, "true")
+
+    def test_reacquire_valueset(self):
+        lib = pabotlib.PabotLib()
+        lib._values = lib._parse_values(resourcefile=os.path.join("tests", "resourcefile.dat"))
+        vals1 = lib.acquire_value_set()
+        try:
+            vals2 = lib.acquire_value_set()
+            self.fail("Should have thrown an exception")
+        except ValueError:
+            pass
+        finally:
+            lib.release_value_set()
 
 if __name__ == '__main__':
     unittest.main()

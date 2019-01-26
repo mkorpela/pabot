@@ -1,12 +1,15 @@
 [MyValueSet]
 key = someval
+commonval = false
 
 [TestSystemWithLasers]
-tags = laser,sometag
+tags = laser,commontag
 key = somekey
 noise = zapp
+commonval = true
 
 [TestSystemWithTachyonCannon]
-tags = tachyon,sometag
+tags = tachyon,commontag
 key = somekey
 noise = zump
+commonval = true
