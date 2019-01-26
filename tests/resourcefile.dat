@@ -4,12 +4,12 @@ commonval = false
 
 [TestSystemWithLasers]
 tags = laser,commontag
-key = somekey
+key = someval
 noise = zapp
 commonval = true
 
 [TestSystemWithTachyonCannon]
 tags = tachyon,commontag
-key = somekey
+key = someval
 noise = zump
 commonval = true
