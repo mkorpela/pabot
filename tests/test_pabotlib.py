@@ -84,5 +84,15 @@ class PabotLibTests(unittest.TestCase):
         finally:
             lib.release_value_set()
 
+    def test_trying_to_acquire_valueset_with_none_existing_tag(self):
+        lib = pabotlib.PabotLib()
+        lib._values = lib._parse_values(resourcefile=os.path.join("tests", "resourcefile.dat"))
+        try:
+            lib.acquire_value_set("none-existing-tag")
+            self.fail("Should have thrown an exception")
+        except ValueError:
+            pass
+
+
 if __name__ == '__main__':
     unittest.main()
