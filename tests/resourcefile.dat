@@ -3,8 +3,10 @@ key = someval
 
 [TestSystemWithLasers]
 tags = laser,sometag
-key = laserkey
+key = somekey
+noise = zapp
 
 [TestSystemWithTachyonCannon]
 tags = tachyon,sometag
-key = tachyonkey
+key = somekey
+noise = zump
