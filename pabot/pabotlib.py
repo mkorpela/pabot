@@ -29,6 +29,8 @@ import time
 
 class _PabotLib(object):
 
+    _TAGS_KEY = "tags"
+
     def __init__(self, resourcefile=None):
         self._locks = {}
         self._owner_to_values = {}
@@ -44,6 +46,11 @@ class _PabotLib(object):
         for section in conf.sections():
             vals[section] = dict((k, conf.get(section, k))
                                  for k in conf.options(section))
+        for section in vals:
+            if self._TAGS_KEY in vals[section]:
+                vals[section][self._TAGS_KEY] = [t.strip() for t in vals[section][self._TAGS_KEY].split(",")]
+            else:
+                vals[section][self._TAGS_KEY] = []
         return vals
 
     def set_parallel_value_for_key(self, key, value):
@@ -81,8 +88,7 @@ class _PabotLib(object):
         if caller_id in self._owner_to_values and self._owner_to_values[caller_id] is not None:
             return None
         for valueset_key in self._values:
-            if all("tags" in self._values[valueset_key] and 
-            tag in self._values[valueset_key]["tags"].split(",") for tag in tags):
+            if all(tag in self._values[valueset_key][self._TAGS_KEY] for tag in tags):
                 if self._values[valueset_key] not in self._owner_to_values.values():
                     self._owner_to_values[caller_id] = self._values[valueset_key]
                     return valueset_key
