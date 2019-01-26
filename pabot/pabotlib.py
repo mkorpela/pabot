@@ -95,7 +95,7 @@ class _PabotLib(object):
                     self._owner_to_values[caller_id] = self._values[valueset_key]
                     return valueset_key
         if not matching:
-            raise ValueError("No value set matching given tags '%s' exists." % tags)
+            raise ValueError("No value set matching given tags exists.")
 
     def release_value_set(self, caller_id):
         self._owner_to_values[caller_id] = None
