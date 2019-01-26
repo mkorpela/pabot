@@ -81,22 +81,21 @@ class _PabotLib(object):
                     del self._locks[key]
 
     def acquire_value_set(self, caller_id, *tags):
-        # FIXME: There are three possible return values
-        # 1. reserved value set
-        # 2. there exists value sets but they are currently reserved
-        # 3. no value set matching requirements found
-        # and currently only returning only value set name or None
         if not self._values:
             raise AssertionError(
-                'Value set cannot be aquired - it was never imported')
+                'Value set cannot be aquired - it was never imported. Use --resourcefile option to import.')
         # CAN ONLY RESERVE ONE VALUE SET AT A TIME
         if caller_id in self._owner_to_values and self._owner_to_values[caller_id] is not None:
-            return None
+            raise ValueError("Caller has already reserved a value set.")
+        matching = False
         for valueset_key in self._values:
             if all(tag in self._values[valueset_key][self._TAGS_KEY] for tag in tags):
+                matching = True
                 if self._values[valueset_key] not in self._owner_to_values.values():
                     self._owner_to_values[caller_id] = self._values[valueset_key]
                     return valueset_key
+        if not matching:
+            raise ValueError("No value set matching given tags '%s' exists." % tags)
 
     def release_value_set(self, caller_id):
         self._owner_to_values[caller_id] = None
