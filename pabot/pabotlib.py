@@ -242,6 +242,7 @@ class PabotLib(_PabotLib):
         return setname
 
     def _acquire_value_set(self, *tags):
+        #FIXME: Some timeout here would be good
         if self._remotelib:
             try:
                 while True:
