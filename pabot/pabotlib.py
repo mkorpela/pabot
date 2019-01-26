@@ -81,6 +81,11 @@ class _PabotLib(object):
                     del self._locks[key]
 
     def acquire_value_set(self, caller_id, *tags):
+        # FIXME: There are three possible return values
+        # 1. reserved value set
+        # 2. there exists value sets but they are currently reserved
+        # 3. no value set matching requirements found
+        # and currently only returning only value set name or None
         if not self._values:
             raise AssertionError(
                 'Value set cannot be aquired - it was never imported')
@@ -256,6 +261,9 @@ class PabotLib(_PabotLib):
         """
         Get a value from previously reserved value set.
         """
+        #TODO: This should be done locally. 
+        # We do not really need to call centralised server if the set is already
+        # reserved as the data there is immutable during execution
         key = key.lower()
         if self._remotelib:
             while True:
