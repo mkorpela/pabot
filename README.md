@@ -105,7 +105,7 @@ test.robot
         Acquire Lock   MyLock
         Log   This part is critical section
         Release Lock   MyLock
-        ${valuesetname}=    Acquire Value Set
+        ${valuesetname}=    Acquire Value Set  admin-server
         ${host}=   Get Value From Set   host
         ${username}=     Get Value From Set   username
         ${password}=     Get Value From Set   password
@@ -116,15 +116,23 @@ test.robot
 valueset.dat
 
       [Server1]
+      tags=admin-server
       HOST=123.123.123.123
       USERNAME=user1
       PASSWORD=password1
       
       [Server2]
+      tags=server
       HOST=121.121.121.121
       USERNAME=user2
       PASSWORD=password2
-      
+
+      [Server2]
+      tags=admin-server
+      HOST=222.222.222.222
+      USERNAME=user3
+      PASSWORD=password4
+
 
 pabot call
 
@@ -139,10 +147,11 @@ This file can be partially manually edited.
 First 4 rows contain information that should not be edited - pabot will edit these when something changes.
 After this come the suite names. 
 
-There are two possibilities to influence the execution:
+There are three possibilities to influence the execution:
 
   * The order of suites can be changed.
   * If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row.
+  * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
 
 ### Global variables
 
