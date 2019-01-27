@@ -184,6 +184,22 @@ class PabotTests(unittest.TestCase):
     def test_suite_ordering_preserves_directory_suites(self):
         self.assertEqual(['s.sub', 's3'], pabot._preserve_order(['s.sub.s1', 's.sub.s2', 's3'], ['s.sub']))
 
+    def test_suite_ordering_preserves_wait_command(self):
+        self.assertEqual(['s2', '#WAIT', 's1', 's3'], pabot._preserve_order(['s1', 's2', 's3'], ['s2', '#WAIT', 's1']))
+        self.assertEqual(['s2', '#WAIT', 's3'], pabot._preserve_order(['s2', 's3'], ['s2', '#WAIT', 's1']))
+    
+    def test_suite_ordering_removes_wait_command_if_it_would_be_first_element(self):
+        self.assertEqual(['s1', 's3'], pabot._preserve_order(['s1', 's3'], ['s2', '#WAIT', 's1']))
+
+    def test_suite_ordering_removes_wait_command_if_it_would_be_last_element(self):
+        self.assertEqual(['s2'], pabot._preserve_order(['s2'], ['s2', '#WAIT', 's1']))
+
+    def test_suite_ordering_removes_double_wait_command(self):
+        self.assertEqual(['s2', '#WAIT', 's3'], pabot._preserve_order(['s3','s2'], ['s2', '#WAIT', 's1', '#WAIT', 's3']))
+
+    def test_suite_ordering_stores_two_wait_commands(self):
+        self.assertEqual(['s2', '#WAIT', 's1', '#WAIT', 's3'], pabot._preserve_order(['s3','s2','s1'], ['s2', '#WAIT', 's1', '#WAIT', 's3']))
+
     def test_suite_ordering_removes_directory_suite_subsuites_also_from_old_list(self):
         self.assertEqual(['s1', 'sub', 's4', 'subi'],
             pabot._preserve_order(

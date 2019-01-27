@@ -516,23 +516,35 @@ def _regenerate(
     return [suites]
 
 def _preserve_order(new_suites, old_suites):
-    #FIXME #WAIT handling
     old_suites = [suite for i, suite in enumerate(old_suites) 
-                    if suite and suite not in old_suites[i+1:]]
+                    if suite and
+                    (suite not in old_suites[i+1:] or suite == '#WAIT')]
     ignorable = []
     preserve = []
-    for containing_suite in old_suites:
+    for old_suite in old_suites:
         for s in new_suites:
-            if s.startswith(containing_suite+"."):
-                preserve.append(containing_suite)
+            if s.startswith(old_suite+"."):
+                preserve.append(old_suite)
                 ignorable.append(s)
+        if old_suite == '#WAIT':
+            preserve.append(old_suite)
     preserve = [s for s in preserve 
         if not any([i for i in preserve if s.startswith(i + ".")])]
     exists_in_old_and_new = [s for s in old_suites
                 if (s in new_suites and s not in ignorable)
                 or s in preserve]
+    doubles = []
+    for i,(j,k) in enumerate(zip(exists_in_old_and_new, exists_in_old_and_new[1:])):
+        if j == '#WAIT' and k == j:
+            doubles.append(i)
+    for i in reversed(doubles):
+        del exists_in_old_and_new[i]
+    if exists_in_old_and_new and exists_in_old_and_new[0] == '#WAIT':
+        exists_in_old_and_new = exists_in_old_and_new[1:]
     exists_only_in_new = [s for s in new_suites
                 if s not in old_suites and s not in ignorable]
+    if not exists_only_in_new and exists_in_old_and_new and exists_in_old_and_new[-1] == '#WAIT':
+        exists_in_old_and_new = exists_in_old_and_new[:-1]
     return exists_in_old_and_new + exists_only_in_new
 
 def _file_hash(lines):
