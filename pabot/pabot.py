@@ -516,6 +516,7 @@ def _regenerate(
     return [suites]
 
 def _preserve_order(new_suites, old_suites):
+    #FIXME #WAIT handling
     old_suites = [suite for i, suite in enumerate(old_suites) 
                     if suite and suite not in old_suites[i+1:]]
     ignorable = []

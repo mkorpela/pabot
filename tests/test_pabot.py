@@ -414,6 +414,23 @@ class PabotTests(unittest.TestCase):
             actual = f.readlines()
         self.assertEqual(expected, actual)
 
+    def test_solve_suite_names_with_ioerror_pabotsuitenames(self):
+        if os.path.isfile(".pabotsuitenames"):
+            os.remove(".pabotsuitenames")
+        os.mkdir(".pabotsuitenames")
+        try:
+            suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                                datasources=self._datasources,
+                                                options=self._options,
+                                                pabot_args=self._pabot_args)
+            self.assertEqual([[
+                'Fixtures.Suite One', 
+                'Fixtures.Suite Second',
+                'Fixtures.Suite&(Specia|)Chars'
+            ]], suite_names)
+        finally:
+            os.rmdir(".pabotsuitenames")
+
     def test_parallel_execution(self):
         dtemp = tempfile.mkdtemp()
         outs_dir = os.path.join(dtemp, 'pabot_results')
