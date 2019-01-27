@@ -447,7 +447,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                         hash_of_command, 
                         hash_of_suitesfrom, 
                         suite_names)
-            return suite_names
+            return [suite_names]
         with open(".pabotsuitenames", "r") as suitenamesfile:
             lines = [line.strip() for line in suitenamesfile.readlines()]
             corrupted = len(lines) < 5
@@ -478,9 +478,16 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                                 options,
                                 lines,
                                 hash_of_command)
-        return [suite for suite in lines[4:] if suite]
+        suites = [[]]
+        for suite in lines[4:]:
+            if suite != '#WAIT':
+                if suite:
+                    suites[-1].append(suite)
+            else:
+                suites.append([])
+        return suites
     except IOError:
-        return  generate_suite_names_with_dryrun(outs_dir, datasources, options)
+        return  [generate_suite_names_with_dryrun(outs_dir, datasources, options)]
 
 def _regenerate(
     suitesfrom_hash, 
@@ -506,7 +513,7 @@ def _regenerate(
         suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
         suites = _preserve_order(suites, [suite for suite in lines[4:] if suite])
     store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
-    return suites
+    return [suites]
 
 def _preserve_order(new_suites, old_suites):
     old_suites = [suite for i, suite in enumerate(old_suites) 
@@ -534,7 +541,8 @@ def _file_hash(lines):
     digest.update(lines[2].encode())
     hashes = 0
     for line in lines[4:]:
-        hashes ^= int(hashlib.sha1(line.encode()).hexdigest(), 16)
+        if line != '#WAIT':
+            hashes ^= int(hashlib.sha1(line.encode()).hexdigest(), 16)
     digest.update(str(hashes).encode())
     return digest.hexdigest()
 
@@ -880,7 +888,7 @@ def _stop_remote_library(process):
 
 
 def _get_suite_root_name(suite_names):
-    top_names = [x.split('.')[0] for x in suite_names]
+    top_names = [x.split('.')[0] for group in suite_names for x in group]
     if top_names.count(top_names[0]) == len(top_names):
         return top_names[0]
     return ''
@@ -912,8 +920,9 @@ def main(args):
         suite_names = solve_suite_names(outs_dir, datasources, options,
                                         pabot_args)
         if suite_names:
-            _parallel_execute(datasources, opts_for_run, outs_dir, pabot_args,
-                              suite_names)
+            for suite_group in suite_names:
+                _parallel_execute(datasources, opts_for_run, outs_dir, pabot_args,
+                                  suite_group)
             sys.exit(_report_results(outs_dir, pabot_args, options, start_time_string,
                                      _get_suite_root_name(suite_names)))
         else:

@@ -119,9 +119,9 @@ class PabotTests(unittest.TestCase):
                                               datasources=self._datasources,
                                               options=self._options,
                                               pabot_args=self._pabot_args)
-        self.assertEqual(['Fixtures.Suite One', 
+        self.assertEqual([['Fixtures.Suite One', 
         'Fixtures.Suite Second', 
-        'Fixtures.Suite&(Specia|)Chars'],
+        'Fixtures.Suite&(Specia|)Chars']],
                          suite_names)
         self.assertTrue(os.path.isfile(".pabotsuitenames"))
         expected = self._psuitenames(
@@ -157,7 +157,7 @@ class PabotTests(unittest.TestCase):
                                               datasources=self._datasources,
                                               options=self._options,
                                               pabot_args=self._pabot_args)
-        self.assertEqual(['Fixtures'],
+        self.assertEqual([['Fixtures']],
                          suite_names)
         expected = self._psuitenames(
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
@@ -211,9 +211,9 @@ class PabotTests(unittest.TestCase):
                                               datasources=self._datasources,
                                               options=self._options,
                                               pabot_args=pabot_args)
-        self.assertEqual(['Fixtures.Suite Second', 
+        self.assertEqual([['Fixtures.Suite Second', 
                           'Fixtures.Suite One',
-                          'Fixtures.Suite&(Specia|)Chars'],
+                          'Fixtures.Suite&(Specia|)Chars']],
                          suite_names)
         expected = self._psuitenames(
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
@@ -244,9 +244,9 @@ class PabotTests(unittest.TestCase):
                                                   datasources=self._datasources,
                                                   options=self._options,
                                                   pabot_args=pabot_args)
-        self.assertEqual(['Fixtures.Suite Second', 
+        self.assertEqual([['Fixtures.Suite Second', 
                           'Fixtures.Suite One',
-                          'Fixtures.Suite&(Specia|)Chars'],
+                          'Fixtures.Suite&(Specia|)Chars']],
                          suite_names)
         expected = self._psuitenames(
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
@@ -277,9 +277,9 @@ class PabotTests(unittest.TestCase):
                                                   datasources=self._datasources,
                                                   options=self._options,
                                                   pabot_args=pabot_args)
-        self.assertEqual(['Fixtures.Suite Second', 
+        self.assertEqual([['Fixtures.Suite Second', 
                           'Fixtures.Suite One',
-                          'Fixtures.Suite&(Specia|)Chars'],
+                          'Fixtures.Suite&(Specia|)Chars']],
                          suite_names)
         expected = self._psuitenames(
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
@@ -314,9 +314,9 @@ class PabotTests(unittest.TestCase):
                                                   pabot_args=pabot_args)
         finally:
             os.rename("tests/output.xml.tmp", "tests/output.xml")
-        self.assertEqual(['Fixtures.Suite Second', 
-                          'Fixtures.Suite One',
-                          'Fixtures.Suite&(Specia|)Chars'],
+        self.assertEqual([['Fixtures.Suite Second', 
+                            'Fixtures.Suite One',
+                            'Fixtures.Suite&(Specia|)Chars']],
                          suite_names)
         expected = self._psuitenames(
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
@@ -350,11 +350,37 @@ class PabotTests(unittest.TestCase):
                                                 pabot_args=self._pabot_args)
         finally:
             pabot._regenerate = original
-        self.assertEqual([
+        self.assertEqual([[
             'Fixtures.Suite&(Specia|)Chars',
             'Fixtures.Suite Second',
             'Fixtures.Suite One', 
-        ], suite_names)
+        ]], suite_names)
+
+    def test_solve_suite_names_works_with_pabotsuitenames_file_with_wait_command(self):
+        pabotsuitenames = self._psuitenames(
+            '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
+            '97d170e1550eee4afc0af065b78cda302a97674c',
+            'no-suites-from-option',
+            'c65865c6eac504bddb6bd3f8ddeb18bd49b53c37',
+            'Fixtures.Suite&(Specia|)Chars',
+            '#WAIT',
+            'Fixtures.Suite Second',
+            'Fixtures.Suite One')
+        with open(".pabotsuitenames", "w") as f:
+            f.writelines(pabotsuitenames)
+        original = pabot._regenerate
+        pabot._regenerate = lambda *args: 1/0
+        try:
+            suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                                datasources=self._datasources,
+                                                options=self._options,
+                                                pabot_args=self._pabot_args)
+        finally:
+            pabot._regenerate = original
+        self.assertEqual([
+            ['Fixtures.Suite&(Specia|)Chars'],
+            ['Fixtures.Suite Second',
+            'Fixtures.Suite One']], suite_names)
 
     def test_solve_suite_names_with_corrupted_pabotsuitenames_file(self):
         pabotsuitenames_corrupted = self._psuitenames(
@@ -371,11 +397,11 @@ class PabotTests(unittest.TestCase):
                                             datasources=self._datasources,
                                             options=self._options,
                                             pabot_args=self._pabot_args)
-        self.assertEqual([
+        self.assertEqual([[
             'Fixtures.Suite&(Specia|)Chars',
             'Fixtures.Suite Second',
             'Fixtures.Suite One', 
-        ], suite_names)
+        ]], suite_names)
         expected = self._psuitenames(
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
             '97d170e1550eee4afc0af065b78cda302a97674c',
