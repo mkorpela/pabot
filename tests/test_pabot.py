@@ -434,11 +434,16 @@ class PabotTests(unittest.TestCase):
                                                 self._options,
                                                 pabot._now(),
                                                 pabot._get_suite_root_name(
-                                                    suite_names))
+                                                    [suite_names]))
             self.assertEqual(6, result_code)
         finally:
             pabot._stop_remote_library(lib_process)
             shutil.rmtree(dtemp)
+
+    def test_suite_root_name(self):
+        self.assertEqual(pabot._get_suite_root_name([["Foo.Bar", "Foo.Zoo"], ["Foo.Boo"]]), "Foo")
+        self.assertEqual(pabot._get_suite_root_name([["Foo.Bar", "Foo.Zoo"], ["Boo"]]), "")
+        self.assertEqual(pabot._get_suite_root_name([["Bar", "Foo.Zoo"], ["Foo.Boo"]]), "")
 
 if __name__ == '__main__':
     unittest.main()
