@@ -876,13 +876,12 @@ def _start_remote_library(pabot_args):
         _write('Warning: specified resource file doesn\'t exist.'
                ' Some tests may fail or continue forever.', Color.YELLOW)
         pabot_args['resourcefile'] = None
-    return subprocess.Popen('\"{python}\" \"{pabotlibpath}\" {resourcefile} {pabotlibhost} {pabotlibport}'.format(
-        python=sys.executable,
-        pabotlibpath=os.path.abspath(pabotlib.__file__),
-        resourcefile=pabot_args.get('resourcefile'),
-        pabotlibhost=pabot_args['pabotlibhost'],
-        pabotlibport=pabot_args['pabotlibport']),
-        shell=True)
+    python = sys.executable
+    pabotlibpath = os.path.abspath(pabotlib.__file__)
+    resourcefile = pabot_args.get('resourcefile')
+    pabotlibhost = pabot_args['pabotlibhost']
+    pabotlibport = str(pabot_args['pabotlibport'])
+    return subprocess.Popen([python, pabotlibpath, resourcefile, pabotlibhost, pabotlibport], shell=True)
 
 
 def _stop_remote_library(process):
