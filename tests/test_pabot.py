@@ -258,9 +258,9 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
             'c06f2afdfa35791e82e71618bf60415e927c41ae',
-            'Fixtures.Suite One',
-            'Fixtures.Suite Second',
-            'Fixtures.Suite&(Specia|)Chars')
+            '--suite Fixtures.Suite One',
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite&(Specia|)Chars')
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames)
         pabot_args = dict(self._pabot_args)
@@ -291,9 +291,9 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
             'c06f2afdfa35791e82e71618bf60415e927c41ae',
-            'Fixtures.Suite One',
-            'Fixtures.Suite Second',
-            'Fixtures.Suite&(Specia|)Chars')
+            '--suite Fixtures.Suite One',
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite&(Specia|)Chars')
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames)
         pabot_args = dict(self._pabot_args)
@@ -324,9 +324,9 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
             '50d0c83b3c6b35ddc81c3289f5591d6574412c17',
-            'Fixtures.Suite Second',
-            'Fixtures.Suite One',
-            'Fixtures.Suite&(Specia|)Chars')
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite One',
+            '--suite Fixtures.Suite&(Specia|)Chars')
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames)
         pabot_args = dict(self._pabot_args)
@@ -361,9 +361,9 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
             'c65865c6eac504bddb6bd3f8ddeb18bd49b53c37',
-            'Fixtures.Suite&(Specia|)Chars',
-            'Fixtures.Suite Second',
-            'Fixtures.Suite One')
+            '--suite Fixtures.Suite&(Specia|)Chars',
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite One')
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames)
         original = pabot._regenerate
@@ -387,10 +387,10 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
             'c65865c6eac504bddb6bd3f8ddeb18bd49b53c37',
-            'Fixtures.Suite&(Specia|)Chars',
+            '--suite Fixtures.Suite&(Specia|)Chars',
             '#WAIT',
-            'Fixtures.Suite Second',
-            'Fixtures.Suite One')
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite One')
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames)
         original = pabot._regenerate
@@ -413,9 +413,9 @@ class PabotTests(unittest.TestCase):
             '98e9291c98411e6583248f87168b79afdf76d064',
             'no-suites-from-optiosn',
             '4f2fc7af25040e0f3b9e2681b84594ccb0cdf9e',
-            'Fixtures.Suite&(Specia|)Chars',
-            'NoneExisting',
-            'Fixtures.Suite Second')
+            '--suite Fixtures.Suite&(Specia|)Chars',
+            '--suite NoneExisting',
+            '--suite Fixtures.Suite Second')
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames_corrupted)
         suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
