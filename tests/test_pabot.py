@@ -88,7 +88,7 @@ class PabotTests(unittest.TestCase):
         self.assertNotEqual(h2, h5)
 
     def test_file_hash(self):
-        expected_hash = "c65865c6eac504bddb6bd3f8ddeb18bd49b53c37"
+        expected_hash = "c7603162d26c064b3146f6c64edbbd0ecab24b69"
         h1 = pabot._file_hash([
             "datasources:7d48f683f47bbd7092a6bde4e1cbefaa79653d1c",
             "commandlineoptions:97d170e1550eee4afc0af065b78cda302a97674c",
@@ -137,7 +137,7 @@ class PabotTests(unittest.TestCase):
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
-            'c65865c6eac504bddb6bd3f8ddeb18bd49b53c37',
+            'c7603162d26c064b3146f6c64edbbd0ecab24b69',
             '--suite Fixtures.Suite One',
             '--suite Fixtures.Suite Second',
             '--suite Fixtures.Suite&(Specia|)Chars')
@@ -172,7 +172,7 @@ class PabotTests(unittest.TestCase):
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
-            '4e4446a4212545e826613360a9e80a735b8aaf62',
+            '8fe49a4a2add9eeb9df8eb566ef7e942d45d77ba',
             '--suite Fixtures')
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
@@ -244,7 +244,7 @@ class PabotTests(unittest.TestCase):
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
-            '3e26c7613d32d6e4774e0600946ff1c4880dc2e2',
+            'c1698375809d8f72d686786a7bea6cf466cdd18c',
             '--suite Fixtures.Suite Second',
             '--suite Fixtures.Suite One',
             '--suite Fixtures.Suite&(Specia|)Chars')
@@ -277,7 +277,7 @@ class PabotTests(unittest.TestCase):
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
-            '3e26c7613d32d6e4774e0600946ff1c4880dc2e2',
+            'c1698375809d8f72d686786a7bea6cf466cdd18c',
             '--suite Fixtures.Suite Second',
             '--suite Fixtures.Suite One',
             '--suite Fixtures.Suite&(Specia|)Chars')
@@ -310,7 +310,7 @@ class PabotTests(unittest.TestCase):
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
-            '3e26c7613d32d6e4774e0600946ff1c4880dc2e2',
+            'c1698375809d8f72d686786a7bea6cf466cdd18c',
             '--suite Fixtures.Suite Second',
             '--suite Fixtures.Suite One',
             '--suite Fixtures.Suite&(Specia|)Chars')
@@ -347,7 +347,7 @@ class PabotTests(unittest.TestCase):
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'da39a3ee5e6b4b0d3255bfef95601890afd80709',
-            '8275384b81100336f147f7b7c4874ea6fa7ce028',
+            '76457f2b3a9108a4d18845c089323bf2b69d00f0',
             '--suite Fixtures.Suite Second',
             '--suite Fixtures.Suite One',
             '--suite Fixtures.Suite&(Specia|)Chars')
@@ -360,7 +360,7 @@ class PabotTests(unittest.TestCase):
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
-            'c65865c6eac504bddb6bd3f8ddeb18bd49b53c37',
+            'c7603162d26c064b3146f6c64edbbd0ecab24b69',
             '--suite Fixtures.Suite&(Specia|)Chars',
             '--suite Fixtures.Suite Second',
             '--suite Fixtures.Suite One')
@@ -381,12 +381,44 @@ class PabotTests(unittest.TestCase):
             'Fixtures.Suite One', 
         ]], suite_names)
 
-    def test_solve_suite_names_works_with_pabotsuitenames_file_with_wait_command(self):
+    def test_solve_suite_names_transforms_old_suite_names_to_new_format(self):
         pabotsuitenames = self._psuitenames(
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
             'c65865c6eac504bddb6bd3f8ddeb18bd49b53c37',
+            'Fixtures.Suite&(Specia|)Chars',
+            'Fixtures.Suite Second',
+            'Fixtures.Suite One')
+        with open(".pabotsuitenames", "w") as f:
+            f.writelines(pabotsuitenames)
+        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                            datasources=self._datasources,
+                                            options=self._options,
+                                            pabot_args=self._pabot_args)
+        self.assertEqual([[
+            'Fixtures.Suite&(Specia|)Chars',
+            'Fixtures.Suite Second',
+            'Fixtures.Suite One', 
+        ]], suite_names)
+        expected = self._psuitenames(
+            '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
+            '97d170e1550eee4afc0af065b78cda302a97674c',
+            'no-suites-from-option',
+            'c7603162d26c064b3146f6c64edbbd0ecab24b69',
+            '--suite Fixtures.Suite&(Specia|)Chars',
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite One')
+        with open(".pabotsuitenames", "r") as f:
+            actual = f.readlines()
+        self.assertEqual(expected, actual)
+
+    def test_solve_suite_names_works_with_pabotsuitenames_file_with_wait_command(self):
+        pabotsuitenames = self._psuitenames(
+            '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
+            '97d170e1550eee4afc0af065b78cda302a97674c',
+            'no-suites-from-option',
+            'c7603162d26c064b3146f6c64edbbd0ecab24b69',
             '--suite Fixtures.Suite&(Specia|)Chars',
             '#WAIT',
             '--suite Fixtures.Suite Second',
@@ -431,7 +463,7 @@ class PabotTests(unittest.TestCase):
             '7d48f683f47bbd7092a6bde4e1cbefaa79653d1c',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
-            'c65865c6eac504bddb6bd3f8ddeb18bd49b53c37',
+            'c7603162d26c064b3146f6c64edbbd0ecab24b69',
             '--suite Fixtures.Suite&(Specia|)Chars',
             '--suite Fixtures.Suite Second',
             '--suite Fixtures.Suite One')

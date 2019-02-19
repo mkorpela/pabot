@@ -463,6 +463,8 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                 suitesfrom_hash = None
                 file_hash = None
                 hash_of_file = None
+            if any(not l.startswith('--suite ') and l != '#WAIT' for l in lines[4:]):
+                corrupted = True
             lines = lines[:4]+[l[8:] if l.startswith('--suite ') else l for l in lines[4:]]
             if (corrupted or
             hash_suites != hash_of_dirs or 
@@ -556,13 +558,12 @@ def _file_hash(lines):
     hashes = 0
     for line in lines[4:]:
         if line != '#WAIT':
-            if line.startswith('--suite '):
-                line = line[8:]
             hashes ^= int(hashlib.sha1(line.encode()).hexdigest(), 16)
     digest.update(str(hashes).encode())
     return digest.hexdigest()
 
 def store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suite_names):
+    suite_lines = ['--suite '+suite_name for suite_name in suite_names]
     with open(".pabotsuitenames", "w") as suitenamesfile:
         suitenamesfile.write("datasources:"+hash_of_dirs+'\n')
         suitenamesfile.write("commandlineoptions:"+hash_of_command+'\n')
@@ -570,8 +571,8 @@ def store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suite_n
         suitenamesfile.write("file:"+_file_hash([
             "datasources:"+hash_of_dirs, 
             "commandlineoptions:"+hash_of_command, 
-            "suitesfrom:"+hash_of_suitesfrom, None]+ suite_names)+'\n')
-        suitenamesfile.writelines('--suite '+suite_name+'\n' for suite_name in suite_names)
+            "suitesfrom:"+hash_of_suitesfrom, None]+ suite_lines)+'\n')
+        suitenamesfile.writelines(suite_name+'\n' for suite_name in suite_lines)
 
 def generate_suite_names(outs_dir, datasources, options, pabot_args):
     if 'suitesfrom' in pabot_args and os.path.isfile(pabot_args['suitesfrom']):
