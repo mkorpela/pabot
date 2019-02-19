@@ -159,7 +159,7 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
             'this-is-wrong',
-            'Fixtures')
+            '--suite Fixtures')
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames)
         suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
