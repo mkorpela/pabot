@@ -94,9 +94,9 @@ class PabotTests(unittest.TestCase):
             "commandlineoptions:97d170e1550eee4afc0af065b78cda302a97674c",
             "suitesfrom:no-suites-from-option",
             "file:"+expected_hash,
-            "Fixtures.Suite One",
-            "Fixtures.Suite Second",
-            "Fixtures.Suite&(Specia|)Chars"
+            "--suite Fixtures.Suite One",
+            "--suite Fixtures.Suite Second",
+            "--suite Fixtures.Suite&(Specia|)Chars"
         ])
         self.assertEqual(h1, expected_hash)
         h2 = pabot._file_hash([
@@ -104,9 +104,9 @@ class PabotTests(unittest.TestCase):
             "commandlineoptions:97d170e1550eee4afc0af065b78cda302a97674c",
             "suitesfrom:no-suites-from-option",
             "file:"+expected_hash,
-            "Fixtures.Suite Second",
-            "Fixtures.Suite One",
-            "Fixtures.Suite&(Specia|)Chars"
+            "--suite Fixtures.Suite Second",
+            "--suite Fixtures.Suite One",
+            "--suite Fixtures.Suite&(Specia|)Chars"
         ])
         self.assertEqual(h1, h2)
         h3 = pabot._file_hash([
@@ -114,10 +114,10 @@ class PabotTests(unittest.TestCase):
             "commandlineoptions:97d170e1550eee4afc0af065b78cda302a97674c",
             "suitesfrom:no-suites-from-option",
             "file:whatever",
-            "Fixtures.Suite Second",
-            "Fixtures.New Suite",
-            "Fixtures.Suite One",
-            "Fixtures.Suite&(Specia|)Chars"
+            "--suite Fixtures.Suite Second",
+            "--suite Fixtures.New Suite",
+            "--suite Fixtures.Suite One",
+            "--suite Fixtures.Suite&(Specia|)Chars"
         ])
         self.assertNotEqual(h1, h3)
 

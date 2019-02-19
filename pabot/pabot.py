@@ -555,6 +555,8 @@ def _file_hash(lines):
     hashes = 0
     for line in lines[4:]:
         if line != '#WAIT':
+            if line.startswith('--suite '):
+                line = line[8:]
             hashes ^= int(hashlib.sha1(line.encode()).hexdigest(), 16)
     digest.update(str(hashes).encode())
     return digest.hexdigest()
