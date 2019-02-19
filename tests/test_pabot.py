@@ -138,9 +138,9 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
             'c65865c6eac504bddb6bd3f8ddeb18bd49b53c37',
-            'Fixtures.Suite One',
-            'Fixtures.Suite Second',
-            'Fixtures.Suite&(Specia|)Chars')
+            '--suite Fixtures.Suite One',
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite&(Specia|)Chars')
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
         self.assertEqual(expected, actual)
@@ -173,7 +173,7 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
             '4e4446a4212545e826613360a9e80a735b8aaf62',
-            'Fixtures')
+            '--suite Fixtures')
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
         self.assertEqual(expected, actual)
@@ -245,9 +245,9 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
             '3e26c7613d32d6e4774e0600946ff1c4880dc2e2',
-            'Fixtures.Suite Second',
-            'Fixtures.Suite One',
-            'Fixtures.Suite&(Specia|)Chars')
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite One',
+            '--suite Fixtures.Suite&(Specia|)Chars')
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
         self.assertEqual(expected, actual)
@@ -278,9 +278,9 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
             '3e26c7613d32d6e4774e0600946ff1c4880dc2e2',
-            'Fixtures.Suite Second',
-            'Fixtures.Suite One',
-            'Fixtures.Suite&(Specia|)Chars')
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite One',
+            '--suite Fixtures.Suite&(Specia|)Chars')
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
         self.assertEqual(expected, actual)
@@ -311,9 +311,9 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'b8368a7a5e1574965abcbb975b7b3521b2b4496b',
             '3e26c7613d32d6e4774e0600946ff1c4880dc2e2',
-            'Fixtures.Suite Second',
-            'Fixtures.Suite One',
-            'Fixtures.Suite&(Specia|)Chars')
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite One',
+            '--suite Fixtures.Suite&(Specia|)Chars')
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
         self.assertEqual(expected, actual)
@@ -348,9 +348,9 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'da39a3ee5e6b4b0d3255bfef95601890afd80709',
             '8275384b81100336f147f7b7c4874ea6fa7ce028',
-            'Fixtures.Suite Second',
-            'Fixtures.Suite One',
-            'Fixtures.Suite&(Specia|)Chars')
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite One',
+            '--suite Fixtures.Suite&(Specia|)Chars')
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
         self.assertEqual(expected, actual)
@@ -432,9 +432,9 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
             'c65865c6eac504bddb6bd3f8ddeb18bd49b53c37',
-            'Fixtures.Suite&(Specia|)Chars',
-            'Fixtures.Suite Second',
-            'Fixtures.Suite One')
+            '--suite Fixtures.Suite&(Specia|)Chars',
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite One')
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
         self.assertEqual(expected, actual)

@@ -570,7 +570,7 @@ def store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suite_n
             "datasources:"+hash_of_dirs, 
             "commandlineoptions:"+hash_of_command, 
             "suitesfrom:"+hash_of_suitesfrom, None]+ suite_names)+'\n')
-        suitenamesfile.writelines(suite_name+'\n' for suite_name in suite_names)
+        suitenamesfile.writelines('--suite '+suite_name+'\n' for suite_name in suite_names)
 
 def generate_suite_names(outs_dir, datasources, options, pabot_args):
     if 'suitesfrom' in pabot_args and os.path.isfile(pabot_args['suitesfrom']):
