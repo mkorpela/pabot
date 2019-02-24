@@ -377,6 +377,10 @@ def _delete_none_keys(d):
         del d[k]
 
 def hash_directory(digest, path):
+    if os.path.isfile(path):
+        digest.update(hashlib.sha1(path.encode()).digest())
+        get_hash_of_file(path, digest)
+        return
     for root, _, files in os.walk(path):
         for names in sorted(files):
             file_path = os.path.join(root, names)
