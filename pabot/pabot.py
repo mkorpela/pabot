@@ -910,7 +910,7 @@ def _stop_remote_library(process):
 
 def _get_suite_root_name(suite_names):
     top_names = [x.split('.')[0] for group in suite_names for x in group]
-    if top_names.count(top_names[0]) == len(top_names):
+    if top_names and top_names.count(top_names[0]) == len(top_names):
         return top_names[0]
     return ''
 

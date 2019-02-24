@@ -532,6 +532,7 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(pabot._get_suite_root_name([["Foo.Bar", "Foo.Zoo"], ["Foo.Boo"]]), "Foo")
         self.assertEqual(pabot._get_suite_root_name([["Foo.Bar", "Foo.Zoo"], ["Boo"]]), "")
         self.assertEqual(pabot._get_suite_root_name([["Bar", "Foo.Zoo"], ["Foo.Boo"]]), "")
+        self.assertEqual(pabot._get_suite_root_name([[]]), "")
 
 if __name__ == '__main__':
     unittest.main()
