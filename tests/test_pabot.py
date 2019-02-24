@@ -395,6 +395,28 @@ class PabotTests(unittest.TestCase):
             'Fixtures.Suite One', 
         ]], suite_names)
 
+    def test_solve_suite_names_file_is_not_changed_when_invalid_cli_opts(self):
+        pabotsuitenames = self._psuitenames(
+            '38958c4ff3b75985be2e1a16e2e851742c44cea5',
+            '97d170e1550eee4afc0af065b78cda302a97674c',
+            'no-suites-from-option',
+            '7a3a18da48c46e2eac7a1262882536816e248750',
+            '--suite Fixtures.Suite&(Specia|)Chars',
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite One')
+        with open(".pabotsuitenames", "w") as f:
+            f.writelines(pabotsuitenames)
+        self._options["loglevel"] = "INVALID123"
+        original = pabot._regenerate
+        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                            datasources=self._datasources,
+                                            options=self._options,
+                                            pabot_args=self._pabot_args)
+        self.assertEqual([[]], suite_names)
+        with open(".pabotsuitenames", "r") as f:
+            actual = f.readlines()
+        self.assertEqual(pabotsuitenames, actual)
+
     def test_solve_suite_names_transforms_old_suite_names_to_new_format(self):
         pabotsuitenames = self._psuitenames(
             '38958c4ff3b75985be2e1a16e2e851742c44cea5',

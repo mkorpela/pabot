@@ -519,7 +519,8 @@ def _regenerate(
     else:
         suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
         suites = _preserve_order(suites, [suite for suite in lines[4:] if suite])
-    store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
+    if suites:
+        store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
     return [suites]
 
 def _preserve_order(new_suites, old_suites):
