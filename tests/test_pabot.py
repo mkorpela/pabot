@@ -475,6 +475,40 @@ class PabotTests(unittest.TestCase):
             ['Fixtures.Suite Second',
             'Fixtures.Suite One']], suite_names)
 
+    def test_solve_suite_names_works_with_pabotsuitenames_file_with_wait_command_when_cli_change(self):
+        pabotsuitenames = self._psuitenames(
+            '38958c4ff3b75985be2e1a16e2e851742c44cea5',
+            'old-command-line-options',
+            'no-suites-from-option',
+            '7a3a18da48c46e2eac7a1262882536816e248750',
+            '--suite Fixtures.Suite&(Specia|)Chars',
+            '#WAIT',
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite One')
+        with open(".pabotsuitenames", "w") as f:
+            f.writelines(pabotsuitenames)
+        original = pabot._regenerate
+        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                            datasources=self._datasources,
+                                            options=self._options,
+                                            pabot_args=self._pabot_args)
+        self.assertEqual([
+            ['Fixtures.Suite&(Specia|)Chars'],
+            ['Fixtures.Suite Second',
+            'Fixtures.Suite One']], suite_names)
+        expected = self._psuitenames(
+            '38958c4ff3b75985be2e1a16e2e851742c44cea5',
+            '97d170e1550eee4afc0af065b78cda302a97674c',
+            'no-suites-from-option',
+            '7a3a18da48c46e2eac7a1262882536816e248750',
+            '--suite Fixtures.Suite&(Specia|)Chars',
+            '#WAIT',
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite One')
+        with open(".pabotsuitenames", "r") as f:
+            actual = f.readlines()
+        self.assertEqual(expected, actual)
+
     def test_solve_suite_names_with_corrupted_pabotsuitenames_file(self):
         pabotsuitenames_corrupted = self._psuitenames(
             'd8ce00e244006f271e86b62cc14702b45caf6c8b',

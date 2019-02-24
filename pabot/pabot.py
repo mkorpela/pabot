@@ -475,26 +475,29 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
             hash_command != hash_of_command or
             file_hash != hash_of_file or
             suitesfrom_hash != hash_of_suitesfrom):
-                return _regenerate(suitesfrom_hash, 
-                                hash_of_suitesfrom,
-                                pabot_args,
-                                hash_suites,
-                                hash_of_dirs,
-                                outs_dir,
-                                datasources,
-                                options,
-                                lines,
-                                hash_of_command)
-        suites = [[]]
-        for suite in lines[4:]:
-            if suite != '#WAIT':
-                if suite:
-                    suites[-1].append(suite)
-            else:
-                suites.append([])
-        return suites
+                return _group_by_wait(_regenerate(suitesfrom_hash, 
+                                        hash_of_suitesfrom,
+                                        pabot_args,
+                                        hash_suites,
+                                        hash_of_dirs,
+                                        outs_dir,
+                                        datasources,
+                                        options,
+                                        lines,
+                                        hash_of_command))
+        return _group_by_wait(lines[4:])
     except IOError:
         return  [generate_suite_names_with_dryrun(outs_dir, datasources, options)]
+
+def _group_by_wait(lines):
+    suites = [[]]
+    for suite in lines:
+        if suite != '#WAIT':
+            if suite:
+                suites[-1].append(suite)
+        else:
+            suites.append([])
+    return suites
 
 def _regenerate(
     suitesfrom_hash, 
@@ -521,7 +524,7 @@ def _regenerate(
         suites = _preserve_order(suites, [suite for suite in lines[4:] if suite])
     if suites:
         store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
-    return [suites]
+    return suites
 
 def _preserve_order(new_suites, old_suites):
     old_suites = [suite for i, suite in enumerate(old_suites) 
@@ -568,7 +571,8 @@ def _file_hash(lines):
     return digest.hexdigest()
 
 def store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suite_names):
-    suite_lines = ['--suite '+suite_name for suite_name in suite_names]
+    suite_lines = ['--suite '+suite_name if suite_name != '#WAIT' else '#WAIT'
+                   for suite_name in suite_names]
     with open(".pabotsuitenames", "w") as suitenamesfile:
         suitenamesfile.write("datasources:"+hash_of_dirs+'\n')
         suitenamesfile.write("commandlineoptions:"+hash_of_command+'\n')
