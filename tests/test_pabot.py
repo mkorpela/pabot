@@ -170,7 +170,7 @@ class PabotTests(unittest.TestCase):
     def test_solve_suite_names_works_with_directory_suite(self):
         pabotsuitenames = self._psuitenames(
             '38958c4ff3b75985be2e1a16e2e851742c44cea5',
-            '97d170e1550eee4afc0af065b78cda302a97674c',
+            'some-wrong-stuff',
             'no-suites-from-option',
             'this-is-wrong',
             '--suite Fixtures')
