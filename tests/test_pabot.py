@@ -87,6 +87,20 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(h2, h4)
         self.assertNotEqual(h2, h5)
 
+    def test_hash_of_dirs(self):
+        test_dir = os.path.join(os.path.dirname(__file__), "fixtures")
+        h1 = pabot.get_hash_of_dirs([test_dir])
+        h2 = pabot.get_hash_of_dirs([test_dir, test_dir])
+        self.assertNotEqual(h1, h2)
+        h3 = pabot.get_hash_of_dirs([os.path.join(test_dir,"suite_one.robot")])
+        self.assertNotEqual(h1, h3)
+        self.assertNotEqual(h2, h3)
+        h4 = pabot.get_hash_of_dirs([os.path.join("suite_one.robot"), os.path.join("suite_second.robot")])
+        self.assertNotEqual(h1, h4)
+        self.assertNotEqual(h2, h4)
+        self.assertNotEqual(h3, h4)
+
+
     def test_file_hash(self):
         expected_hash = "7a3a18da48c46e2eac7a1262882536816e248750"
         h1 = pabot._file_hash([
