@@ -98,6 +98,7 @@ _PABOTLIBURI = '127.0.0.1:8270'
 _PABOTLIBPROCESS = None
 ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
 _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # does not contain '"'
+_BAD_CHARS_SET = set(_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE)
 
 _ROBOT_EXTENSIONS = ['.html', '.htm', '.xhtml', '.tsv', '.rst', '.rest', '.txt', '.robot']
 
@@ -109,6 +110,9 @@ class Color:
     ENDC = '\033[0m'
     YELLOW = '\033[93m'
 
+def _mapOptionalQuote(cmdargs):
+    return [arg if set(arg).isdisjoint(_BAD_CHARS_SET) else '"%s"'%arg for arg in cmdargs]
+    
 
 def execute_and_wait_with(args):
     global CTRL_C_PRESSED
@@ -117,21 +121,21 @@ def execute_and_wait_with(args):
         return
     time.sleep(0)
     datasources, outs_dir, options, suite_name, command, verbose, (argfile_index, argfile) = args
-    datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d
-                   for d in datasources]
+    datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in datasources]
+    
     outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
-    pool_id = _make_id()
-    caller_id = uuid.uuid4().hex
-    cmd = command + _options_for_custom_executor(options,
-                                                 outs_dir,
-                                                 suite_name,
-                                                 argfile,
-                                                 caller_id) + datasources
-    cmd = [c if not any(bad in c for bad in _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE) else '"%s"' % c for c in cmd]
     os.makedirs(outs_dir)
+    
+    caller_id = uuid.uuid4().hex
+    cmd = command + _options_for_custom_executor(options, outs_dir, suite_name, argfile, caller_id) + datasources        
+    cmd = _mapOptionalQuote(cmd)
+    _try_execute_and_wait(cmd, outs_dir,suite_name, verbose, _make_id(), caller_id)
+    outputxml_preprocessing(options, outs_dir, suite_name, verbose,  _make_id(), caller_id)
+
+def _try_execute_and_wait(cmd, outs_dir, suite_name, verbose, pool_id, caller_id):
     try:
-        with open(os.path.join(outs_dir, 'stdout.txt'), 'w') as stdout:
-            with open(os.path.join(outs_dir, 'stderr.txt'), 'w') as stderr:
+        with open(os.path.join(outs_dir, cmd[0]+'_stdout.txt'), 'w') as stdout:
+            with open(os.path.join(outs_dir,cmd[0]+'_stderr.txt'), 'w') as stderr:
                 process, (rc, elapsed) = _run(cmd, stderr, stdout, suite_name, verbose, pool_id)
     except:
         print(sys.exc_info()[0])
@@ -141,6 +145,27 @@ def execute_and_wait_with(args):
             Remote(_PABOTLIBURI).run_keyword('release_locks', [caller_id], {})
     else:
         _write_with_id(process, pool_id, _execution_passed_message(suite_name, stdout, stderr, elapsed, verbose), Color.GREEN)
+
+        
+# optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
+def outputxml_preprocessing(options, outs_dir, suite_name, verbose, pool_id, caller_id):
+    try:
+        #print("debug preprocess options="+str(options))
+        rk = options['removekeywords']
+        fk = options['flattenkeywords']
+        #print("debug preprocess rk="+str(rk)+"  fk="+str(fk))
+        if not rk and not fk: return  #  => no preprocessing needed if no removekeywords or flattenkeywords present
+        rkargs = []
+        fkargs =  []
+        for k in rk: rkargs+=['--removekeywords',k]
+        for k in fk: fkargs+=['--flattenkeywords',k]
+        outputxmlfile = os.path.join(outs_dir, 'output.xml')
+        cmd = ['rebot', '--log', 'NONE', '--report', 'NONE', '--xunit', 'NONE', '--consolecolors', 'off', '--NoStatusRC']+rkargs+fkargs+['--output', outputxmlfile, outputxmlfile]
+        cmd = _mapOptionalQuote(cmd)
+        
+        _try_execute_and_wait(cmd, outs_dir, 'preprocessing output.xml on ' + suite_name, verbose,  _make_id(), caller_id)
+    except:
+        print(sys.exc_info())
 
 
 def _write_with_id(process, pool_id, message, color=None, timestamp=None):
@@ -171,7 +196,7 @@ def _run(cmd, stderr, stdout, suite_name, verbose, pool_id):
                                    stderr=stderr,
                                    stdout=stdout)
     if verbose:
-        _write_with_id(process, pool_id, 'EXECUTING PARALLEL SUITE %s with command:\n%s' % (suite_name, cmd),timestamp=timestamp)
+        _write_with_id(process, pool_id, 'EXECUTING PARALLEL %s with command:\n%s' % (suite_name, cmd),timestamp=timestamp)
     else:
         _write_with_id(process, pool_id, 'EXECUTING %s' % suite_name, timestamp=timestamp)
     return process, _wait_for_return_code(process, suite_name, pool_id)
