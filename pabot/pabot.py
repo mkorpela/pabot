@@ -168,7 +168,7 @@ def outputxml_preprocessing(options, outs_dir, suite_name, verbose, pool_id, cal
         _try_execute_and_wait(cmd, outs_dir, 'preprocessing output.xml on ' + suite_name, verbose,  pool_id, caller_id)
         newsize = os.path.getsize(outputxmlfile)
         perc = 100*newsize/oldsize
-        if verbose: _write("%s [main] [%s] Filesize reduced from %s to %s (%s%%) for file %s" % (datetime.datetime.now(), pool_id, oldsize, newsize, perc, outputxmlfile))
+        if verbose: _write("%s [main] [%s] Filesize reduced from %s to %s (%0.2f%%) for file %s" % (datetime.datetime.now(), pool_id, oldsize, newsize, perc, outputxmlfile))
     except:
         print(sys.exc_info())
 
