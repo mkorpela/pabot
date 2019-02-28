@@ -160,10 +160,15 @@ def outputxml_preprocessing(options, outs_dir, suite_name, verbose, pool_id, cal
         for k in rk: rkargs+=['--removekeywords',k]
         for k in fk: fkargs+=['--flattenkeywords',k]
         outputxmlfile = os.path.join(outs_dir, 'output.xml')
+        oldsize = os.path.getsize(outputxmlfile)
         cmd = ['rebot', '--log', 'NONE', '--report', 'NONE', '--xunit', 'NONE', '--consolecolors', 'off', '--NoStatusRC']+rkargs+fkargs+['--output', outputxmlfile, outputxmlfile]
         cmd = _mapOptionalQuote(cmd)
         
-        _try_execute_and_wait(cmd, outs_dir, 'preprocessing output.xml on ' + suite_name, verbose,  _make_id(), caller_id)
+        pool_id = _make_id()
+        _try_execute_and_wait(cmd, outs_dir, 'preprocessing output.xml on ' + suite_name, verbose,  pool_id, caller_id)
+        newsize = os.path.getsize(outputxmlfile)
+        perc = 100*newsize/oldsize
+        if verbose: _write("%s [main] [%s] Filesize reduced from %s to %s (%s%%) for file %s" % (datetime.datetime.now(), pool_id, oldsize, newsize, perc, outputxmlfile))
     except:
         print(sys.exc_info())
 
