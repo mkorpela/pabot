@@ -246,7 +246,7 @@ class PabotLib(_PabotLib):
             try:
                 while True:
                     value = self._remotelib.run_keyword('acquire_value_set',
-                                                        [self._my_id]+list(*tags), {})
+                                                        [self._my_id]+list(tags), {})
                     if value:
                         logger.info('Value set "%s" acquired' % value)
                         return value
