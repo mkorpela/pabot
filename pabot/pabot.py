@@ -101,6 +101,7 @@ _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # doe
 _BAD_CHARS_SET = set(_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE)
 
 _ROBOT_EXTENSIONS = ['.html', '.htm', '.xhtml', '.tsv', '.rst', '.rest', '.txt', '.robot']
+_ALL_ELAPSED = []
 
 class Color:
     SUPPORTED_OSES = ['posix']
@@ -139,6 +140,8 @@ def _try_execute_and_wait(cmd, outs_dir, suite_name, verbose, pool_id, caller_id
                 process, (rc, elapsed) = _run(cmd, stderr, stdout, suite_name, verbose, pool_id)
     except:
         print(sys.exc_info()[0])
+    # Thread-safe list append
+    _ALL_ELAPSED.append(elapsed)
     if rc != 0:
         _write_with_id(process, pool_id, _execution_failed_message(suite_name, stdout, stderr, rc, verbose), Color.RED)
         if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
@@ -767,19 +770,26 @@ def _now():
 
 
 def _print_elapsed(start, end):
-    _write('Elapsed time: ' + _elapsed(start, end))
+    _write('Total testing: ' + _time_string(sum(_ALL_ELAPSED)) + '\nElapsed time:  ' + _time_string(end-start))
 
-def _elapsed(start, end):
-    elapsed = end - start
-    millis = int((elapsed * 1000) % 1000)
+def _time_string(elapsed):
+    millis = int((elapsed * 100) % 100)
     seconds = int(elapsed) % 60
     elapsed_minutes = (int(elapsed) - seconds) / 60
     minutes = elapsed_minutes % 60
     elapsed_hours = (elapsed_minutes - minutes) / 60
     elapsed_string = ''
     if elapsed_hours > 0:
-        elapsed_string += '%d hours ' % elapsed_hours
-    return elapsed_string + '%d minutes %d.%d seconds' % (minutes, seconds, millis)
+        plural = ''
+        if elapsed_hours > 1:
+            plural = 's'
+        elapsed_string += ('%d hour' % elapsed_hours) +plural + ' '
+    if minutes > 0:
+        plural = ''
+        if minutes > 1:
+            plural = 's'
+        elapsed_string += ('%d minute' % minutes) + plural + ' '
+    return elapsed_string + '%d.%d seconds' % (seconds, millis)
 
 
 def keyboard_interrupt(*args):
