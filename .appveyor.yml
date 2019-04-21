@@ -48,10 +48,7 @@ build_script:
 
 test_script:
   # Run the project tests and store results in .xml log
-  - ps: |
-      # this produces nosetests.xml which is uploaded on_finish
-      &$env:PYTHON\python setup.py nosetests --with-xunit
-      if ($LastExitCode -ne 0) { $host.SetShouldExit($LastExitCode) }
+  - "nosetests tests"
       
 after_test:
   # If tests are successful, create binary packages for the project.
