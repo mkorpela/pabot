@@ -416,12 +416,14 @@ def hash_directory(digest, path):
         get_hash_of_file(path, digest)
         return
     for root, _, files in os.walk(path):
-        for names in sorted(files):
-            file_path = os.path.join(root, names)
+        for name in sorted(files):
+            file_path = os.path.join(root, name)
             if os.path.isfile(file_path) and \
                 any(file_path.endswith(p) for p in _ROBOT_EXTENSIONS):
                 print("DIGESTING %r" % file_path)
-                digest.update(hashlib.sha1(file_path[len(path):].encode()).digest())
+                digest.update(hashlib.sha1(root.encode()).digest())
+                # DO THESE IN TWO PHASES BECAUSE SEPARATOR DIFFERS IN DIFFERENT OS
+                digest.update(hashlib.sha1(name.encode()).digest())
                 get_hash_of_file(file_path, digest)
 
 def get_hash_of_file(filename, digest):
