@@ -1,0 +1,16 @@
+language: python
+sudo: required
+dist: xenial
+python:
+  - "3.7"
+  # command to install dependencies
+install:
+  - "pip install nose-cov"
+  - "pip install tissue"
+  - "pip install coveralls"
+  - "pip install ."
+  # command to run tests
+script:
+  - nosetests --with-cov --cov=pabot --cov-report term-missing
+after_success:
+  - coveralls
