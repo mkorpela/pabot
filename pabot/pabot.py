@@ -411,6 +411,7 @@ def _delete_none_keys(d):
 
 def hash_directory(digest, path):
     if os.path.isfile(path):
+        print("IS FILE %r" % path)
         digest.update(hashlib.sha1(path.encode()).digest())
         get_hash_of_file(path, digest)
         return
@@ -419,11 +420,13 @@ def hash_directory(digest, path):
             file_path = os.path.join(root, names)
             if os.path.isfile(file_path) and \
                 any(file_path.endswith(p) for p in _ROBOT_EXTENSIONS):
+                print("DIGESTING %r" % file_path)
                 digest.update(hashlib.sha1(file_path[len(path):].encode()).digest())
                 get_hash_of_file(file_path, digest)
 
 def get_hash_of_file(filename, digest):
     if not os.path.isfile(filename):
+        print("IS NOT FILE %r" % filename)
         return
     with open(filename, 'rb') as f_obj:
         while True:
@@ -433,10 +436,13 @@ def get_hash_of_file(filename, digest):
             digest.update(buf)
 
 def get_hash_of_dirs(directories):
+    print("GET HASH OF DIRS %r" % directories)
     digest = hashlib.sha1()
     for directory in directories:
         hash_directory(digest, directory)
-    return digest.hexdigest()
+    hexis = digest.hexdigest()
+    print("HEX IS %r" % hexis)
+    return hexis
 
 IGNORED_OPTIONS = [
     "pythonpath",

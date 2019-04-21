@@ -50,8 +50,8 @@ build_script:
   - "pip install ."
 
 test_script:
-  # Run the project tests and store results in .xml log
-  - "nosetests tests"
+  # Run the project tests
+  - "nosetests --verbosity=3 tests"
       
 after_test:
   # If tests are successful, create binary packages for the project.
