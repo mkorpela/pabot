@@ -42,10 +42,6 @@ install:
   # about it being out of date.
   - "python -m pip install --upgrade pip"
 
-build_script:
-  # Build the compiled extension
-  - "%CMD_IN_ENV% python setup.py build"
-
 test_script:
   # Run the project tests and store results in .xml log
   - ps: |
