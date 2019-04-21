@@ -3,7 +3,8 @@
 [![Build Status](https://travis-ci.org/mkorpela/pabot.svg?branch=master)](https://travis-ci.org/mkorpela/pabot)
 [![Downloads](http://pepy.tech/badge/robotframework-pabot)](http://pepy.tech/project/robotframework-pabot)
 [![Version](https://img.shields.io/pypi/v/robotframework-pabot.svg)](https://pypi.python.org/pypi/robotframework-pabot)
-[![HitCount](http://hits.dwyl.io/mkorpela/pabot.svg)](http://hits.dwyl.io/mkorpela/pabot)
+[![Build status](https://ci.appveyor.com/api/projects/status/5g52rkflbtfw2anb/branch/master?svg=true)](https://ci.appveyor.com/project/mkorpela/pabot/branch/master)
+
 
 <img src="https://raw.githubusercontent.com/mkorpela/pabot/master/pabot.png" width="100">
 
