@@ -1,2 +1,18 @@
-[Set]
+[MyValueSet]
+key = someval
+commonval = false
+MYSTUFF=FromSet
+
+[TestSystemWithLasers]
+tags = laser,commontag
+key = someval
+noise = zapp
+commonval = true
+MYSTUFF=FromSet
+
+[TestSystemWithTachyonCannon]
+tags = tachyon,commontag
+key = someval
+noise = zump
+commonval = true
 MYSTUFF=FromSet
