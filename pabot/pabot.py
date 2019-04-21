@@ -767,6 +767,9 @@ def _now():
 
 
 def _print_elapsed(start, end):
+    _write('Elapsed time: ' + _elapsed(start, end))
+
+def _elapsed(start, end):
     elapsed = end - start
     millis = int((elapsed * 1000) % 1000)
     seconds = int(elapsed) % 60
@@ -776,8 +779,7 @@ def _print_elapsed(start, end):
     elapsed_string = ''
     if elapsed_hours > 0:
         elapsed_string += '%d hours ' % elapsed_hours
-    elapsed_string += '%d minutes %d.%d seconds' % (minutes, seconds, millis)
-    _write('Elapsed time: ' + elapsed_string)
+    return elapsed_string + '%d minutes %d.%d seconds' % (minutes, seconds, millis)
 
 
 def keyboard_interrupt(*args):
