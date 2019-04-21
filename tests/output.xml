@@ -81,7 +81,7 @@ Connection to remote server broken: [Errno 61] Connection refused</status>
 <status status="FAIL" endtime="20181014 13:30:07.482" starttime="20181014 13:30:07.452">Suite setup failed:
 Connection to remote server broken: [Errno 61] Connection refused</status>
 </suite>
-<suite source="/Users/mkorpela/workspace/pabot/tests/fixtures/suite&amp;(specia|)chars.robot" id="s1-s3" name="Suite&amp;(Specia|)Chars">
+<suite source="/Users/mkorpela/workspace/pabot/tests/fixtures/suite&amp;(specia|)chars.robot" id="s1-s3" name="Suite Special">
 <test id="s1-s3-t1" name="Passing test Case">
 <kw name="Log" library="BuiltIn">
 <doc>Logs the given message with the given level.</doc>
@@ -108,7 +108,7 @@ Connection to remote server broken: [Errno 61] Connection refused</status>
 <stat fail="7" id="s1" name="Fixtures" pass="1">Fixtures</stat>
 <stat fail="4" id="s1-s1" name="Suite One" pass="0">Fixtures.Suite One</stat>
 <stat fail="3" id="s1-s2" name="Suite Second" pass="0">Fixtures.Suite Second</stat>
-<stat fail="0" id="s1-s3" name="Suite&amp;(Specia|)Chars" pass="1">Fixtures.Suite&amp;(Specia|)Chars</stat>
+<stat fail="0" id="s1-s3" name="Suite Special" pass="1">Fixtures.Suite Special</stat>
 </suite>
 </statistics>
 <errors>
