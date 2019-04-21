@@ -20,6 +20,13 @@ class PabotTests(unittest.TestCase):
                                                                                 'tests/valueset.dat',
                                                                                 'tests/fixtures'])
         self._outs_dir = pabot._output_dir(self._options)
+        self._all_suites = [
+        'Fixtures.Suite One', 
+        'Fixtures.Suite Second',
+        'Fixtures.Suite With Valueset Tags',
+        'Fixtures.Suite&(Specia|)Chars'
+        ]
+        self._all_with_suites = ['--suite '+s for s in self._all_suites]
 
     def test_dryrun_optimisation_works(self):
         outs_dir = "."
@@ -102,37 +109,24 @@ class PabotTests(unittest.TestCase):
 
 
     def test_file_hash(self):
-        expected_hash = "66dca24a8ef0394c4fd193b8fdb24f02310e32b3"
+        expected_hash = "e63302d0853e678c67cf5e6fa4e78a1324553467"
         h1 = pabot._file_hash([
             "datasources:39ee116d505f0d9721cfa3e6600593465a67d74b",
             "commandlineoptions:97d170e1550eee4afc0af065b78cda302a97674c",
             "suitesfrom:no-suites-from-option",
-            "file:"+expected_hash,
-            "--suite Fixtures.Suite One",
-            "--suite Fixtures.Suite Second",
-            "--suite Fixtures.Suite&(Specia|)Chars"
-        ])
+            "file:"+expected_hash] + self._all_with_suites)
         self.assertEqual(h1, expected_hash)
         h2 = pabot._file_hash([
             "datasources:39ee116d505f0d9721cfa3e6600593465a67d74b",
             "commandlineoptions:97d170e1550eee4afc0af065b78cda302a97674c",
             "suitesfrom:no-suites-from-option",
-            "file:"+expected_hash,
-            "--suite Fixtures.Suite Second",
-            "--suite Fixtures.Suite One",
-            "--suite Fixtures.Suite&(Specia|)Chars"
-        ])
+            "file:"+expected_hash] + list(reversed(self._all_with_suites)))
         self.assertEqual(h1, h2)
         h3 = pabot._file_hash([
             "datasources:39ee116d505f0d9721cfa3e6600593465a67d74b",
             "commandlineoptions:97d170e1550eee4afc0af065b78cda302a97674c",
             "suitesfrom:no-suites-from-option",
-            "file:whatever",
-            "--suite Fixtures.Suite Second",
-            "--suite Fixtures.New Suite",
-            "--suite Fixtures.Suite One",
-            "--suite Fixtures.Suite&(Specia|)Chars"
-        ])
+            "file:whatever"] + self._all_with_suites + ["--suite Fixtures.New Suite"])
         self.assertNotEqual(h1, h3)
 
     def test_solve_suite_names_works_without_pabotsuitenames_file(self):
@@ -142,10 +136,7 @@ class PabotTests(unittest.TestCase):
                                               datasources=self._datasources,
                                               options=self._options,
                                               pabot_args=self._pabot_args)
-        self.assertEqual([['Fixtures.Suite One', 
-        'Fixtures.Suite Second', 
-        'Fixtures.Suite With Valueset Tags',
-        'Fixtures.Suite&(Specia|)Chars']],
+        self.assertEqual([self._all_suites],
                          suite_names)
         self.assertTrue(os.path.isfile(".pabotsuitenames"))
         expected = self._psuitenames(
@@ -153,10 +144,7 @@ class PabotTests(unittest.TestCase):
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
             'e63302d0853e678c67cf5e6fa4e78a1324553467',
-            '--suite Fixtures.Suite One',
-            '--suite Fixtures.Suite Second',
-            '--suite Fixtures.Suite With Valueset Tags',
-            '--suite Fixtures.Suite&(Specia|)Chars')
+            *self._all_with_suites)
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
         self.assertEqual(expected, actual)
@@ -587,10 +575,7 @@ class PabotTests(unittest.TestCase):
         self._pabot_args['pabotlibport'] = 4000+random.randint(0, 1000)
         lib_process = pabot._start_remote_library(self._pabot_args)
         try:
-            suite_names = ['Fixtures.Suite One',
-                        'Fixtures.Suite Second',
-                        'Fixtures.Suite With Valueset Tags',
-                        'Fixtures.Suite&(Specia|)Chars']
+            suite_names = self._all_suites[:]
             pabot._parallel_execute(datasources=self._datasources,
                                     options=self._options,
                                     outs_dir=outs_dir,
