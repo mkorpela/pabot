@@ -584,13 +584,14 @@ def _parse_line(text):
         return TestItem(text[7:])
     if text == "#WAIT":
         return WaitItem()
-    return text
+    # Assume old suite name
+    return SuiteItem(text)
 
 
 def _group_by_wait(lines):
     suites = [[]]
     for suite in lines:
-        if suite != '#WAIT':
+        if not suite.isWait:
             if suite:
                 suites[-1].append(suite)
         else:
@@ -608,6 +609,7 @@ def _regenerate(
     options,
     lines,
     hash_of_command):
+    assert(all(isinstance(s, ExecutionItem) for s in lines[4:]))
     if suitesfrom_hash != hash_of_suitesfrom \
         and 'suitesfrom' in pabot_args \
         and os.path.isfile(pabot_args['suitesfrom']):
