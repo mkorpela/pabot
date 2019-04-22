@@ -608,6 +608,7 @@ def _file_hash(lines):
 def store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suite_names):
     suite_lines = ['--suite '+suite_name if suite_name != '#WAIT' else '#WAIT'
                    for suite_name in suite_names]
+    _write("Storing .pabotsuitenames file")
     with open(".pabotsuitenames", "w") as suitenamesfile:
         suitenamesfile.write("datasources:"+hash_of_dirs+'\n')
         suitenamesfile.write("commandlineoptions:"+hash_of_command+'\n')
