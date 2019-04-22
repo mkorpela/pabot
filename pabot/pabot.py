@@ -121,37 +121,37 @@ def execute_and_wait_with(args):
         # Keyboard interrupt has happened!
         return
     time.sleep(0)
-    datasources, outs_dir, options, suite_name, command, verbose, (argfile_index, argfile) = args
+    datasources, outs_dir, options, execution_item, command, verbose, (argfile_index, argfile) = args
     datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in datasources]
     
-    outs_dir = os.path.join(outs_dir, argfile_index, suite_name)
+    outs_dir = os.path.join(outs_dir, argfile_index, execution_item.name)
     os.makedirs(outs_dir)
     
     caller_id = uuid.uuid4().hex
-    cmd = command + _options_for_custom_executor(options, outs_dir, suite_name, argfile, caller_id) + datasources        
+    cmd = command + _options_for_custom_executor(options, outs_dir, execution_item, argfile, caller_id) + datasources        
     cmd = _mapOptionalQuote(cmd)
-    _try_execute_and_wait(cmd, outs_dir,suite_name, verbose, _make_id(), caller_id)
-    outputxml_preprocessing(options, outs_dir, suite_name, verbose,  _make_id(), caller_id)
+    _try_execute_and_wait(cmd, outs_dir, execution_item.name, verbose, _make_id(), caller_id)
+    outputxml_preprocessing(options, outs_dir, execution_item.name, verbose,  _make_id(), caller_id)
 
-def _try_execute_and_wait(cmd, outs_dir, suite_name, verbose, pool_id, caller_id):
+def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id):
     try:
         with open(os.path.join(outs_dir, cmd[0]+'_stdout.txt'), 'w') as stdout:
             with open(os.path.join(outs_dir,cmd[0]+'_stderr.txt'), 'w') as stderr:
-                process, (rc, elapsed) = _run(cmd, stderr, stdout, suite_name, verbose, pool_id)
+                process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id)
     except:
         print(sys.exc_info()[0])
     # Thread-safe list append
     _ALL_ELAPSED.append(elapsed)
     if rc != 0:
-        _write_with_id(process, pool_id, _execution_failed_message(suite_name, stdout, stderr, rc, verbose), Color.RED)
+        _write_with_id(process, pool_id, _execution_failed_message(item_name, stdout, stderr, rc, verbose), Color.RED)
         if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
             Remote(_PABOTLIBURI).run_keyword('release_locks', [caller_id], {})
     else:
-        _write_with_id(process, pool_id, _execution_passed_message(suite_name, stdout, stderr, elapsed, verbose), Color.GREEN)
+        _write_with_id(process, pool_id, _execution_passed_message(item_name, stdout, stderr, elapsed, verbose), Color.GREEN)
 
         
 # optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
-def outputxml_preprocessing(options, outs_dir, suite_name, verbose, pool_id, caller_id):
+def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, caller_id):
     try:
         #print("debug preprocess options="+str(options))
         rk = options['removekeywords']
@@ -168,7 +168,7 @@ def outputxml_preprocessing(options, outs_dir, suite_name, verbose, pool_id, cal
         cmd = _mapOptionalQuote(cmd)
         
         pool_id = _make_id()
-        _try_execute_and_wait(cmd, outs_dir, 'preprocessing output.xml on ' + suite_name, verbose,  pool_id, caller_id)
+        _try_execute_and_wait(cmd, outs_dir, 'preprocessing output.xml on ' + item_name, verbose,  pool_id, caller_id)
         newsize = os.path.getsize(outputxmlfile)
         perc = 100*newsize/oldsize
         if verbose: _write("%s [main] [%s] Filesize reduced from %s to %s (%0.2f%%) for file %s" % (datetime.datetime.now(), pool_id, oldsize, newsize, perc, outputxmlfile))
@@ -190,7 +190,7 @@ def _make_id():
         return EXECUTION_POOL_IDS.index(thread_id)
 
 
-def _run(cmd, stderr, stdout, suite_name, verbose, pool_id):
+def _run(cmd, stderr, stdout, item_name, verbose, pool_id):
     timestamp = datetime.datetime.now()
     # isinstance(cmd,list)==True
     cmd = ' '.join(cmd)
@@ -204,13 +204,13 @@ def _run(cmd, stderr, stdout, suite_name, verbose, pool_id):
                                    stderr=stderr,
                                    stdout=stdout)
     if verbose:
-        _write_with_id(process, pool_id, 'EXECUTING PARALLEL %s with command:\n%s' % (suite_name, cmd),timestamp=timestamp)
+        _write_with_id(process, pool_id, 'EXECUTING PARALLEL %s with command:\n%s' % (item_name, cmd),timestamp=timestamp)
     else:
-        _write_with_id(process, pool_id, 'EXECUTING %s' % suite_name, timestamp=timestamp)
-    return process, _wait_for_return_code(process, suite_name, pool_id)
+        _write_with_id(process, pool_id, 'EXECUTING %s' % item_name, timestamp=timestamp)
+    return process, _wait_for_return_code(process, item_name, pool_id)
 
 
-def _wait_for_return_code(process, suite_name, pool_id):
+def _wait_for_return_code(process, item_name, pool_id):
     rc = None
     elapsed = 0
     ping_time = ping_interval = 150
@@ -223,7 +223,7 @@ def _wait_for_return_code(process, suite_name, pool_id):
             ping_time += ping_interval
             _write_with_id(process, pool_id, 'still running %s after %s seconds '
                                              '(next ping in %s seconds)'
-                           % (suite_name, elapsed / 10.0, ping_interval / 10.0))
+                           % (item_name, elapsed / 10.0, ping_interval / 10.0))
     return rc, elapsed / 10.0
 
 def _read_file(file_handle):
@@ -248,12 +248,12 @@ def _options_for_custom_executor(*args):
     return _options_to_cli_arguments(_options_for_executor(*args))
 
 
-def _options_for_executor(options, outs_dir, suite_name, argfile, caller_id):
+def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id):
     options = options.copy()
     options['log'] = 'NONE'
     options['report'] = 'NONE'
     options['xunit'] = 'NONE'
-    options['suite'] = suite_name
+    options[execution_item.type] = execution_item.name
     options['outputdir'] = outs_dir
     options['variable'] = options.get('variable')[:]
     options['variable'].append('CALLER_ID:%s' % caller_id)
@@ -503,12 +503,13 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                 suitesfrom_hash = None
                 file_hash = None
                 hash_of_file = None
-            corrupted = corrupted or any(not l.startswith('--suite ') and l != '#WAIT' for l in lines[4:])
-            lines = lines[:4]+[l[8:] if l.startswith('--suite ') else l for l in lines[4:]]
+            corrupted = corrupted or any(not l.startswith('--suite ') and
+                                        not l.startswith('--test ') and
+                                        l != '#WAIT' for l in lines[4:])
+            lines = lines[:4]+[_parse_line(l) for l in lines[4:]]
             if (corrupted or
             hash_suites != hash_of_dirs or 
             hash_command != hash_of_command or
-            file_hash != hash_of_file or
             suitesfrom_hash != hash_of_suitesfrom):
                 return _group_by_wait(_regenerate(suitesfrom_hash, 
                                         hash_of_suitesfrom,
@@ -523,6 +524,37 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         return _group_by_wait(lines[4:])
     except IOError:
         return  [generate_suite_names_with_dryrun(outs_dir, datasources, options)]
+
+
+class ExecutionItem(object):
+
+    def top_name(self):
+        return self.name.split('.')[0]
+
+
+class SuiteItem(ExecutionItem):
+
+    type = 'suite'
+
+    def __init__(self, text):
+        self.name = text[8:]
+
+
+class TestItem(ExecutionItem):
+
+    type = 'test'
+
+    def __init__(self, text):
+        self.name = text[7:]
+
+
+def _parse_line(text):
+    if text.startswith('--suite '):
+        return SuiteItem(text)
+    if text.startswith('--test '):
+        return TestItem(text)
+    return text
+
 
 def _group_by_wait(lines):
     suites = [[]]
@@ -555,6 +587,7 @@ def _regenerate(
             all_suites = [suite for suite in lines[4:] if suite]
         suites = _preserve_order(all_suites, suites) 
     else:
+        _write("HASH OF FILE PLAAH REGENERATE WITH DRYRUN")
         suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
         suites = _preserve_order(suites, [suite for suite in lines[4:] if suite])
     if suites:
@@ -959,7 +992,7 @@ def _stop_remote_library(process):
 
 
 def _get_suite_root_name(suite_names):
-    top_names = [x.split('.')[0] for group in suite_names for x in group]
+    top_names = [x.top_name() for group in suite_names for x in group]
     if top_names and top_names.count(top_names[0]) == len(top_names):
         return top_names[0]
     return ''
