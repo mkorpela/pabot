@@ -487,7 +487,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                         hash_of_command, 
                         hash_of_suitesfrom, 
                         suite_names)
-            return [[SuiteItem(s) for s in suite_names]]
+            return [suite_names]
         with open(".pabotsuitenames", "r") as suitenamesfile:
             lines = [line.strip() for line in suitenamesfile.readlines()]
             corrupted = len(lines) < 5
@@ -547,7 +547,11 @@ class SuiteItem(ExecutionItem):
     type = 'suite'
 
     def __init__(self, name):
+        assert(isinstance(name, str))
         self.name = name
+
+    def line(self):
+        return '--suite '+self.name 
 
 
 class TestItem(ExecutionItem):
@@ -557,6 +561,9 @@ class TestItem(ExecutionItem):
     def __init__(self, name):
         self.name = name
 
+    def line(self):
+        return '--test '+self.name
+
 
 class WaitItem(ExecutionItem):
 
@@ -565,6 +572,9 @@ class WaitItem(ExecutionItem):
 
     def __init__(self):
         self.name = "#WAIT"
+
+    def line(self):
+        return self.name
 
 
 def _parse_line(text):
@@ -612,7 +622,7 @@ def _regenerate(
         suites = _preserve_order(suites, [suite for suite in lines[4:] if suite])
     if suites:
         store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
-    return [SuiteItem(s) if s != "#WAIT" else s for s in suites]
+    return suites
 
 def _preserve_order(new_suites, old_suites):
     assert(all(isinstance(s, ExecutionItem) for s in new_suites))
@@ -661,8 +671,8 @@ def _file_hash(lines):
     return digest.hexdigest()
 
 def store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suite_names):
-    suite_lines = ['--suite '+suite_name if suite_name != '#WAIT' else '#WAIT'
-                   for suite_name in suite_names]
+    assert(all(isinstance(s, ExecutionItem) for s in suite_names))
+    suite_lines = [s.line() for s in suite_names]
     _write("Storing .pabotsuitenames file")
     with open(".pabotsuitenames", "w") as suitenamesfile:
         suitenamesfile.write("datasources:"+hash_of_dirs+'\n')
@@ -696,7 +706,7 @@ def generate_suite_names_with_dryrun(outs_dir, datasources, options):
             print("[STDERR] from suite search:")
             print(stderr_value)
             print("[STDERR] end")
-    return sorted(set(suite_names))
+    return [SuiteItem(s) for s in sorted(set(suite_names))]
 
 
 @contextmanager
@@ -787,7 +797,7 @@ def _suites_from_outputxml(outputxml):
     res = ExecutionResult(outputxml)
     suite_times = SuiteNotPassingsAndTimes()
     res.visit(suite_times)
-    return [suite for (_, _, suite) in reversed(sorted(suite_times.suites))]
+    return [SuiteItem(suite) for (_, _, suite) in reversed(sorted(suite_times.suites))]
 
 
 def _options_for_dryrun(options, outs_dir):
