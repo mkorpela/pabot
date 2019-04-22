@@ -503,8 +503,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                 suitesfrom_hash = None
                 file_hash = None
                 hash_of_file = None
-            if any(not l.startswith('--suite ') and l != '#WAIT' for l in lines[4:]):
-                corrupted = True
+            corrupted = corrupted or any(not l.startswith('--suite ') and l != '#WAIT' for l in lines[4:])
             lines = lines[:4]+[l[8:] if l.startswith('--suite ') else l for l in lines[4:]]
             if (corrupted or
             hash_suites != hash_of_dirs or 
