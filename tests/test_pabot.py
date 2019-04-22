@@ -573,7 +573,7 @@ class PabotTests(unittest.TestCase):
         self._pabot_args['pabotlibport'] = 4000+random.randint(0, 1000)
         lib_process = pabot._start_remote_library(self._pabot_args)
         try:
-            suite_names = self._all_suites[:]
+            suite_names = [pabot.SuiteItem(s) for s in self._all_suites]
             pabot._parallel_execute(datasources=self._datasources,
                                     options=self._options,
                                     outs_dir=outs_dir,
@@ -591,10 +591,13 @@ class PabotTests(unittest.TestCase):
             shutil.rmtree(dtemp)
 
     def test_suite_root_name(self):
-        self.assertEqual(pabot._get_suite_root_name([["Foo.Bar", "Foo.Zoo"], ["Foo.Boo"]]), "Foo")
-        self.assertEqual(pabot._get_suite_root_name([["Foo.Bar", "Foo.Zoo"], ["Boo"]]), "")
-        self.assertEqual(pabot._get_suite_root_name([["Bar", "Foo.Zoo"], ["Foo.Boo"]]), "")
-        self.assertEqual(pabot._get_suite_root_name([[]]), "")
+        s = pabot.SuiteItem
+        def t(l):
+            return [[s(i) for i in suites] for suites in l]
+        self.assertEqual(pabot._get_suite_root_name(t([["Foo.Bar", "Foo.Zoo"], ["Foo.Boo"]])), "Foo")
+        self.assertEqual(pabot._get_suite_root_name(t([["Foo.Bar", "Foo.Zoo"], ["Boo"]])), "")
+        self.assertEqual(pabot._get_suite_root_name(t([["Bar", "Foo.Zoo"], ["Foo.Boo"]])), "")
+        self.assertEqual(pabot._get_suite_root_name(t([[]])), "")
 
 if __name__ == '__main__':
     unittest.main()
