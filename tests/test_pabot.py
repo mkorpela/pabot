@@ -515,9 +515,9 @@ class PabotTests(unittest.TestCase):
 
     def test_solve_suite_names_with_corrupted_pabotsuitenames_file(self):
         pabotsuitenames_corrupted = self._psuitenames(
-            'd8ce00e244006f271e86b62cc14702b45caf6c8b',
-            '98e9291c98411e6583248f87168b79afdf76d064',
-            'no-suites-from-optiosn',
+            '4a1e9103a8b3239b18b63ebb8775b1ab2225f4b6',
+            '97d170e1550eee4afc0af065b78cda302a97674c',
+            'no-suites-from-option',
             '4f2fc7af25040e0f3b9e2681b84594ccb0cdf9e',
             '--suite Fixtures.Suite Special',
             '--suite NoneExisting',
