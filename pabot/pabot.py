@@ -506,7 +506,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
             corrupted = corrupted or any(not l.startswith('--suite ') and
                                         not l.startswith('--test ') and
                                         l != '#WAIT' for l in lines[4:])
-            lines = lines[:4]+[_parse_line(l) for l in lines[4:]]
+            execution_item_lines = [_parse_line(l) for l in lines[4:]]
             if (corrupted or
             hash_suites != hash_of_dirs or 
             hash_command != hash_of_command or
@@ -520,9 +520,9 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                                         outs_dir,
                                         datasources,
                                         options,
-                                        lines,
+                                        execution_item_lines,
                                         hash_of_command))
-        return _group_by_wait(lines[4:])
+        return _group_by_wait(execution_item_lines)
     except IOError:
         return  [generate_suite_names_with_dryrun(outs_dir, datasources, options)]
 
@@ -610,7 +610,7 @@ def _regenerate(
     options,
     lines,
     hash_of_command):
-    assert(all(isinstance(s, ExecutionItem) for s in lines[4:]))
+    assert(all(isinstance(s, ExecutionItem) for s in lines))
     if suitesfrom_hash != hash_of_suitesfrom \
         and 'suitesfrom' in pabot_args \
         and os.path.isfile(pabot_args['suitesfrom']):
@@ -618,11 +618,11 @@ def _regenerate(
         if hash_suites != hash_of_dirs:
             all_suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
         else:
-            all_suites = [suite for suite in lines[4:] if suite]
+            all_suites = [suite for suite in lines if suite]
         suites = _preserve_order(all_suites, suites) 
     else:
         suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
-        suites = _preserve_order(suites, [suite for suite in lines[4:] if suite])
+        suites = _preserve_order(suites, [suite for suite in lines if suite])
     if suites:
         store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
     assert(all(isinstance(s, ExecutionItem) for s in suites))
