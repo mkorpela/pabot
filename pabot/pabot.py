@@ -528,8 +528,18 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
 
 class ExecutionItem(object):
 
+    isWait = False
+
     def top_name(self):
         return self.name.split('.')[0]
+
+    def __eq__(self, other):
+        if isinstance(other, ExecutionItem):
+            return self.name == other.name and self.type == other.type
+        return NotImplemented
+
+    def __repr__(self):
+        return "<" + self.type + ":" + self.name + ">"
 
 
 class SuiteItem(ExecutionItem):
@@ -548,11 +558,22 @@ class TestItem(ExecutionItem):
         self.name = name
 
 
+class WaitItem(ExecutionItem):
+
+    type = "wait"
+    isWait = True
+
+    def __init__(self):
+        self.name = "#WAIT"
+
+
 def _parse_line(text):
     if text.startswith('--suite '):
         return SuiteItem(text[8:])
     if text.startswith('--test '):
         return TestItem(text[7:])
+    if text == "#WAIT":
+        return WaitItem()
     return text
 
 
@@ -598,32 +619,32 @@ def _preserve_order(new_suites, old_suites):
     assert(all(isinstance(s, ExecutionItem) for s in old_suites))
     old_suites = [suite for i, suite in enumerate(old_suites) 
                     if suite and
-                    (suite not in old_suites[i+1:] or suite == '#WAIT')]
+                    (suite not in old_suites[i+1:] or suite.isWait)]
     ignorable = []
     preserve = []
     for old_suite in old_suites:
         for s in new_suites:
-            if s.startswith(old_suite+"."):
+            if s.name.startswith(old_suite.name+"."):
                 preserve.append(old_suite)
                 ignorable.append(s)
-        if old_suite == '#WAIT':
+        if old_suite.isWait:
             preserve.append(old_suite)
     preserve = [s for s in preserve 
-        if not any([i for i in preserve if s.startswith(i + ".")])]
+        if not any([i for i in preserve if s.name.startswith(i.name + ".")])]
     exists_in_old_and_new = [s for s in old_suites
                 if (s in new_suites and s not in ignorable)
                 or s in preserve]
     doubles = []
     for i,(j,k) in enumerate(zip(exists_in_old_and_new, exists_in_old_and_new[1:])):
-        if j == '#WAIT' and k == j:
+        if j.isWait and k == j:
             doubles.append(i)
     for i in reversed(doubles):
         del exists_in_old_and_new[i]
-    if exists_in_old_and_new and exists_in_old_and_new[0] == '#WAIT':
+    if exists_in_old_and_new and exists_in_old_and_new[0].isWait:
         exists_in_old_and_new = exists_in_old_and_new[1:]
     exists_only_in_new = [s for s in new_suites
                 if s not in old_suites and s not in ignorable]
-    if not exists_only_in_new and exists_in_old_and_new and exists_in_old_and_new[-1] == '#WAIT':
+    if not exists_only_in_new and exists_in_old_and_new and exists_in_old_and_new[-1].isWait:
         exists_in_old_and_new = exists_in_old_and_new[:-1]
     return exists_in_old_and_new + exists_only_in_new
 
