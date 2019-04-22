@@ -594,6 +594,8 @@ def _regenerate(
     return [SuiteItem(s) if s != "#WAIT" else s for s in suites]
 
 def _preserve_order(new_suites, old_suites):
+    assert(all(isinstance(s, ExecutionItem) for s in new_suites))
+    assert(all(isinstance(s, ExecutionItem) for s in old_suites))
     old_suites = [suite for i, suite in enumerate(old_suites) 
                     if suite and
                     (suite not in old_suites[i+1:] or suite == '#WAIT')]
