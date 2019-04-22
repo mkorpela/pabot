@@ -346,11 +346,10 @@ class PabotTests(unittest.TestCase):
                                                   pabot_args=pabot_args)
         finally:
             os.rename("tests/output.xml.tmp", "tests/output.xml")
-        self.assertEqual([['Fixtures.Suite Second', 
+        self._assert_equal_names([['Fixtures.Suite Second', 
                             'Fixtures.Suite One',
                             'Fixtures.Suite Special',
-                            'Fixtures.Suite With Valueset Tags']],
-                         [s.name for s in suite_names])
+                            'Fixtures.Suite With Valueset Tags']], suite_names)
         expected = self._psuitenames(
             '4a1e9103a8b3239b18b63ebb8775b1ab2225f4b6',
             '97d170e1550eee4afc0af065b78cda302a97674c',
@@ -499,7 +498,7 @@ class PabotTests(unittest.TestCase):
                                             datasources=self._datasources,
                                             options=self._options,
                                             pabot_args=self._pabot_args)
-        self.assertEqual([
+        self._assert_equal_names([
             ['Fixtures.Suite Special'],
             ['Fixtures.Suite Second',
             'Fixtures.Suite One',
@@ -534,7 +533,7 @@ class PabotTests(unittest.TestCase):
                                             datasources=self._datasources,
                                             options=self._options,
                                             pabot_args=self._pabot_args)
-        self.assertEqual([[
+        self._assert_equal_names([[
             'Fixtures.Suite Special',
             'Fixtures.Suite Second',
             'Fixtures.Suite With Valueset Tags',

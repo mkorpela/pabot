@@ -591,7 +591,7 @@ def _regenerate(
         suites = _preserve_order(suites, [suite for suite in lines[4:] if suite])
     if suites:
         store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
-    return [SuiteItem(s) for s in suites]
+    return [SuiteItem(s) if s != "#WAIT" else s for s in suites]
 
 def _preserve_order(new_suites, old_suites):
     old_suites = [suite for i, suite in enumerate(old_suites) 
