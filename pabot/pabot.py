@@ -510,6 +510,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
             if (corrupted or
             hash_suites != hash_of_dirs or 
             hash_command != hash_of_command or
+            file_hash != hash_of_file or
             suitesfrom_hash != hash_of_suitesfrom):
                 return _group_by_wait(_regenerate(suitesfrom_hash, 
                                         hash_of_suitesfrom,
