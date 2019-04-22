@@ -487,7 +487,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                         hash_of_command, 
                         hash_of_suitesfrom, 
                         suite_names)
-            return [suite_names]
+            return [[SuiteItem(s) for s in suite_names]]
         with open(".pabotsuitenames", "r") as suitenamesfile:
             lines = [line.strip() for line in suitenamesfile.readlines()]
             corrupted = len(lines) < 5
@@ -536,23 +536,23 @@ class SuiteItem(ExecutionItem):
 
     type = 'suite'
 
-    def __init__(self, text):
-        self.name = text[8:]
+    def __init__(self, name):
+        self.name = name
 
 
 class TestItem(ExecutionItem):
 
     type = 'test'
 
-    def __init__(self, text):
-        self.name = text[7:]
+    def __init__(self, name):
+        self.name = name
 
 
 def _parse_line(text):
     if text.startswith('--suite '):
-        return SuiteItem(text)
+        return SuiteItem(text[8:])
     if text.startswith('--test '):
-        return TestItem(text)
+        return TestItem(text[7:])
     return text
 
 
@@ -587,12 +587,11 @@ def _regenerate(
             all_suites = [suite for suite in lines[4:] if suite]
         suites = _preserve_order(all_suites, suites) 
     else:
-        _write("HASH OF FILE PLAAH REGENERATE WITH DRYRUN")
         suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
         suites = _preserve_order(suites, [suite for suite in lines[4:] if suite])
     if suites:
         store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
-    return suites
+    return [SuiteItem(s) for s in suites]
 
 def _preserve_order(new_suites, old_suites):
     old_suites = [suite for i, suite in enumerate(old_suites) 
