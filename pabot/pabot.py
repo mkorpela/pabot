@@ -622,6 +622,7 @@ def _regenerate(
         suites = _preserve_order(suites, [suite for suite in lines[4:] if suite])
     if suites:
         store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
+    assert(all(isinstance(s, ExecutionItem) for s in suites))
     return suites
 
 def _preserve_order(new_suites, old_suites):

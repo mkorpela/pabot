@@ -169,8 +169,7 @@ class PabotTests(unittest.TestCase):
                                               datasources=self._datasources,
                                               options=self._options,
                                               pabot_args=self._pabot_args)
-        self.assertEqual([['Fixtures']],
-                         suite_names)
+        self._assert_equal_names([['Fixtures']], suite_names)
         expected = self._psuitenames(
             '4a1e9103a8b3239b18b63ebb8775b1ab2225f4b6',
             '97d170e1550eee4afc0af065b78cda302a97674c',
@@ -269,7 +268,7 @@ class PabotTests(unittest.TestCase):
                                                   datasources=self._datasources,
                                                   options=self._options,
                                                   pabot_args=pabot_args)
-        self.assertEqual([['Fixtures.Suite Second', 
+        self._assert_equal_names([['Fixtures.Suite Second', 
                           'Fixtures.Suite One',
                           'Fixtures.Suite Special']],
                          suite_names)
@@ -558,7 +557,7 @@ class PabotTests(unittest.TestCase):
                                                 datasources=self._datasources,
                                                 options=self._options,
                                                 pabot_args=self._pabot_args)
-            self.assertEqual([self._all_suites], suite_names)
+            self._assert_equal_names([self._all_suites], suite_names)
         finally:
             os.rmdir(".pabotsuitenames")
 
