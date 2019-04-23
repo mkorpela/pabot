@@ -644,7 +644,13 @@ def _regenerate(
         suites = _preserve_order(all_suites, suites) 
     else:
         suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
-        suites = _preserve_order(suites, [suite for suite in lines if suite])
+        if pabot_args.get('testlevelsplit'):
+            tests = []
+            for s in suites:
+                tests.extend(s.tests)
+            suites = tests
+        else:
+            suites = _preserve_order(suites, [suite for suite in lines if suite])
     if suites:
         store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
     assert(all(isinstance(s, ExecutionItem) for s in suites))

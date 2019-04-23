@@ -268,6 +268,33 @@ class PabotTests(unittest.TestCase):
             actual = f.readlines()
         self.assertEqual(expected, actual)
 
+    def test_solve_suite_names_with_testlevelsplit_option_added(self):
+        pabotsuitenames = self._psuitenames(
+            '4a1e9103a8b3239b18b63ebb8775b1ab2225f4b6',
+            '97d170e1550eee4afc0af065b78cda302a97674c',
+            'no-suites-from-option',
+            '075734d97edbd5237f241dfd3f18177d2c80b3be',
+            *self._all_with_suites)
+        with open(".pabotsuitenames", "w") as f:
+            f.writelines(pabotsuitenames)
+        pabot_args = dict(self._pabot_args)
+        pabot_args["testlevelsplit"] = True
+        test_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                              datasources=self._datasources,
+                                              options=self._options,
+                                              pabot_args=pabot_args)
+        self._assert_equal_names([self._all_tests], test_names)
+        expected = self._psuitenames(
+            '4a1e9103a8b3239b18b63ebb8775b1ab2225f4b6',
+            '65f95c924ba97541f47949701c4e3c51192a5b43',
+            'no-suites-from-option',
+            'bd508554b025a8a2402849484c04bb169d7d4866',
+            *self._all_with_tests
+            )
+        with open(".pabotsuitenames", "r") as f:
+            actual = f.readlines()
+        self.assertEqual(expected, actual)
+
     def test_solve_suite_names_works_with_suitesfrom_option(self):
         if os.path.isfile(".pabotsuitenames"):
             os.remove(".pabotsuitenames")
