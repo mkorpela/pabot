@@ -30,6 +30,9 @@ options (these must be before normal RF options):
 --processes [NUMBER OF PROCESSES]
   How many parallel executors to use (default max of 2 and cpu count)
 
+--testlevelsplit
+  Split execution on test level instead of default suite level.
+
 --resourcefile [FILEPATH]
   Indicator for a file that can contain shared variables for
   distributing resources.
@@ -333,6 +336,7 @@ def _parse_args(args):
                   'verbose': False,
                   'tutorial': False,
                   'help': False,
+                  'testlevelsplit': False,
                   'pabotlib': False,
                   'pabotlibhost': '127.0.0.1',
                   'pabotlibport': 8270,
@@ -343,6 +347,7 @@ def _parse_args(args):
                                                            'verbose',
                                                            'tutorial',
                                                            'resourcefile',
+                                                           'testlevelsplit',
                                                            'pabotlib',
                                                            'pabotlibhost',
                                                            'pabotlibport',
@@ -364,6 +369,9 @@ def _parse_args(args):
             args = args[2:]
         if args[0] == '--pabotlib':
             pabot_args['pabotlib'] = True
+            args = args[1:]
+        if args[0] == '--testlevelsplit':
+            pabot_args['testlevelsplit'] = True
             args = args[1:]
         if args[0] == '--pabotlibhost':
             pabot_args['pabotlibhost'] = args[1]
