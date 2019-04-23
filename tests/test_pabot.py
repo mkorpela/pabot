@@ -27,6 +27,21 @@ class PabotTests(unittest.TestCase):
         'Fixtures.Suite With Valueset Tags',
         ]
         self._all_with_suites = ['--suite '+s for s in self._all_suites]
+        self._all_tests = [
+            'Fixtures.Suite One.1.1 Test Case One',
+            'Fixtures.Suite One.1.2 Test Case Two',
+            'Fixtures.Suite One.1.3 Test Value Set',
+            'Fixtures.Suite One.1.4 Testing arg file',
+            'Fixtures.Suite Second.Testing Case One of Second',
+            'Fixtures.Suite Second.Testing Case One and a half Of Second',
+            'Fixtures.Suite Second.Testing Case Two of Second',
+            'Fixtures.Suite Special.Passing test Case',
+            'Fixtures.Suite With Valueset Tags.Laser value set',
+            'Fixtures.Suite With Valueset Tags.Tachyon value set',
+            'Fixtures.Suite With Valueset Tags.Common value set',
+            'Fixtures.Suite With Valueset Tags.None existing'
+        ]
+        self._all_with_tests = ['--test '+t for t in self._all_tests]
 
     def test_dryrun_optimisation_works(self):
         outs_dir = "."
@@ -241,38 +256,13 @@ class PabotTests(unittest.TestCase):
                                               datasources=self._datasources,
                                               options=self._options,
                                               pabot_args=pabot_args)
-        self._assert_equal_names([[
-            'Fixtures.Suite One.1.1 Test Case One',
-            'Fixtures.Suite One.1.2 Test Case Two',
-            'Fixtures.Suite One.1.3 Test Value Set',
-            'Fixtures.Suite One.1.4 Testing arg file',
-            'Fixtures.Suite Second.Testing Case One of Second',
-            'Fixtures.Suite Second.Testing Case One and a half Of Second',
-            'Fixtures.Suite Second.Testing Case Two of Second',
-            'Fixtures.Suite Special.Passing test Case',
-            'Fixtures.Suite With Valueset Tags.Laser value set',
-            'Fixtures.Suite With Valueset Tags.Tachyon value set',
-            'Fixtures.Suite With Valueset Tags.Common value set',
-            'Fixtures.Suite With Valueset Tags.None existing'
-            ]],
-            test_names)
+        self._assert_equal_names([self._all_tests], test_names)
         expected = self._psuitenames(
             '4a1e9103a8b3239b18b63ebb8775b1ab2225f4b6',
             '65f95c924ba97541f47949701c4e3c51192a5b43',
             'no-suites-from-option',
             'bd508554b025a8a2402849484c04bb169d7d4866',
-            '--test Fixtures.Suite One.1.1 Test Case One',
-            '--test Fixtures.Suite One.1.2 Test Case Two',
-            '--test Fixtures.Suite One.1.3 Test Value Set',
-            '--test Fixtures.Suite One.1.4 Testing arg file',
-            '--test Fixtures.Suite Second.Testing Case One of Second',
-            '--test Fixtures.Suite Second.Testing Case One and a half Of Second',
-            '--test Fixtures.Suite Second.Testing Case Two of Second',
-            '--test Fixtures.Suite Special.Passing test Case',
-            '--test Fixtures.Suite With Valueset Tags.Laser value set',
-            '--test Fixtures.Suite With Valueset Tags.Tachyon value set',
-            '--test Fixtures.Suite With Valueset Tags.Common value set',
-            '--test Fixtures.Suite With Valueset Tags.None existing'
+            *self._all_with_tests
             )
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
