@@ -46,6 +46,7 @@ class PabotTests(unittest.TestCase):
              '--processes', '12',
              '--verbose',
              '--resourcefile', 'resourcefile.ini',
+             '--testlevelsplit',
              '--pabotlib',
              '--pabotlibhost', '123.123.233.123',
              '--pabotlibport', '4562',
@@ -64,6 +65,7 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(pabot_args['argumentfiles'], [('1', 'argfile1.txt'), ('2', 'argfile2.txt')])
         self.assertEqual(options['outputdir'], 'myoutputdir')
         self.assertFalse('outputdir' in options_for_subprocesses)
+        self.assertTrue(pabot_args['testlevelsplit'])
         self.assertEqual(datasources, ['suite'])
 
     def test_start_and_stop_remote_library(self):
