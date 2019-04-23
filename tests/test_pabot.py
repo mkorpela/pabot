@@ -85,16 +85,20 @@ class PabotTests(unittest.TestCase):
         self.assertTrue(lib_process.poll() == 0)
 
     def test_hash_of_command(self):
-        h1 = pabot.get_hash_of_command({})
-        h2 = pabot.get_hash_of_command({"key":"value"})
-        h3 = pabot.get_hash_of_command({"key2": [], "key":"value"})
-        h4 = pabot.get_hash_of_command({"pythonpath":"foobarzoo", "key":"value"})
-        h5 = pabot.get_hash_of_command({"key":"value", "key2": "value2"})
+        h1 = pabot.get_hash_of_command({}, {})
+        h2 = pabot.get_hash_of_command({"key":"value"}, {})
+        h3 = pabot.get_hash_of_command({"key2": [], "key":"value"}, {})
+        h4 = pabot.get_hash_of_command({"pythonpath":"foobarzoo", "key":"value"}, {})
+        h5 = pabot.get_hash_of_command({"key":"value", "key2": "value2"}, {})
+        h6 = pabot.get_hash_of_command({"key":"value", "key2": "value2"}, {"foo":"bar"})
+        h7 = pabot.get_hash_of_command({"key":"value", "key2": "value2"}, {"testlevelsplit":True})
         self.assertEqual("97d170e1550eee4afc0af065b78cda302a97674c", h1)
         self.assertNotEqual(h1, h2)
         self.assertEqual(h2, h3)
         self.assertEqual(h2, h4)
         self.assertNotEqual(h2, h5)
+        self.assertEqual(h5, h6)
+        self.assertNotEqual(h6, h7)
 
     def test_hash_of_dirs(self):
         test_dir = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -227,6 +231,33 @@ class PabotTests(unittest.TestCase):
 
     def test_suite_ordering_removes_old_duplicate(self):
         self._test_preserve_order(['a'], ['a'], ['a', 'a'])
+
+    def test_solve_suite_names_with_testlevelsplit_option(self):
+        if os.path.isfile(".pabotsuitenames"):
+            os.remove(".pabotsuitenames")
+        pabot_args = dict(self._pabot_args)
+        pabot_args["testlevelsplit"] = True
+        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                              datasources=self._datasources,
+                                              options=self._options,
+                                              pabot_args=pabot_args)
+        self._assert_equal_names([['Fixtures.Suite One',
+                                    'Fixtures.Suite Second',
+                                    'Fixtures.Suite Special',
+                                    'Fixtures.Suite With Valueset Tags']],
+                         suite_names)
+        expected = self._psuitenames(
+            '4a1e9103a8b3239b18b63ebb8775b1ab2225f4b6',
+            '65f95c924ba97541f47949701c4e3c51192a5b43',
+            'no-suites-from-option',
+            '882800044a3d2572abde6a1e34c7dde8918a8b18',
+            '--suite Fixtures.Suite One',
+            '--suite Fixtures.Suite Second',
+            '--suite Fixtures.Suite Special',
+            '--suite Fixtures.Suite With Valueset Tags')
+        with open(".pabotsuitenames", "r") as f:
+            actual = f.readlines()
+        self.assertEqual(expected, actual)
 
     def test_solve_suite_names_works_with_suitesfrom_option(self):
         if os.path.isfile(".pabotsuitenames"):

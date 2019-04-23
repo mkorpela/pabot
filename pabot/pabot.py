@@ -467,19 +467,21 @@ IGNORED_OPTIONS = [
     "tagdoc"
 ]
 
-def get_hash_of_command(options):
+def get_hash_of_command(options, pabot_args):
     digest = hashlib.sha1()
     hopts = dict(options)
     for option in options:
         if (option in IGNORED_OPTIONS or
             options[option] == []):
             del hopts[option]
+    if pabot_args.get('testlevelsplit'):
+        hopts['testlevelsplit'] = True
     digest.update(repr(sorted(hopts.items())).encode("utf-8"))
     return digest.hexdigest()
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
     hash_of_dirs = get_hash_of_dirs(datasources)
-    hash_of_command = get_hash_of_command(options)
+    hash_of_command = get_hash_of_command(options, pabot_args)
     hash_of_suitesfrom = "no-suites-from-option"
     if "suitesfrom" in pabot_args:
         digest = hashlib.sha1()
