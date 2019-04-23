@@ -237,24 +237,43 @@ class PabotTests(unittest.TestCase):
             os.remove(".pabotsuitenames")
         pabot_args = dict(self._pabot_args)
         pabot_args["testlevelsplit"] = True
-        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
+        test_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
                                               datasources=self._datasources,
                                               options=self._options,
                                               pabot_args=pabot_args)
-        self._assert_equal_names([['Fixtures.Suite One',
-                                    'Fixtures.Suite Second',
-                                    'Fixtures.Suite Special',
-                                    'Fixtures.Suite With Valueset Tags']],
-                         suite_names)
+        self._assert_equal_names([[
+            'Fixtures.Suite One.1.1 Test Case One',
+            'Fixtures.Suite One.1.2 Test Case Two',
+            'Fixtures.Suite One.1.3 Test Value Set',
+            'Fixtures.Suite One.1.4 Testing arg file',
+            'Fixtures.Suite Second.Testing Case One of Second',
+            'Fixtures.Suite Second.Testing Case One and a half Of Second',
+            'Fixtures.Suite Second.Testing Case Two of Second',
+            'Fixtures.Suite Special.Passing test Case',
+            'Fixtures.Suite With Valueset Tags.Laser value set',
+            'Fixtures.Suite With Valueset Tags.Tachyon value set',
+            'Fixtures.Suite With Valueset Tags.Common value set',
+            'Fixtures.Suite With Valueset Tags.None existing'
+            ]],
+            test_names)
         expected = self._psuitenames(
             '4a1e9103a8b3239b18b63ebb8775b1ab2225f4b6',
             '65f95c924ba97541f47949701c4e3c51192a5b43',
             'no-suites-from-option',
-            '882800044a3d2572abde6a1e34c7dde8918a8b18',
-            '--suite Fixtures.Suite One',
-            '--suite Fixtures.Suite Second',
-            '--suite Fixtures.Suite Special',
-            '--suite Fixtures.Suite With Valueset Tags')
+            'bd508554b025a8a2402849484c04bb169d7d4866',
+            '--test Fixtures.Suite One.1.1 Test Case One',
+            '--test Fixtures.Suite One.1.2 Test Case Two',
+            '--test Fixtures.Suite One.1.3 Test Value Set',
+            '--test Fixtures.Suite One.1.4 Testing arg file',
+            '--test Fixtures.Suite Second.Testing Case One of Second',
+            '--test Fixtures.Suite Second.Testing Case One and a half Of Second',
+            '--test Fixtures.Suite Second.Testing Case Two of Second',
+            '--test Fixtures.Suite Special.Passing test Case',
+            '--test Fixtures.Suite With Valueset Tags.Laser value set',
+            '--test Fixtures.Suite With Valueset Tags.Tachyon value set',
+            '--test Fixtures.Suite With Valueset Tags.Common value set',
+            '--test Fixtures.Suite With Valueset Tags.None existing'
+            )
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
         self.assertEqual(expected, actual)

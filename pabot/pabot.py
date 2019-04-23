@@ -70,6 +70,7 @@ import multiprocessing
 import uuid
 from glob import glob
 from io import BytesIO, StringIO
+from functools import total_ordering
 import shutil
 import subprocess
 import threading
@@ -307,7 +308,7 @@ class GatherSuiteNames(ResultVisitor):
 
     def end_suite(self, suite):
         if len(suite.tests):
-            self.result.append(suite.longname)
+            self.result.append(SuiteItem(suite.longname, tests=[t.longname for t in suite.tests]))
 
 
 def get_suite_names(output_file):
@@ -537,6 +538,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         return  [generate_suite_names_with_dryrun(outs_dir, datasources, options)]
 
 
+@total_ordering
 class ExecutionItem(object):
 
     isWait = False
@@ -546,8 +548,17 @@ class ExecutionItem(object):
 
     def __eq__(self, other):
         if isinstance(other, ExecutionItem):
-            return self.name == other.name and self.type == other.type
+            return ((self.name, self.type) == (other.name, other.type))
         return NotImplemented
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __lt__(self, other):
+        return ((self.name, self.type) < (other.name, other.type))
+
+    def __hash__(self):
+        return hash(self.name) | hash(self.type)
 
     def __repr__(self):
         return "<" + self.type + ":" + self.name + ">"
@@ -557,9 +568,10 @@ class SuiteItem(ExecutionItem):
 
     type = 'suite'
 
-    def __init__(self, name):
+    def __init__(self, name, tests=None):
         assert(isinstance(name, str))
         self.name = name
+        self.tests = [TestItem(t) for t in tests or []]
 
     def line(self):
         return '--suite '+self.name 
@@ -699,9 +711,17 @@ def store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suite_n
         suitenamesfile.writelines(suite_name+'\n' for suite_name in suite_lines)
 
 def generate_suite_names(outs_dir, datasources, options, pabot_args):
+    suites = []
     if 'suitesfrom' in pabot_args and os.path.isfile(pabot_args['suitesfrom']):
-        return _suites_from_outputxml(pabot_args['suitesfrom'])
-    return generate_suite_names_with_dryrun(outs_dir, datasources, options)
+        suites = _suites_from_outputxml(pabot_args['suitesfrom'])
+    else:
+        suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
+    if pabot_args.get('testlevelsplit'):
+        tests = []
+        for s in suites:
+            tests.extend(s.tests)
+        return tests
+    return suites
 
 def generate_suite_names_with_dryrun(outs_dir, datasources, options):
     opts = _options_for_dryrun(options, outs_dir)
@@ -720,7 +740,7 @@ def generate_suite_names_with_dryrun(outs_dir, datasources, options):
             print("[STDERR] from suite search:")
             print(stderr_value)
             print("[STDERR] end")
-    return [SuiteItem(s) for s in sorted(set(suite_names))]
+    return list(sorted(set(suite_names)))
 
 
 @contextmanager
