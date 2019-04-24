@@ -52,7 +52,7 @@ class ResultMerger(SuiteVisitor):
             return
         if not self.current:
             self.current = self._find_root(suite)
-            assert self.current
+            assert(self.current)
         else:
             next = self._find(self.current.suites, suite.name)
             if next is None:
@@ -134,7 +134,7 @@ def merge_groups(results, critical_tags, non_critical_tags, tests_root_name):
 
 
 def merge(result_files, rebot_options, tests_root_name):
-    assert len(result_files) > 0
+    assert(len(result_files) > 0)
     settings = RebotSettings(rebot_options)
     merged = merge_groups(result_files, settings.critical_tags,
                           settings.non_critical_tags, tests_root_name)
