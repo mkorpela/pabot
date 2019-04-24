@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generated="20190424 22:30:18.472" generator="Robot 3.0 (Python 2.7.10 on darwin)">
+<suite source="/Users/mkorpela/workspace/pabot/tmp" id="s1" name="Tmp">
+<suite source="/Users/mkorpela/workspace/pabot/tmp/tests.robot" id="s1-s1" name="Tests">
+<test id="s1-s1-t1" name="First">
+<kw name="Log" library="BuiltIn">
+<doc>Logs the given message with the given level.</doc>
+<arguments>
+<arg>this is first</arg>
+</arguments>
+<msg timestamp="20190424 22:30:18.495" level="INFO">this is first</msg>
+<status status="PASS" endtime="20190424 22:30:18.495" starttime="20190424 22:30:18.494"></status>
+</kw>
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1 second</arg>
+</arguments>
+<msg timestamp="20190424 22:30:19.495" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20190424 22:30:19.495" starttime="20190424 22:30:18.495"></status>
+</kw>
+<kw name="Log" library="BuiltIn">
+<doc>Logs the given message with the given level.</doc>
+<arguments>
+<arg>yeah</arg>
+</arguments>
+<msg timestamp="20190424 22:30:19.496" level="INFO">yeah</msg>
+<status status="PASS" endtime="20190424 22:30:19.496" starttime="20190424 22:30:19.496"></status>
+</kw>
+<status status="PASS" endtime="20190424 22:30:19.496" critical="yes" starttime="20190424 22:30:18.494"></status>
+</test>
+<test id="s1-s1-t2" name="Second">
+<kw name="Log" library="BuiltIn">
+<doc>Logs the given message with the given level.</doc>
+<arguments>
+<arg>this is second</arg>
+</arguments>
+<msg timestamp="20190424 22:30:19.498" level="INFO">this is second</msg>
+<status status="PASS" endtime="20190424 22:30:19.498" starttime="20190424 22:30:19.497"></status>
+</kw>
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1 second</arg>
+</arguments>
+<msg timestamp="20190424 22:30:20.499" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20190424 22:30:20.500" starttime="20190424 22:30:19.498"></status>
+</kw>
+<kw name="Log" library="BuiltIn">
+<doc>Logs the given message with the given level.</doc>
+<arguments>
+<arg>wohoo</arg>
+</arguments>
+<msg timestamp="20190424 22:30:20.500" level="INFO">wohoo</msg>
+<status status="PASS" endtime="20190424 22:30:20.501" starttime="20190424 22:30:20.500"></status>
+</kw>
+<status status="PASS" endtime="20190424 22:30:20.501" critical="yes" starttime="20190424 22:30:19.497"></status>
+</test>
+<test id="s1-s1-t3" name="Third">
+<kw name="Log" library="BuiltIn">
+<doc>Logs the given message with the given level.</doc>
+<arguments>
+<arg>this is third</arg>
+</arguments>
+<msg timestamp="20190424 22:30:20.502" level="INFO">this is third</msg>
+<status status="PASS" endtime="20190424 22:30:20.502" starttime="20190424 22:30:20.502"></status>
+</kw>
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1 second</arg>
+</arguments>
+<msg timestamp="20190424 22:30:21.503" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20190424 22:30:21.503" starttime="20190424 22:30:20.503"></status>
+</kw>
+<kw name="Log" library="BuiltIn">
+<doc>Logs the given message with the given level.</doc>
+<arguments>
+<arg>bruut</arg>
+</arguments>
+<msg timestamp="20190424 22:30:21.504" level="INFO">bruut</msg>
+<status status="PASS" endtime="20190424 22:30:21.504" starttime="20190424 22:30:21.503"></status>
+</kw>
+<status status="PASS" endtime="20190424 22:30:21.504" critical="yes" starttime="20190424 22:30:20.501"></status>
+</test>
+<status status="PASS" endtime="20190424 22:30:21.505" starttime="20190424 22:30:18.493"></status>
+</suite>
+<status status="PASS" endtime="20190424 22:30:21.507" starttime="20190424 22:30:18.475"></status>
+</suite>
+<statistics>
+<total>
+<stat fail="0" pass="3">Critical Tests</stat>
+<stat fail="0" pass="3">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat fail="0" id="s1" name="Tmp" pass="3">Tmp</stat>
+<stat fail="0" id="s1-s1" name="Tests" pass="3">Tmp.Tests</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>
