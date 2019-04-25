@@ -83,8 +83,16 @@ class ResultMerger(SuiteVisitor):
         if self._skip_until == suite:
             self._skip_until = None
             return
+        self.merge_missing_tests(suite)
         self.merge_time(suite)
         self.current = self.current.parent
+
+    def merge_missing_tests(self, suite):
+        cur = self.current
+        for test in suite.tests:
+            if not any(t.longname == test.longname for t in cur.tests):
+                test.parent = cur
+                cur.tests.append(test)
 
     def merge_time(self, suite):
         cur = self.current
