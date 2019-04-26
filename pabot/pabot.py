@@ -32,6 +32,11 @@ options (these must be before normal RF options):
 
 --testlevelsplit
   Split execution on test level instead of default suite level.
+  If .pabotsuitenames contains both tests and suites then this
+  will only affect new suites and split only them.
+  Leaving this flag out when both suites and tests in
+  .pabotsuitenames file will also only affect new suites and
+  add them as suite files.
 
 --resourcefile [FILEPATH]
   Indicator for a file that can contain shared variables for
