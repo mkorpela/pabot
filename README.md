@@ -26,7 +26,7 @@ OR clone this repository and run:
 
 ## Things you should know
 
-   - Pabot will split test execution from suite files and not from individual test level.
+   - Pabot will split test execution from suite files by default. For test level split use ```--testlevelsplit``` flag.
    - In general case you can't count on tests that haven't designed to be executed parallely to work out of the box when executing parallely. For example if the tests manipulate or use the same data, you might get yourself in trouble (one test suite logs in to the system while another logs the same session out etc.). PabotLib can help you solve these problems of concurrency. Also see [TRICKS](./TRICKS.md) for helpful tips.
 
 ## Contributing to the project
@@ -42,6 +42,14 @@ Supports all Robot Framework command line options and also following options (th
 
 --verbose     
   more output from the parallel execution
+
+--testlevelsplit
+  Split execution on test level instead of default suite level.
+  If .pabotsuitenames contains both tests and suites then this
+  will only affect new suites and split only them.
+  Leaving this flag out when both suites and tests in
+  .pabotsuitenames file will also only affect new suites and
+  add them as suite files.
 
 --command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command    
   RF script for situations where pybot is not used directly
