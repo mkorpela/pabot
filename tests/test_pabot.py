@@ -300,7 +300,7 @@ class PabotTests(unittest.TestCase):
             '4a1e9103a8b3239b18b63ebb8775b1ab2225f4b6',
             '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
-            'd7dadae070e772c8075e2126b62fbf91545dd839',
+            'd057709bd430bda6e9489fddb76a7f2284ae7d84',
             *(self._all_with_suites[:-1]+self._all_with_tests[-4:]))
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames)
@@ -339,9 +339,9 @@ class PabotTests(unittest.TestCase):
         self._assert_equal_names([self._all_suites[:-1]+self._all_tests[-4:]], test_names)
         expected = self._psuitenames(
             '4a1e9103a8b3239b18b63ebb8775b1ab2225f4b6',
-            '65f95c924ba97541f47949701c4e3c51192a5b43',
+            '97d170e1550eee4afc0af065b78cda302a97674c',
             'no-suites-from-option',
-            'd7dadae070e772c8075e2126b62fbf91545dd839',
+            'd057709bd430bda6e9489fddb76a7f2284ae7d84',
             *(self._all_with_suites[:-1]+self._all_with_tests[-4:]))
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
