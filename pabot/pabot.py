@@ -643,22 +643,26 @@ def _regenerate(
             all_suites = [suite for suite in lines if suite]
         suites = _preserve_order(all_suites, suites) 
     else:
-        suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
+        suites = generate_suite_names_with_dryrun(outs_dir, datasources, options,)
         if pabot_args.get('testlevelsplit'):
             tests = []
             for s in suites:
                 tests.extend(s.tests)
             suites = tests
-        else:
-            suites = _preserve_order(suites, [suite for suite in lines if suite])
+        suites = _preserve_order(suites, [suite for suite in lines if suite])
     if suites:
         store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
     assert(all(isinstance(s, ExecutionItem) for s in suites))
     return suites
 
+def _contains_suite_and_test(suites):
+    return any(isinstance(s, SuiteItem) for s in suites) and \
+        any(isinstance(t, TestItem) for t in suites)
+
 def _preserve_order(new_suites, old_suites):
     assert(all(isinstance(s, ExecutionItem) for s in new_suites))
     assert(all(isinstance(s, ExecutionItem) for s in old_suites))
+    consume_tests = _contains_suite_and_test(old_suites)
     old_suites = [suite for i, suite in enumerate(old_suites) 
                     if suite and
                     (suite not in old_suites[i+1:] or suite.isWait)]
@@ -666,7 +670,8 @@ def _preserve_order(new_suites, old_suites):
     preserve = []
     for old_suite in old_suites:
         for s in new_suites:
-            if s.name.startswith(old_suite.name+"."):
+            if s.name.startswith(old_suite.name+".") and \
+                (isinstance(s, SuiteItem) or consume_tests):
                 preserve.append(old_suite)
                 ignorable.append(s)
         if old_suite.isWait:
