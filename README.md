@@ -43,7 +43,7 @@ Supports all Robot Framework command line options and also following options (th
 --verbose     
   more output from the parallel execution
 
---testlevelsplit
+--testlevelsplit          
   Split execution on test level instead of default suite level.
   If .pabotsuitenames contains both tests and suites then this
   will only affect new suites and split only them.
