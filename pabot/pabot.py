@@ -674,6 +674,21 @@ def _preserve_order(new_suites, old_suites):
                     (suite not in old_suites[i+1:] or suite.isWait)]
     if old_contains_suites_and_tests and not new_contains_tests:
         new_suites = _split_partially_to_tests(new_suites, old_suites)
+    preserve, ignorable = _get_preserve_and_ignore(new_suites, old_suites, old_contains_suites_and_tests)
+    exists_in_old_and_new = [s for s in old_suites
+                if (s in new_suites and s not in ignorable)
+                or s in preserve]
+    _remove_doubles(exists_in_old_and_new)
+    if exists_in_old_and_new and exists_in_old_and_new[0].isWait:
+        exists_in_old_and_new = exists_in_old_and_new[1:]
+    exists_only_in_new = [s for s in new_suites
+                if s not in old_suites and s not in ignorable]
+    if not exists_only_in_new and exists_in_old_and_new and exists_in_old_and_new[-1].isWait:
+        exists_in_old_and_new = exists_in_old_and_new[:-1]
+    return exists_in_old_and_new + exists_only_in_new
+
+
+def _get_preserve_and_ignore(new_suites, old_suites, old_contains_suites_and_tests):
     ignorable = []
     preserve = []
     for old_suite in old_suites:
@@ -686,17 +701,7 @@ def _preserve_order(new_suites, old_suites):
             preserve.append(old_suite)
     preserve = [s for s in preserve 
         if not any([i for i in preserve if s.name.startswith(i.name + ".")])]
-    exists_in_old_and_new = [s for s in old_suites
-                if (s in new_suites and s not in ignorable)
-                or s in preserve]
-    _remove_doubles(exists_in_old_and_new)
-    if exists_in_old_and_new and exists_in_old_and_new[0].isWait:
-        exists_in_old_and_new = exists_in_old_and_new[1:]
-    exists_only_in_new = [s for s in new_suites
-                if s not in old_suites and s not in ignorable]
-    if not exists_only_in_new and exists_in_old_and_new and exists_in_old_and_new[-1].isWait:
-        exists_in_old_and_new = exists_in_old_and_new[:-1]
-    return exists_in_old_and_new + exists_only_in_new
+    return preserve, ignorable
 
 
 def _remove_doubles(exists_in_old_and_new):
