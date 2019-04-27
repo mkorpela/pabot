@@ -667,14 +667,18 @@ def _contains_suite_and_test(suites):
 def _preserve_order(new_suites, old_suites):
     assert(all(isinstance(s, ExecutionItem) for s in new_suites))
     assert(all(isinstance(s, ExecutionItem) for s in old_suites))
-    old_contains_suites_and_tests = _contains_suite_and_test(old_suites)
+    old_contains_tests = any(isinstance(t, TestItem) for t in old_suites)
+    old_contains_suites = any(isinstance(s, SuiteItem) for s in old_suites)
     new_contains_tests = any(isinstance(t, TestItem) for t in new_suites)
+    new_contains_suites = any(isinstance(s, SuiteItem) for s in new_suites)
     old_suites = [suite for i, suite in enumerate(old_suites) 
                     if suite and
                     (suite not in old_suites[i+1:] or suite.isWait)]
-    if old_contains_suites_and_tests and not new_contains_tests:
+    if old_contains_tests and old_contains_suites and not new_contains_tests:
         new_suites = _split_partially_to_tests(new_suites, old_suites)
-    preserve, ignorable = _get_preserve_and_ignore(new_suites, old_suites, old_contains_suites_and_tests)
+    preserve, ignorable = _get_preserve_and_ignore(
+        new_suites, old_suites, 
+        old_contains_tests and old_contains_suites)
     exists_in_old_and_new = [s for s in old_suites
                 if (s in new_suites and s not in ignorable)
                 or s in preserve]
