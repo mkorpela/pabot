@@ -670,12 +670,13 @@ def _preserve_order(new_suites, old_suites):
     old_contains_tests = any(isinstance(t, TestItem) for t in old_suites)
     old_contains_suites = any(isinstance(s, SuiteItem) for s in old_suites)
     new_contains_tests = any(isinstance(t, TestItem) for t in new_suites)
-    new_contains_suites = any(isinstance(s, SuiteItem) for s in new_suites)
+    #new_contains_suites = any(isinstance(s, SuiteItem) for s in new_suites)
     old_suites = [suite for i, suite in enumerate(old_suites) 
                     if suite and
                     (suite not in old_suites[i+1:] or suite.isWait)]
     if old_contains_tests and old_contains_suites and not new_contains_tests:
         new_suites = _split_partially_to_tests(new_suites, old_suites)
+    #TODO: Preserving order when suites => tests OR tests => suites
     preserve, ignorable = _get_preserve_and_ignore(
         new_suites, old_suites, 
         old_contains_tests and old_contains_suites)
