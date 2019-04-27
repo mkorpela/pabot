@@ -678,7 +678,7 @@ def _preserve_order(new_suites, old_suites):
     exists_in_old_and_new = [s for s in old_suites
                 if (s in new_suites and s not in ignorable)
                 or s in preserve]
-    _remove_doubles(exists_in_old_and_new)
+    _remove_double_waits(exists_in_old_and_new)
     if exists_in_old_and_new and exists_in_old_and_new[0].isWait:
         exists_in_old_and_new = exists_in_old_and_new[1:]
     exists_only_in_new = [s for s in new_suites
@@ -704,7 +704,7 @@ def _get_preserve_and_ignore(new_suites, old_suites, old_contains_suites_and_tes
     return preserve, ignorable
 
 
-def _remove_doubles(exists_in_old_and_new):
+def _remove_double_waits(exists_in_old_and_new):
     doubles = []
     for i,(j,k) in enumerate(zip(exists_in_old_and_new, exists_in_old_and_new[1:])):
         if j.isWait and k == j:
