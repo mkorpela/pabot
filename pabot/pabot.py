@@ -73,6 +73,7 @@ import time
 import datetime
 import multiprocessing
 import uuid
+import random
 from glob import glob
 from io import BytesIO, StringIO
 from functools import total_ordering
@@ -1138,6 +1139,10 @@ def main(args):
                                         pabot_args)
         if suite_names:
             for suite_group in suite_names:
+                #TODO: Fix this better
+                if options.get("randomize") in ["all", "suites"] and \
+                    "suitesfrom" in pabot_args:
+                    random.shuffle(suite_group)
                 _parallel_execute(datasources, opts_for_run, outs_dir, pabot_args,
                                   suite_group)
             sys.exit(_report_results(outs_dir, pabot_args, options, start_time_string,
