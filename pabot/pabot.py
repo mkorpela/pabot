@@ -648,7 +648,7 @@ def _regenerate(
             all_suites = [suite for suite in lines if suite]
         suites = _preserve_order(all_suites, suites) 
     else:
-        suites = generate_suite_names_with_dryrun(outs_dir, datasources, options,)
+        suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
         if pabot_args.get('testlevelsplit'):
             tests = []
             for s in suites:
@@ -675,18 +675,7 @@ def _preserve_order(new_suites, old_suites):
     ignorable = []
     preserve = []
     if old_contains_suites_and_tests and not new_contains_tests:
-        suits = []
-        for s in new_suites:
-            split = False
-            for old_test in old_suites:
-                if isinstance(old_test, TestItem) and \
-                    old_test.name.startswith(s.name+"."):
-                    split = True
-            if split:
-                suits.extend(s.tests)
-            else:
-                suits.append(s)
-        new_suites = suits
+        new_suites = _split_partially_to_tests(new_suites, old_suites)
     for old_suite in old_suites:
         for s in new_suites:
             if s.name.startswith(old_suite.name+".") and \
@@ -713,6 +702,20 @@ def _preserve_order(new_suites, old_suites):
     if not exists_only_in_new and exists_in_old_and_new and exists_in_old_and_new[-1].isWait:
         exists_in_old_and_new = exists_in_old_and_new[:-1]
     return exists_in_old_and_new + exists_only_in_new
+
+def _split_partially_to_tests(new_suites, old_suites):
+    suits = []
+    for s in new_suites:
+        split = False
+        for old_test in old_suites:
+            if isinstance(old_test, TestItem) and \
+                old_test.name.startswith(s.name+"."):
+                split = True
+        if split:
+            suits.extend(s.tests)
+        else:
+            suits.append(s)
+    return suits
 
 def _file_hash(lines):
     digest = hashlib.sha1()
