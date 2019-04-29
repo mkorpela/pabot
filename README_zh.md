@@ -12,7 +12,7 @@
 
 [Robot Framework](http://www.robotframework.org)测试的并行执行程序。 使用Pabot，您可以将一个执行分成多个并节省测试执行时间。
 
-(English)[README.md]
+[English](README.md)
 
 ## 安装
 
