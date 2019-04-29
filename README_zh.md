@@ -49,10 +49,10 @@ There are several ways you can help in improving this tool:
   .pabotsuitenames文件也只会影响新的套件和
   将它们添加为套件文件。
 
---command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command    
+--command [开始执行Robot Framework的实际命令] --end-command    
   Robot Framework脚本适用于不直接使用pybot的情况
 
---processes   [NUMBER OF PROCESSES]          
+--processes   [进程数]          
   要使用多少个并行执行程序（默认最大值为2和cpu计数）
 
 --pabotlib          
