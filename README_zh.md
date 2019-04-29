@@ -27,7 +27,7 @@ OR clone this repository and run:
 ## Things you should know
 
    - Pabot默认会从套件文件中拆分测试执行。 对于测试级别拆分使用```--testlevelsplit```标志。
-   - In general case you can't count on tests that haven't designed to be executed parallely to work out of the box when executing parallely. For example if the tests manipulate or use the same data, you might get yourself in trouble (one test suite logs in to the system while another logs the same session out etc.). PabotLib can help you solve these problems of concurrency. Also see [TRICKS](./TRICKS.md) for helpful tips.
+   - 在一般情况下，当并行执行时，您不能指望没有设计为平行执行的测试，以便开箱即用。 例如，如果测试操作或使用相同的数据，您可能会遇到麻烦（一个测试套件登录到系统，而另一个测试套件记录相同的会话等）。 PabotLib可以帮助您解决这些并发问题。
 
 ## Contributing to the project
 
