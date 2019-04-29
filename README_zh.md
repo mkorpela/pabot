@@ -81,7 +81,7 @@
 
      --argumentfile1 arg1.txt --argumentfile2 arg2.txt
 
---suitesfrom   [FILEPATH TO OUTPUTXML]          
+--suitesfrom   [文件路径]          
   （可选）从output.xml文件中读取套件。 套件将运行失败
    第一个和更长的运行将在较短的之前执行。
 
@@ -101,7 +101,7 @@ pabot.PabotLib提供的关键字有助于执行程序进程之间的通信和数
 
 Docs are located at https://cdn.rawgit.com/mkorpela/pabot/master/PabotLib.html
 
-### PabotLib example:
+### PabotLib示例：
 
 test.robot
 
