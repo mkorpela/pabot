@@ -26,7 +26,7 @@ OR clone this repository and run:
 
 ## Things you should know
 
-   - Pabot will split test execution from suite files by default. For test level split use ```--testlevelsplit``` flag.
+   - Pabot默认会从套件文件中拆分测试执行。 对于测试级别拆分使用```--testlevelsplit```标志。
    - In general case you can't count on tests that haven't designed to be executed parallely to work out of the box when executing parallely. For example if the tests manipulate or use the same data, you might get yourself in trouble (one test suite logs in to the system while another logs the same session out etc.). PabotLib can help you solve these problems of concurrency. Also see [TRICKS](./TRICKS.md) for helpful tips.
 
 ## Contributing to the project
