@@ -31,7 +31,7 @@
 
 有几种方法可以帮助您改进此工具：
 
-   - Report an issue or an improvement idea to the [issue tracker](https://github.com/mkorpela/pabot/issues)
+   - 向[问题跟踪器](https://github.com/mkorpela/pabot/issues)报告问题或改进想法
    - 通过编程和提出拉取请求来做出贡献（最简单的方法是处理来自问题跟踪器的问题）
 
 ## 命令行选项
