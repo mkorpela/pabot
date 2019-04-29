@@ -29,10 +29,10 @@ OR clone this repository and run:
 
 ## 为项目做贡献
 
-There are several ways you can help in improving this tool:
+有几种方法可以帮助您改进此工具：
 
    - Report an issue or an improvement idea to the [issue tracker](https://github.com/mkorpela/pabot/issues)
-   - Contribute by programming and making a pull request (easiest way is to work on an issue from the issue tracker)
+   - 通过编程和提出拉取请求来做出贡献（最简单的方法是处理来自问题跟踪器的问题）
 
 ## 命令行选项
 
@@ -96,8 +96,8 @@ Example usages:
 
 ### PabotLib
 
-pabot.PabotLib provides keywords that will help communication and data sharing between the executor processes.
-These can be helpful when you must ensure that only one of the processes uses some piece of data or operates on some part of the system under test at a time.
+pabot.PabotLib提供的关键字有助于执行程序进程之间的通信和数据共享。
+当您必须确保只有一个进程使用某些数据或一次在被测系统的某些部分上运行时，这些可能会有所帮助。
 
 Docs are located at https://cdn.rawgit.com/mkorpela/pabot/master/PabotLib.html
 
@@ -146,20 +146,21 @@ pabot call
 
       pabot --pabotlib --resourcefile valueset.dat test.robot
 
-### Controlling execution order and level of parallelism
+### 控制执行顺序和并行度
 
-.pabotsuitenames file contains the list of suites that will be executed.
-File is created during pabot execution if not already there.
-The file is a cache that pabot uses when re-executing same tests to speed up processing. 
-This file can be partially manually edited.
-First 4 rows contain information that should not be edited - pabot will edit these when something changes.
-After this come the suite names. 
+pabotsuitenames文件包含将要执行的套件列表。
+如果还没有在pabot执行期间创建文件。
+该文件是pabot在重新执行相同测试时使用的缓存，以加快处理速度。
+可以部分手动编辑此文件。
+前4行包含不应编辑的信息 - 当某些内容发生变化时，pabot会编辑这些信息。
+在此之后，套房命名。
 
-There are three possibilities to influence the execution:
+影响执行有三种可能性：
 
-  * The order of suites can be changed.
-  * If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row.
-  * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
+   *套房的顺序可以更改。
+   *如果应按顺序执行目录（或目录结构），请将目录套件名称添加到行中。
+   *您可以添加一行文本```#WAIT```以强制执行程序等待所有先前的套件执行完毕。
+
 
 ### Global variables
 
