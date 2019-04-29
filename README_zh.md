@@ -14,11 +14,11 @@
 
 ## 安装
 
-From PyPi:
+来自PyPi：
 
      pip install -U robotframework-pabot
 
-OR clone this repository and run:
+或克隆此存储库并运行：
 
      setup.py  install
 
@@ -68,16 +68,16 @@ OR clone this repository and run:
   
   这样就可以与多个Robot Framework实例共享资源。
 
---pabotlibport   [PORT]          
+--pabotlibport   [港口]          
   PabotLib远程服务器的端口号（默认为8270）
   有关更多信息，请参阅--pabotlibhost
 
---resourcefile   [FILEPATH]          
+--resourcefile   [文件路径]          
   可以包含用于分发资源的共享变量的文件的指示符。 这需要与pabotlib选项一起使用。 资源文件语法与Windows ini文件相同。 其中section是一组共享的变量。
 
---argumentfile[INTEGER]   [FILEPATH]          
-  Run same suites with multiple [argumentfile](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files) options.
-  For example:
+--argumentfile[整数]   [文件路径]          
+  使用多个[参数文件](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files)选项运行相同的套件。
+  例如：
 
      --argumentfile1 arg1.txt --argumentfile2 arg2.txt
 
@@ -85,7 +85,7 @@ OR clone this repository and run:
   （可选）从output.xml文件中读取套件。 套件将运行失败
    第一个和更长的运行将在较短的之前执行。
 
-Example usages:
+示例用法：
 
      pabot test_directory
      pabot --exclude FOO directory_to_tests
@@ -162,10 +162,10 @@ pabotsuitenames文件包含将要执行的套件列表。
     * 您可以添加一行文本```#WAIT```以强制执行程序等待所有先前的套件执行完毕。
 
 
-### Global variables
+### 全局变量
 
-Pabot will insert following global variables to Robot Framework namespace. These are here to enable PabotLib functionality and for custom listeners etc. to get some information on the overall execution of pabot.
+Pabot会将以下全局变量插入到Robot Framework命名空间中。 这些是为了启用PabotLib功能和自定义侦听器等来获取有关pabot整体执行的一些信息。
 
-      PABOTLIBURI - this contains the URI for the running PabotLib server
-      PABOTEXECUTIONPOOLID - this contains the pool id (an integer) for the current Robot Framework executor. This is helpful for example when visualizing the execution flow from your own listener.
+      PABOTLIBURI - 它包含正在运行的PabotLib服务器的URI
+      PABOTEXECUTIONPOOLID - 它包含当前Robot Framework执行程序的池ID（整数）。 例如，当从您自己的侦听器可视化执行流时，这很有用。
  
