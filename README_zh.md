@@ -24,7 +24,7 @@ OR clone this repository and run:
 
      setup.py  install
 
-## Things you should know
+## 你应该知道的事情
 
    - Pabot默认会从套件文件中拆分测试执行。 对于测试级别拆分使用```--testlevelsplit```标志。
    - 在一般情况下，当并行执行时，您不能指望没有设计为平行执行的测试，以便开箱即用。 例如，如果测试操作或使用相同的数据，您可能会遇到麻烦（一个测试套件登录到系统，而另一个测试套件记录相同的会话等）。 PabotLib可以帮助您解决这些并发问题。
