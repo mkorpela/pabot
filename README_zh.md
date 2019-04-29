@@ -29,36 +29,36 @@ OR clone this repository and run:
    - Pabot默认会从套件文件中拆分测试执行。 对于测试级别拆分使用```--testlevelsplit```标志。
    - 在一般情况下，当并行执行时，您不能指望没有设计为平行执行的测试，以便开箱即用。 例如，如果测试操作或使用相同的数据，您可能会遇到麻烦（一个测试套件登录到系统，而另一个测试套件记录相同的会话等）。 PabotLib可以帮助您解决这些并发问题。
 
-## Contributing to the project
+## 为项目做贡献
 
 There are several ways you can help in improving this tool:
 
    - Report an issue or an improvement idea to the [issue tracker](https://github.com/mkorpela/pabot/issues)
    - Contribute by programming and making a pull request (easiest way is to work on an issue from the issue tracker)
 
-## Command-line options
+## 命令行选项
 
-Supports all Robot Framework command line options and also following options (these must be before normal RF options):
+支持所有Robot Framework命令行选项以及以下选项（这些选项必须在普通RF选项之前）：
 
 --verbose     
-  more output from the parallel execution
+  来自并行执行的更多输出
 
 --testlevelsplit          
-  Split execution on test level instead of default suite level.
-  If .pabotsuitenames contains both tests and suites then this
-  will only affect new suites and split only them.
-  Leaving this flag out when both suites and tests in
-  .pabotsuitenames file will also only affect new suites and
-  add them as suite files.
+  在测试级别而不是默认套件级别上拆分执行。
+  如果.pabotsuitenames包含测试和套件，那么这个
+  只会影响新套件并仅拆分它们。
+  当套房和测试中都留下这个标志
+  .pabotsuitenames文件也只会影响新的套件和
+  将它们添加为套件文件。
 
 --command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command    
-  RF script for situations where pybot is not used directly
+  Robot Framework脚本适用于不直接使用pybot的情况
 
 --processes   [NUMBER OF PROCESSES]          
-  How many parallel executors to use (default max of 2 and cpu count)
+  要使用多少个并行执行程序（默认最大值为2和cpu计数）
 
 --pabotlib          
-  Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
+  启动PabotLib远程服务器。 这样可以在并行测试执行之间进行锁定和资源分配。
 
 --pabotlibhost   [HOSTNAME]          
   Host name of the PabotLib remote server (default is 127.0.0.1)
