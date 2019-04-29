@@ -14,7 +14,7 @@
 
 [![Pabot presentation at robocon.io 2018](http://img.youtube.com/vi/i0RV6SJSIn8/0.jpg)](https://youtu.be/i0RV6SJSIn8 "Pabot presentation at robocon.io 2018")
 
-## Installation:
+## 安装
 
 From PyPi:
 
