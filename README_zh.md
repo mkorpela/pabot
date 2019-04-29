@@ -10,7 +10,7 @@
 
 ----
 
-A parallel executor for [Robot Framework](http://www.robotframework.org) tests. With Pabot you can split one execution into multiple and save test execution time.
+[Robot Framework](http://www.robotframework.org)测试的并行执行程序。 使用Pabot，您可以将一个执行分成多个并节省测试执行时间。
 
 [![Pabot presentation at robocon.io 2018](http://img.youtube.com/vi/i0RV6SJSIn8/0.jpg)](https://youtu.be/i0RV6SJSIn8 "Pabot presentation at robocon.io 2018")
 
