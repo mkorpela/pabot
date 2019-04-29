@@ -16,7 +16,7 @@
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
 """A parallel executor for Robot Framework test cases.
-Version 0.58.
+Version 0.59.
 
 Supports all Robot Framework command line options and also following
 options (these must be before normal RF options):
@@ -1141,7 +1141,7 @@ def main(args):
             for suite_group in suite_names:
                 #TODO: Fix this better
                 if options.get("randomize") in ["all", "suites"] and \
-                    "suitesfrom" in pabot_args:
+                    "suitesfrom" not in pabot_args:
                     random.shuffle(suite_group)
                 _parallel_execute(datasources, opts_for_run, outs_dir, pabot_args,
                                   suite_group)
