@@ -58,22 +58,22 @@ OR clone this repository and run:
 --pabotlib          
   启动PabotLib远程服务器。 这样可以在并行测试执行之间进行锁定和资源分配。
 
---pabotlibhost   [HOSTNAME]          
-  Host name of the PabotLib remote server (default is 127.0.0.1)
-  If used with --pabotlib option, will change the host listen address of the created remote server (see https://github.com/robotframework/PythonRemoteServer)
-  If used without the --pabotlib option, will connect to already running instance of the PabotLib remote server in the given host. The remote server can be also started and executed separately from pabot instances:
+--pabotlibhost   [主机名]          
+  PabotLib远程服务器的主机名（默认为127.0.0.1）
+  如果与--pabotlib选项一起使用，将更改创建的远程服务器的主机侦听地址（请参阅https://github.com/robotframework/PythonRemoteServer）
+  I如果在没有--pabotlib选项的情况下使用，将连接到给定主机中已运行的PabotLib远程服务器实例。 远程服务器也可以与pabot实例分开启动和执行：
   
       python -m pabot.PabotLib <path_to_resourcefile> <host> <port>
       python -m pabot.PabotLib resource.txt 192.168.1.123 8271
   
-  This enables sharing a resource with multiple Robot Framework instances.
+  这样就可以与多个Robot Framework实例共享资源。
 
 --pabotlibport   [PORT]          
-  Port number of the PabotLib remote server (default is 8270)
-  See --pabotlibhost for more information
+  PabotLib远程服务器的端口号（默认为8270）
+  有关更多信息，请参阅--pabotlibhost
 
 --resourcefile   [FILEPATH]          
-  Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with pabotlib option. Resource file syntax is same as Windows ini files. Where a section is a shared set of variables.
+  可以包含用于分发资源的共享变量的文件的指示符。 这需要与pabotlib选项一起使用。 资源文件语法与Windows ini文件相同。 其中section是一组共享的变量。
 
 --argumentfile[INTEGER]   [FILEPATH]          
   Run same suites with multiple [argumentfile](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files) options.
@@ -82,8 +82,8 @@ OR clone this repository and run:
      --argumentfile1 arg1.txt --argumentfile2 arg2.txt
 
 --suitesfrom   [FILEPATH TO OUTPUTXML]          
-  Optionally read suites from output.xml file. Failed suites will run
-  first and longer running ones will be executed before shorter ones.
+  （可选）从output.xml文件中读取套件。 套件将运行失败
+   第一个和更长的运行将在较短的之前执行。
 
 Example usages:
 
