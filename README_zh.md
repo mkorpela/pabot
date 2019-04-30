@@ -1,5 +1,8 @@
 # Pabot
 
+[In English](README.md)
+[Русская версия](README_ru.md)
+
 [![Version](https://img.shields.io/pypi/v/robotframework-pabot.svg)](https://pypi.python.org/pypi/robotframework-pabot)
 [![Downloads](http://pepy.tech/badge/robotframework-pabot)](http://pepy.tech/project/robotframework-pabot)
 [![Build Status](https://travis-ci.org/mkorpela/pabot.svg?branch=master)](https://travis-ci.org/mkorpela/pabot)
@@ -11,8 +14,6 @@
 ----
 
 [Robot Framework](http://www.robotframework.org)测试的并行执行程序。 使用Pabot，您可以将一个执行分成多个并节省测试执行时间。
-
-[In English](README.md)
 
 ## 安装
 
