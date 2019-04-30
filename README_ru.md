@@ -13,9 +13,9 @@
 
 ----
 
-A parallel executor for [Robot Framework](http://www.robotframework.org) tests. With Pabot you can split one execution into multiple and save test execution time.
+Параллельный исполнитель для тестов [Robot Framework](http://www.robotframework.org). С Pabot вы можете разделить одно выполнение на несколько и сэкономить время выполнения теста.
 
-## Installation:
+## Монтаж:
 
 From PyPi:
 
@@ -25,68 +25,68 @@ OR clone this repository and run:
 
      setup.py  install
 
-## Things you should know
+## Вещи, которые вы должны знать
 
-   - Pabot will split test execution from suite files by default. For test level split use ```--testlevelsplit``` flag.
-   - In general case you can't count on tests that haven't designed to be executed parallely to work out of the box when executing parallely. For example if the tests manipulate or use the same data, you might get yourself in trouble (one test suite logs in to the system while another logs the same session out etc.). PabotLib can help you solve these problems of concurrency. Also see [TRICKS](./TRICKS.md) for helpful tips.
+   - По умолчанию Pabot будет отделять выполнение теста от файлов набора. Для разделения уровня теста используйте флаг ```--testlevelsplit```.
+   - В общем случае вы не можете рассчитывать на тесты, которые не предназначены для параллельного выполнения, чтобы работать "из коробки" при параллельном выполнении. Например, если тесты манипулируют или используют одни и те же данные, вы можете столкнуться с проблемами (один набор тестов входит в систему, а другой - в тот же сеанс и т. Д.). PabotLib может помочь вам решить эти проблемы параллелизма.
 
-## Contributing to the project
+## Вклад в проект
 
-There are several ways you can help in improving this tool:
+Есть несколько способов улучшить этот инструмент:
 
-   - Report an issue or an improvement idea to the [issue tracker](https://github.com/mkorpela/pabot/issues)
-   - Contribute by programming and making a pull request (easiest way is to work on an issue from the issue tracker)
+   - Сообщите о проблеме или идее улучшения [средство отслеживания проблем](https://github.com/mkorpela/pabot/issues)
+   - Внесите свой вклад, запрограммировав и сделав запрос на извлечение (самый простой способ - это решить проблему с помощью системы отслеживания проблем)
 
-## Command-line options
+## Параметры командной строки
 
-Supports all Robot Framework command line options and also following options (these must be before normal RF options):
+Поддерживает все параметры командной строки Robot Framework, а также следующие параметры (они должны быть перед обычными параметрами RF):
 
 --verbose     
-  more output from the parallel execution
+  больше выхода из параллельного исполнения
 
 --testlevelsplit          
-  Split execution on test level instead of default suite level.
-  If .pabotsuitenames contains both tests and suites then this
-  will only affect new suites and split only them.
-  Leaving this flag out when both suites and tests in
-  .pabotsuitenames file will also only affect new suites and
-  add them as suite files.
+  Разделить выполнение на уровне теста вместо уровня набора по умолчанию.
+  Если .pabotsuitenames содержит и тесты, и наборы, то это
+  повлияет только на новые сюиты и разделит только их.
+  Оставив этот флаг, когда и наборы и тесты в
+  Файл .pabotsuitenames также влияет только на новые
+  добавьте их как файлы набора.
 
 --command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command    
-  RF script for situations where pybot is not used directly
+  Скрипт Robot Framework для ситуаций, когда Pybot не используется напрямую.
 
 --processes   [NUMBER OF PROCESSES]          
-  How many parallel executors to use (default max of 2 and cpu count)
+  Сколько параллельных исполнителей использовать (по умолчанию максимум 2 и количество процессоров).
 
 --pabotlib          
-  Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
+  Запустите PabotLib удаленный сервер. Это позволяет блокировать и распределять ресурсы между параллельными выполнениями теста.
 
 --pabotlibhost   [HOSTNAME]          
-  Host name of the PabotLib remote server (default is 127.0.0.1)
-  If used with --pabotlib option, will change the host listen address of the created remote server (see https://github.com/robotframework/PythonRemoteServer)
-  If used without the --pabotlib option, will connect to already running instance of the PabotLib remote server in the given host. The remote server can be also started and executed separately from pabot instances:
+  Имя хоста удаленного сервера PabotLib (по умолчанию 127.0.0.1)
+  Если используется с параметром --pabotlib, изменит адрес прослушивания хоста созданного удаленного сервера (см. Https://github.com/robotframework/PythonRemoteServer)
+  Если используется без параметра --pabotlib, подключится к уже запущенному экземпляру удаленного сервера PabotLib на данном хосте. Удаленный сервер также может быть запущен и выполнен отдельно от экземпляров pabot:
   
       python -m pabot.PabotLib <path_to_resourcefile> <host> <port>
       python -m pabot.PabotLib resource.txt 192.168.1.123 8271
   
-  This enables sharing a resource with multiple Robot Framework instances.
+  Это позволяет совместно использовать ресурс с несколькими экземплярами Robot Framework.
 
 --pabotlibport   [PORT]          
-  Port number of the PabotLib remote server (default is 8270)
-  See --pabotlibhost for more information
+  Номер порта удаленного сервера PabotLib (по умолчанию 8270)
+  Смотрите --pabotlibhost для получения дополнительной информации
 
 --resourcefile   [FILEPATH]          
-  Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with pabotlib option. Resource file syntax is same as Windows ini files. Where a section is a shared set of variables.
+  Индикатор для файла, который может содержать общие переменные для распределения ресурсов. Это нужно использовать вместе с опцией pabotlib. Синтаксис файла ресурсов такой же, как и у файлов Windows ini. Где раздел является общим набором переменных.
 
 --argumentfile[INTEGER]   [FILEPATH]          
-  Run same suites with multiple [argumentfile](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files) options.
+  Запустите одни и те же наборы с несколькими параметрами [аргумент-файл] (http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files).
   For example:
 
      --argumentfile1 arg1.txt --argumentfile2 arg2.txt
 
 --suitesfrom   [FILEPATH TO OUTPUTXML]          
-  Optionally read suites from output.xml file. Failed suites will run
-  first and longer running ones will be executed before shorter ones.
+  При желании читать наборы из файла output.xml. Неудачные наборы будут работать
+  первые и более продолжительные из них будут выполнены перед более короткими.
 
 Example usages:
 
@@ -99,8 +99,8 @@ Example usages:
 
 ### PabotLib
 
-pabot.PabotLib provides keywords that will help communication and data sharing between the executor processes.
-These can be helpful when you must ensure that only one of the processes uses some piece of data or operates on some part of the system under test at a time.
+pabot.PabotLib предоставляет ключевые слова, которые помогут коммуникации и обмену данными между процессами исполнителя.
+Это может быть полезно, когда вы должны убедиться, что только один из процессов использует какой-то фрагмент данных или одновременно работает с какой-либо частью тестируемой системы.
 
 Docs are located at https://cdn.rawgit.com/mkorpela/pabot/master/PabotLib.html
 
@@ -149,25 +149,25 @@ pabot call
 
       pabot --pabotlib --resourcefile valueset.dat test.robot
 
-### Controlling execution order and level of parallelism
+### Контроль порядка выполнения и уровня параллелизма
 
-.pabotsuitenames file contains the list of suites that will be executed.
-File is created during pabot execution if not already there.
-The file is a cache that pabot uses when re-executing same tests to speed up processing. 
-This file can be partially manually edited.
-First 4 rows contain information that should not be edited - pabot will edit these when something changes.
-After this come the suite names. 
+Файл .pabotsuitenames содержит список пакетов, которые будут выполнены.
+Файл создается во время выполнения pabot, если его там еще нет.
+Файл представляет собой кэш, который использует pabot при повторном выполнении тех же тестов для ускорения обработки.
+Этот файл может быть частично отредактирован вручную.
+Первые 4 строки содержат информацию, которую не нужно редактировать - pabot будет редактировать ее, когда что-то изменится.
+После этого идут названия люксов. 
 
-There are three possibilities to influence the execution:
+Есть три возможности повлиять на исполнение:
 
-  * The order of suites can be changed.
-  * If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row.
-  * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
+  * Порядок номеров может быть изменен.
+  * Если каталог (или структура каталогов) должен выполняться последовательно, добавьте имя набора каталогов в строку.
+  * Вы можете добавить строку с текстом `# WAIT`, чтобы заставить исполнителя ждать, пока все предыдущие наборы не будут выполнены.
 
-### Global variables
+### Глобальные переменные
 
-Pabot will insert following global variables to Robot Framework namespace. These are here to enable PabotLib functionality and for custom listeners etc. to get some information on the overall execution of pabot.
+Pabot вставит следующие глобальные переменные в пространство имен Robot Framework. Они здесь, чтобы включить функциональность PabotLib и для пользовательских слушателей и т. Д., Чтобы получить некоторую информацию об общем выполнении Pabot.
 
-      PABOTLIBURI - this contains the URI for the running PabotLib server
-      PABOTEXECUTIONPOOLID - this contains the pool id (an integer) for the current Robot Framework executor. This is helpful for example when visualizing the execution flow from your own listener.
+      PABOTLIBURI - содержит URI для работающего сервера PabotLib
+      PABOTEXECUTIONPOOLID - он содержит идентификатор пула (целое число) для текущего исполнителя Robot Framework. Это полезно, например, при визуализации потока выполнения от вашего собственного слушателя.
  
