@@ -695,9 +695,6 @@ def _preserve_order(new_items, old_items):
     old_contains_suites = any(isinstance(s, SuiteItem) for s in old_items)
     old_items = _fix_items(old_items)
     new_contains_tests = any(isinstance(t, TestItem) for t in new_items)
-    old_items = [suite for i, suite in enumerate(old_items) 
-                    if suite and
-                    (suite not in old_items[i+1:] or suite.isWait)]
     if old_contains_tests and old_contains_suites and not new_contains_tests:
         new_items = _split_partially_to_tests(new_items, old_items)
     #TODO: Preserving order when suites => tests OR tests => suites
