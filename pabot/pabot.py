@@ -577,15 +577,25 @@ class SuiteItem(ExecutionItem):
 
     type = 'suite'
 
-    def __init__(self, name, tests=None):
+    def __init__(self, name, tests=None, suites=None):
         assert(isinstance(name, str))
         self.name = name
         self.tests = [TestItem(t) for t in tests or []]
+        self.suites = [SuiteItem(s) for s in suites or []]
 
     def line(self):
         return '--suite '+self.name
 
+    def difference(self, from_items):
+        if self.tests:
+            return [t for t in self.tests if t not in from_items]
+        if self.suites:
+            return [s for s in self.suites if s not in from_items]
+        return []
+
     def contains(self, other):
+        if self == other:
+            return True
         return other.name.startswith(self.name+".")
 
 
@@ -598,6 +608,12 @@ class TestItem(ExecutionItem):
 
     def line(self):
         return '--test '+self.name
+
+    def difference(self, from_items):
+        return []
+
+    def contains(self, other):
+        return self == other
 
 
 class WaitItem(ExecutionItem):
@@ -706,23 +722,20 @@ def _fix_items(items):
     for i in range(len(items)):
         for j in range(i+1, len(items)):
             if items[i].contains(items[j]):
-                to_be_removed.append(items[j])
-    items = [item for item in items if item not in to_be_removed]
+                to_be_removed.append(j)
+    items = [item for i, item in enumerate(items) if i not in to_be_removed]
     result = []
-    to_be_splitted = []
+    to_be_splitted = {}
     for i in range(len(items)):
-        if items[i] in to_be_splitted:
-            result.extend(items[i].tests)
+        if i in to_be_splitted:
+            result.extend(items[i].difference(to_be_splitted[i]))
         else:
             result.append(items[i])
         for j in range(i+1, len(items)):
             if items[j].contains(items[i]):
-                to_be_splitted.append(items[j])
-    items = result
-    result = []
-    for item in items:
-        if item not in result:
-            result.append(item)
+                if j not in to_be_splitted:
+                    to_be_splitted[j] = []
+                to_be_splitted[j].append(items[i])
     return result
 
 

@@ -6,6 +6,8 @@ import shutil
 import random
 from pabot import pabot
 
+s = pabot.SuiteItem
+t = pabot.TestItem
 
 class PabotTests(unittest.TestCase):
 
@@ -41,7 +43,7 @@ class PabotTests(unittest.TestCase):
             'Fixtures.Suite With Valueset Tags.Common value set',
             'Fixtures.Suite With Valueset Tags.None existing'
         ]
-        self._all_with_tests = ['--test '+t for t in self._all_tests]
+        self._all_with_tests = ['--test '+_t for _t in self._all_tests]
 
     def test_dryrun_optimisation_works(self):
         outs_dir = "."
@@ -175,7 +177,7 @@ class PabotTests(unittest.TestCase):
             'commandlineoptions:%s\n' % clihash,
             'suitesfrom:%s\n' % sfhash,
             'file:%s\n' % fhash
-        ] + [s+'\n' for s in suites]
+        ] + [_s+'\n' for _s in suites]
 
     def test_solve_suite_names_works_with_directory_suite(self):
         pabotsuitenames = self._psuitenames(
@@ -202,7 +204,7 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def _suites(self, list_of_names):
-        return [pabot.SuiteItem(name) if name != "#WAIT" else pabot.WaitItem() for name in list_of_names]
+        return [s(name) if name != "#WAIT" else pabot.WaitItem() for name in list_of_names]
     
     def _test_preserve_order(self, expected, new_suites, old_suites):
         self.assertEqual(self._suites(expected), pabot._preserve_order(self._suites(new_suites), self._suites(old_suites)))
@@ -248,18 +250,24 @@ class PabotTests(unittest.TestCase):
         self._test_preserve_order(['a'], ['a'], ['a', 'a'])
 
     def test_fix_items_splits_to_tests_when_suite_after_test_from_that_suite(self):
-        t = pabot.TestItem
-        s = pabot.SuiteItem
         expected_items = [t("s.t1"), t("s.t2")]
         items = [t("s.t1"), s("s", tests=["s.t1", "s.t2"])]
         self.assertEqual(expected_items, pabot._fix_items(items))
 
     def test_fix_items_combines_to_suite_when_test_from_suite_after_suite(self):
-        t = pabot.TestItem
-        s = pabot.SuiteItem
         expected_items = [s("s", tests=["s.t1", "s.t2"])]
         items = [s("s", tests=["s.t1", "s.t2"]), t("s.t1")]
         self.assertEqual(expected_items, pabot._fix_items(items))
+
+    def test_fix_items_combines_subsuites_when_after_containing_suite(self):
+        self.assertEqual([s("s")], pabot._fix_items([s("s"), s("s.s1")]))
+
+    def test_fix_items_split_containig_suite_when_subsuite_before(self):
+        self.assertEqual([s("s.s1"), s("s.s2")], pabot._fix_items([s("s.s1"), s("s", suites=["s.s1", "s.s2"])]))
+
+    def test_fix_items_removes_duplicates(self):
+        self.assertEqual([t("t")], pabot._fix_items([t("t"), t("t")]))
+        self.assertEqual([s("s")], pabot._fix_items([s("s"), s("s")]))
 
     def test_solve_suite_names_with_testlevelsplit_option(self):
         if os.path.isfile(".pabotsuitenames"):
@@ -696,14 +704,14 @@ class PabotTests(unittest.TestCase):
         finally:
             os.rmdir(".pabotsuitenames")
 
-    def test_parallel_execution(self):
+    def Itest_parallel_execution(self):
         dtemp = tempfile.mkdtemp()
         outs_dir = os.path.join(dtemp, 'pabot_results')
         self._options['outputdir'] = dtemp
         self._pabot_args['pabotlibport'] = 4000+random.randint(0, 1000)
         lib_process = pabot._start_remote_library(self._pabot_args)
         try:
-            suite_names = [pabot.SuiteItem(s) for s in self._all_suites]
+            suite_names = [s(_s) for _s in self._all_suites]
             pabot._parallel_execute(datasources=self._datasources,
                                     options=self._options,
                                     outs_dir=outs_dir,
@@ -721,7 +729,6 @@ class PabotTests(unittest.TestCase):
             shutil.rmtree(dtemp)
 
     def test_suite_root_name(self):
-        s = pabot.SuiteItem
         def t(l):
             return [[s(i) for i in suites] for suites in l]
         self.assertEqual(pabot._get_suite_root_name(t([["Foo.Bar", "Foo.Zoo"], ["Foo.Boo"]])), "Foo")
