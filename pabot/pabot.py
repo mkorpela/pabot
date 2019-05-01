@@ -706,14 +706,9 @@ def _preserve_order(new_suites, old_suites):
     exists_in_old_and_new = [s for s in old_suites
                 if (s in new_suites and s not in ignorable)
                 or s in preserve]
-    _remove_double_waits(exists_in_old_and_new)
-    if exists_in_old_and_new and exists_in_old_and_new[0].isWait:
-        exists_in_old_and_new = exists_in_old_and_new[1:]
     exists_only_in_new = [s for s in new_suites
                 if s not in old_suites and s not in ignorable]
-    if not exists_only_in_new and exists_in_old_and_new and exists_in_old_and_new[-1].isWait:
-        exists_in_old_and_new = exists_in_old_and_new[:-1]
-    return exists_in_old_and_new + exists_only_in_new
+    return _fix_items(exists_in_old_and_new + exists_only_in_new)
 
 
 def _fix_items(items):
@@ -773,8 +768,7 @@ def _split_partially_to_tests(new_suites, old_suites):
     for s in new_suites:
         split = False
         for old_test in old_suites:
-            if isinstance(old_test, TestItem) and \
-                old_test.name.startswith(s.name+"."):
+            if isinstance(old_test, TestItem) and s.contains(old_test):
                 split = True
         if split:
             suits.extend(s.tests)
