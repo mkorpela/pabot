@@ -688,28 +688,27 @@ def _contains_suite_and_test(suites):
         any(isinstance(t, TestItem) for t in suites)
 
 
-def _preserve_order(new_suites, old_suites):
-    assert(all(isinstance(s, ExecutionItem) for s in new_suites))
-    assert(all(isinstance(s, ExecutionItem) for s in old_suites))
-    old_contains_tests = any(isinstance(t, TestItem) for t in old_suites)
-    old_contains_suites = any(isinstance(s, SuiteItem) for s in old_suites)
-    old_suites = _fix_items(old_suites)
-    new_contains_tests = any(isinstance(t, TestItem) for t in new_suites)
-    #new_contains_suites = any(isinstance(s, SuiteItem) for s in new_suites)
-    old_suites = [suite for i, suite in enumerate(old_suites) 
+def _preserve_order(new_items, old_items):
+    assert(all(isinstance(s, ExecutionItem) for s in new_items))
+    assert(all(isinstance(s, ExecutionItem) for s in old_items))
+    old_contains_tests = any(isinstance(t, TestItem) for t in old_items)
+    old_contains_suites = any(isinstance(s, SuiteItem) for s in old_items)
+    old_items = _fix_items(old_items)
+    new_contains_tests = any(isinstance(t, TestItem) for t in new_items)
+    old_items = [suite for i, suite in enumerate(old_items) 
                     if suite and
-                    (suite not in old_suites[i+1:] or suite.isWait)]
+                    (suite not in old_items[i+1:] or suite.isWait)]
     if old_contains_tests and old_contains_suites and not new_contains_tests:
-        new_suites = _split_partially_to_tests(new_suites, old_suites)
+        new_items = _split_partially_to_tests(new_items, old_items)
     #TODO: Preserving order when suites => tests OR tests => suites
     preserve, ignorable = _get_preserve_and_ignore(
-        new_suites, old_suites, 
+        new_items, old_items, 
         old_contains_tests and old_contains_suites)
-    exists_in_old_and_new = [s for s in old_suites
-                if (s in new_suites and s not in ignorable)
+    exists_in_old_and_new = [s for s in old_items
+                if (s in new_items and s not in ignorable)
                 or s in preserve]
-    exists_only_in_new = [s for s in new_suites
-                if s not in old_suites and s not in ignorable]
+    exists_only_in_new = [s for s in new_items
+                if s not in old_items and s not in ignorable]
     return _fix_items(exists_in_old_and_new + exists_only_in_new)
 
 
@@ -741,19 +740,19 @@ def _fix_items(items):
     return result
 
 
-def _get_preserve_and_ignore(new_suites, old_suites, old_contains_suites_and_tests):
+def _get_preserve_and_ignore(new_items, old_items, old_contains_suites_and_tests):
     ignorable = []
     preserve = []
-    for old_suite in old_suites:
-        for s in new_suites:
-            if old_suite.contains(s) and s != old_suite and \
-                (isinstance(s, SuiteItem) or old_contains_suites_and_tests):
-                preserve.append(old_suite)
-                ignorable.append(s)
-        if old_suite.isWait:
-            preserve.append(old_suite)
-    preserve = [s for s in preserve 
-        if not any([i.contains(s) and i != s for i in preserve])]
+    for old_item in old_items:
+        for new_item in new_items:
+            if old_item.contains(new_item) and new_item != old_item and \
+                (isinstance(new_item, SuiteItem) or old_contains_suites_and_tests):
+                preserve.append(old_item)
+                ignorable.append(new_item)
+        if old_item.isWait:
+            preserve.append(old_item)
+    preserve = [new_item for new_item in preserve 
+        if not any([i.contains(new_item) and i != new_item for i in preserve])]
     return preserve, ignorable
 
 
