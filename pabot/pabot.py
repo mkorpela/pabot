@@ -691,9 +691,9 @@ def _contains_suite_and_test(suites):
 def _preserve_order(new_suites, old_suites):
     assert(all(isinstance(s, ExecutionItem) for s in new_suites))
     assert(all(isinstance(s, ExecutionItem) for s in old_suites))
-    old_suites = _fix_items(old_suites)
     old_contains_tests = any(isinstance(t, TestItem) for t in old_suites)
     old_contains_suites = any(isinstance(s, SuiteItem) for s in old_suites)
+    old_suites = _fix_items(old_suites)
     new_contains_tests = any(isinstance(t, TestItem) for t in new_suites)
     #new_contains_suites = any(isinstance(s, SuiteItem) for s in new_suites)
     old_suites = [suite for i, suite in enumerate(old_suites) 
