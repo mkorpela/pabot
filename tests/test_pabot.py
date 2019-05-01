@@ -224,6 +224,9 @@ class PabotTests(unittest.TestCase):
     def test_suite_ordering_preserves_directory_suites(self):
         self._test_preserve_order(['s.sub', 's3'], ['s.sub.s1', 's.sub.s2', 's3'], ['s.sub'])
 
+    def test_suite_ordering_splits_directory_suite(self):
+        self._test_preserve_order(['s.sub.s1', 's.sub.s2'], ['s.sub.s1', 's.sub.s2'], ['s.sub.s1', 's.sub'])
+
     def test_suite_ordering_preserves_wait_command(self):
         self._test_preserve_order(['s2', '#WAIT', 's1', 's3'], ['s1', 's2', 's3'], ['s2', '#WAIT', 's1'])
         self._test_preserve_order(['s2', '#WAIT', 's3'], ['s2', 's3'], ['s2', '#WAIT', 's1'])
@@ -244,7 +247,7 @@ class PabotTests(unittest.TestCase):
         self._test_preserve_order(['s1', 'sub', 's4', 'subi'], ['s1', 'sub.s2', 'sub.s3', 's4', 'subi'], ['s1', 'sub', 'sub.s3', 's4'])
 
     def test_suite_ordering_removes_directory_suite_subsuites_also_from_old_list(self):
-        self._test_preserve_order(['s'], ['s.s1', 's.sub.s2', 's.s3'], ['s.sub', 's'])
+        self._test_preserve_order(['s'], ['s.s1', 's.sub.s2', 's.s3'], ['s', 's.sub'])
 
     def test_suite_ordering_removes_old_duplicate(self):
         self._test_preserve_order(['a'], ['a'], ['a', 'a'])

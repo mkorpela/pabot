@@ -687,9 +687,11 @@ def _contains_suite_and_test(suites):
     return any(isinstance(s, SuiteItem) for s in suites) and \
         any(isinstance(t, TestItem) for t in suites)
 
+
 def _preserve_order(new_suites, old_suites):
     assert(all(isinstance(s, ExecutionItem) for s in new_suites))
     assert(all(isinstance(s, ExecutionItem) for s in old_suites))
+    old_suites = _fix_items(old_suites)
     old_contains_tests = any(isinstance(t, TestItem) for t in old_suites)
     old_contains_suites = any(isinstance(s, SuiteItem) for s in old_suites)
     new_contains_tests = any(isinstance(t, TestItem) for t in new_suites)
@@ -744,14 +746,14 @@ def _get_preserve_and_ignore(new_suites, old_suites, old_contains_suites_and_tes
     preserve = []
     for old_suite in old_suites:
         for s in new_suites:
-            if s.name.startswith(old_suite.name+".") and \
+            if old_suite.contains(s) and s != old_suite and \
                 (isinstance(s, SuiteItem) or old_contains_suites_and_tests):
                 preserve.append(old_suite)
                 ignorable.append(s)
         if old_suite.isWait:
             preserve.append(old_suite)
     preserve = [s for s in preserve 
-        if not any([i for i in preserve if s.name.startswith(i.name + ".")])]
+        if not any([i.contains(s) and i != s for i in preserve])]
     return preserve, ignorable
 
 
