@@ -269,6 +269,15 @@ class PabotTests(unittest.TestCase):
         self.assertEqual([t("t")], pabot._fix_items([t("t"), t("t")]))
         self.assertEqual([s("s")], pabot._fix_items([s("s"), s("s")]))
 
+    def test_fix_works_with_waits(self):
+        w = pabot.WaitItem
+        self.assertEqual([], pabot._fix_items([w()]))
+        self.assertEqual([], pabot._fix_items([w(), w()]))
+        self.assertEqual([s("s")], pabot._fix_items([w(), s("s")]))
+        self.assertEqual([s("s")], pabot._fix_items([s("s"), w()]))
+        self.assertEqual([s("s1"), w(), s("s2")], pabot._fix_items([s("s1"), w(), s("s2")]))
+        self.assertEqual([s("s1"), w(), s("s2")], pabot._fix_items([s("s1"), w(), w(), s("s2")]))
+
     def test_solve_suite_names_with_testlevelsplit_option(self):
         if os.path.isfile(".pabotsuitenames"):
             os.remove(".pabotsuitenames")

@@ -736,6 +736,11 @@ def _fix_items(items):
                 if j not in to_be_splitted:
                     to_be_splitted[j] = []
                 to_be_splitted[j].append(items[i])
+    _remove_double_waits(result)
+    if result and result[0].isWait:
+        result = result[1:]
+    if result and result[-1].isWait:
+        result = result[:-1]
     return result
 
 
