@@ -598,6 +598,10 @@ class SuiteItem(ExecutionItem):
             return True
         return other.name.startswith(self.name+".")
 
+    def tags(self):
+        #TODO Make this happen
+        return []
+
 
 class TestItem(ExecutionItem):
 
@@ -615,6 +619,10 @@ class TestItem(ExecutionItem):
     def contains(self, other):
         return self == other
 
+    def tags(self):
+        #TODO Make this happen
+        return []
+
 
 class WaitItem(ExecutionItem):
 
@@ -628,11 +636,30 @@ class WaitItem(ExecutionItem):
         return self.name
 
 
+class IncludeItem(ExecutionItem):
+
+    type = "include"
+    
+    def __init__(self, tag):
+        self.name = tag
+
+    def line(self):
+        return '--include '+self.name
+
+    def contains(self, other):
+        return self.name in other.tags()
+
+    def tags(self):
+        return [self.name]
+
+
 def _parse_line(text):
     if text.startswith('--suite '):
         return SuiteItem(text[8:])
     if text.startswith('--test '):
         return TestItem(text[7:])
+    if text.startswith('--include '):
+        return IncludeItem(text[10:])
     if text == "#WAIT":
         return WaitItem()
     # Assume old suite name
