@@ -247,6 +247,20 @@ class PabotTests(unittest.TestCase):
     def test_suite_ordering_removes_old_duplicate(self):
         self._test_preserve_order(['a'], ['a'], ['a', 'a'])
 
+    def test_fix_items_splits_to_tests_when_suite_after_test_from_that_suite(self):
+        t = pabot.TestItem
+        s = pabot.SuiteItem
+        expected_items = [t("s.t1"), t("s.t2")]
+        items = [t("s.t1"), s("s", tests=["s.t1", "s.t2"])]
+        self.assertEqual(expected_items, pabot._fix_items(items))
+
+    def test_fix_items_combines_to_suite_when_test_from_suite_after_suite(self):
+        t = pabot.TestItem
+        s = pabot.SuiteItem
+        expected_items = [s("s", tests=["s.t1", "s.t2"])]
+        items = [s("s", tests=["s.t1", "s.t2"]), t("s.t1")]
+        self.assertEqual(expected_items, pabot._fix_items(items))
+
     def test_solve_suite_names_with_testlevelsplit_option(self):
         if os.path.isfile(".pabotsuitenames"):
             os.remove(".pabotsuitenames")

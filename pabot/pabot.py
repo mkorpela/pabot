@@ -552,6 +552,9 @@ class ExecutionItem(object):
     def top_name(self):
         return self.name.split('.')[0]
 
+    def contains(self, other):
+        return False
+
     def __eq__(self, other):
         if isinstance(other, ExecutionItem):
             return ((self.name, self.type) == (other.name, other.type))
@@ -580,7 +583,10 @@ class SuiteItem(ExecutionItem):
         self.tests = [TestItem(t) for t in tests or []]
 
     def line(self):
-        return '--suite '+self.name 
+        return '--suite '+self.name
+
+    def contains(self, other):
+        return other.name.startswith(self.name+".")
 
 
 class TestItem(ExecutionItem):
@@ -692,6 +698,32 @@ def _preserve_order(new_suites, old_suites):
     if not exists_only_in_new and exists_in_old_and_new and exists_in_old_and_new[-1].isWait:
         exists_in_old_and_new = exists_in_old_and_new[:-1]
     return exists_in_old_and_new + exists_only_in_new
+
+
+def _fix_items(items):
+    assert(all(isinstance(s, ExecutionItem) for s in items))
+    to_be_removed = []
+    for i in range(len(items)):
+        for j in range(i+1, len(items)):
+            if items[i].contains(items[j]):
+                to_be_removed.append(items[j])
+    items = [item for item in items if item not in to_be_removed]
+    result = []
+    to_be_splitted = []
+    for i in range(len(items)):
+        if items[i] in to_be_splitted:
+            result.extend(items[i].tests)
+        else:
+            result.append(items[i])
+        for j in range(i+1, len(items)):
+            if items[j].contains(items[i]):
+                to_be_splitted.append(items[j])
+    items = result
+    result = []
+    for item in items:
+        if item not in result:
+            result.append(item)
+    return result
 
 
 def _get_preserve_and_ignore(new_suites, old_suites, old_contains_suites_and_tests):
