@@ -223,6 +223,7 @@ class PabotTests(unittest.TestCase):
 
     def test_suite_ordering_preserves_directory_suites(self):
         self._test_preserve_order(['s.sub', 's3'], ['s.sub.s1', 's.sub.s2', 's3'], ['s.sub'])
+        self._test_preserve_order(['s.sub', 's3'], ['s.sub.s1', 's.sub.s2', 's3'], ['s.sub'])
 
     def test_suite_ordering_splits_directory_suite(self):
         self._test_preserve_order(['s.sub.s1', 's.sub.s2'], ['s.sub.s1', 's.sub.s2'], ['s.sub.s1', 's.sub'])
@@ -716,7 +717,7 @@ class PabotTests(unittest.TestCase):
         finally:
             os.rmdir(".pabotsuitenames")
 
-    def Itest_parallel_execution(self):
+    def test_parallel_execution(self):
         dtemp = tempfile.mkdtemp()
         outs_dir = os.path.join(dtemp, 'pabot_results')
         self._options['outputdir'] = dtemp
