@@ -869,27 +869,52 @@ def _with_modified_robot():
         # RF 3.1
         from robot.parsing.robotreader import RobotReader, Utf8Reader
 
-        def new_read(self, file, populator, path=None):
-            path = path or getattr(file, 'name', '<file-like object>')
-            process = False
-            first = True
-            for row in Utf8Reader(file).readlines():
-                row = self._process_row(row)
-                cells = [self._process_cell(cell, path) for cell in self.split_row(row)]
-                self._deprecate_empty_data_cells_in_tsv_format(cells, path)
-                if cells and cells[0].strip().startswith('*') and \
-                        populator.start_table([c.replace('*', '') for c in cells]):
-                    process = True
-                elif process:
-                    if cells[0].strip() != '' or \
-                            (len(cells) > 1 and
-                                 ('[' in cells[1] or (first and '...' in cells[1]))):
-                        populator.add(cells)
-                        first = True
-                    elif first:
-                        populator.add(['', 'No Operation'])
-                        first = False
-            return populator.eof()
+        # RF 3.1.2
+        if "_process_row" not in dir(RobotReader):
+            def new_read(self, file, populator, path=None):
+                path = path or getattr(file, 'name', '<file-like object>')
+                process = False
+                first = True
+                for lineno, line in enumerate(Utf8Reader(file).readlines(), start=1):
+                    cells = self.split_row(line.rstrip())
+                    cells = list(self._check_deprecations(cells, path, lineno))
+                    if cells and cells[0].strip().startswith('*') and \
+                            populator.start_table([c.replace('*', '').strip()
+                                                for c in cells]):
+                        process = True
+                    elif process:
+                        if cells[0].strip() != '' or \
+                                (len(cells) > 1 and
+                                    ('[' in cells[1] or (first and '...' in cells[1]))):
+                            populator.add(cells)
+                            first = True
+                        elif first:
+                            populator.add(['', 'No Operation'])
+                            first = False
+                return populator.eof()
+
+        else:
+            def new_read(self, file, populator, path=None):
+                path = path or getattr(file, 'name', '<file-like object>')
+                process = False
+                first = True
+                for row in Utf8Reader(file).readlines():
+                    row = self._process_row(row)
+                    cells = [self._process_cell(cell, path) for cell in self.split_row(row)]
+                    self._deprecate_empty_data_cells_in_tsv_format(cells, path)
+                    if cells and cells[0].strip().startswith('*') and \
+                            populator.start_table([c.replace('*', '') for c in cells]):
+                        process = True
+                    elif process:
+                        if cells[0].strip() != '' or \
+                                (len(cells) > 1 and
+                                    ('[' in cells[1] or (first and '...' in cells[1]))):
+                            populator.add(cells)
+                            first = True
+                        elif first:
+                            populator.add(['', 'No Operation'])
+                            first = False
+                return populator.eof()
 
         old_read = RobotReader.read
         RobotReader.read = new_read
