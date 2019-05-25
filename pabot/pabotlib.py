@@ -170,7 +170,7 @@ class PabotLib(_PabotLib):
         if not is_last:
             return
         if self._remotelib:
-            while self.get_parallel_value_for_key('pabot_how_many_to_complete') != 1:
+            while self.get_parallel_value_for_key('pabot_only_last_executing') != 1:
                 time.sleep(0.3)
         BuiltIn().run_keyword(keyword)
 

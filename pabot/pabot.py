@@ -159,8 +159,8 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id)
     except:
         print(sys.exc_info()[0])
     _NUMBER_OF_ITEMS_TO_BE_COMPLETED -= 1
-    if plib:
-        plib.run_keyword('set_parallel_value_for_key', ['pabot_how_many_to_complete', _NUMBER_OF_ITEMS_TO_BE_COMPLETED], {})
+    if plib and _NUMBER_OF_ITEMS_TO_BE_COMPLETED == 1:
+        plib.run_keyword('set_parallel_value_for_key', ['pabot_only_last_executing', 1], {})
     # Thread-safe list append
     _ALL_ELAPSED.append(elapsed)
     if rc != 0:
