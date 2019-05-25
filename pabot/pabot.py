@@ -110,6 +110,7 @@ ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
 _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # does not contain '"'
 _BAD_CHARS_SET = set(_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE)
 _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
+_NUMBER_OF_ITEMS_TO_BE_COMPLETED = 0
 
 _ROBOT_EXTENSIONS = ['.html', '.htm', '.xhtml', '.tsv', '.rst', '.rest', '.txt', '.robot']
 _ALL_ELAPSED = []
@@ -147,18 +148,25 @@ def execute_and_wait_with(args):
     outputxml_preprocessing(options, outs_dir, execution_item.name, verbose,  _make_id(), caller_id)
 
 def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id):
+    global _NUMBER_OF_ITEMS_TO_BE_COMPLETED
+    plib = None
+    if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
+        plib = Remote(_PABOTLIBURI)
     try:
         with open(os.path.join(outs_dir, cmd[0]+'_stdout.txt'), 'w') as stdout:
             with open(os.path.join(outs_dir,cmd[0]+'_stderr.txt'), 'w') as stderr:
                 process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id)
     except:
         print(sys.exc_info()[0])
+    _NUMBER_OF_ITEMS_TO_BE_COMPLETED -= 1
+    if plib:
+        plib.run_keyword('set_parallel_value_for_key', ['pabot_how_many_to_complete', _NUMBER_OF_ITEMS_TO_BE_COMPLETED], {})
     # Thread-safe list append
     _ALL_ELAPSED.append(elapsed)
     if rc != 0:
         _write_with_id(process, pool_id, _execution_failed_message(item_name, stdout, stderr, rc, verbose), Color.RED)
-        if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
-            Remote(_PABOTLIBURI).run_keyword('release_locks', [caller_id], {})
+        if plib:
+            plib.run_keyword('release_locks', [caller_id], {})
     else:
         _write_with_id(process, pool_id, _execution_passed_message(item_name, stdout, stderr, elapsed, verbose), Color.GREEN)
 
@@ -1048,7 +1056,7 @@ def keyboard_interrupt(*args):
 
 
 def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
-    global _NUMBER_OF_ITEMS_TO_BE_EXECUTED
+    global _NUMBER_OF_ITEMS_TO_BE_EXECUTED, _NUMBER_OF_ITEMS_TO_BE_COMPLETED
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
     pool = ThreadPool(pabot_args['processes'])
     items = [(datasources, outs_dir, options, suite,
@@ -1056,6 +1064,7 @@ def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
               for suite in suite_names
               for argfile in pabot_args['argumentfiles'] or [("", None)]]
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED = len(items)
+    _NUMBER_OF_ITEMS_TO_BE_COMPLETED = _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     result = pool.map_async(execute_and_wait_with, items, 1)
     pool.close()
     while not result.ready():

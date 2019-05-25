@@ -109,7 +109,7 @@ class _PabotLib(object):
 
 class PabotLib(_PabotLib):
 
-    __version__ = 0.31
+    __version__ = 0.61
     ROBOT_LIBRARY_SCOPE = 'GLOBAL'
 
     def __init__(self):
@@ -142,13 +142,6 @@ class PabotLib(_PabotLib):
         If the keyword fails, "Run Only Once" fails.
         Others executing "Run Only Once" wait before going through this
         keyword before the actual command has been executed.
-        NOTE! This is a potential "Shoot yourself in to knee" keyword
-        Especially note that all the namespace changes are only visible
-        in the process that actually executed the keyword.
-        Also note that this might lead to odd situations if used inside
-        of other keywords.
-        Also at this point the keyword will be identified to be same
-        if it has the same name.
         """
         lock_name = 'pabot_run_only_once_%s' % keyword
         try:
@@ -165,6 +158,21 @@ class PabotLib(_PabotLib):
             raise
         finally:
             self.release_lock(lock_name)
+
+    def run_on_last_process(self, keyword):
+        """
+        Runs a keyword on last process used by pabot.
+        Keyword will wait until all other processes have stopped executing.
+        This can be used to run a global teardown that should be only
+        executed after all testing is done.
+        """
+        is_last = int(BuiltIn().get_variable_value('${PABOTISLASTEXECUTIONINPOOL}')) == 1
+        if not is_last:
+            return
+        if self._remotelib:
+            while self.get_parallel_value_for_key('pabot_how_many_to_complete') != 1:
+                time.sleep(0.3)
+        BuiltIn().run_keyword(keyword)
 
     def set_parallel_value_for_key(self, key, value):
         """
