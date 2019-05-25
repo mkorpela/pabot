@@ -5,6 +5,7 @@ import tempfile
 import shutil
 import random
 from pabot import pabotlib
+from robot.libraries.BuiltIn import BuiltIn
 
 class PabotLibTests(unittest.TestCase):
 
@@ -16,6 +17,7 @@ class PabotLibTests(unittest.TestCase):
             self._runs += 1
         builtinmock.run_keyword = runned
         pabotlib.BuiltIn = lambda:builtinmock
+        self.builtinmock = builtinmock
 
     def test_pabotlib_set_get_parallel_value(self):
         lib = pabotlib.PabotLib()
@@ -29,6 +31,16 @@ class PabotLibTests(unittest.TestCase):
         lib.run_only_once("keyword")
         self.assertEqual(self._runs, 1)
         lib.run_only_once("keyword")
+        self.assertEqual(self._runs, 1)
+
+    def test_pabotlib_run_on_last_process(self):
+        lib = pabotlib.PabotLib()
+        self.assertEqual(self._runs, 0)
+        lib.run_on_last_process("keyword")
+        self.assertEqual(self._runs, 0)
+        self.builtinmock.get_variable_value = lambda *args:'1'
+        lib.get_parallel_value_for_key = lambda *args: 1
+        lib.run_on_last_process("keyword")
         self.assertEqual(self._runs, 1)
 
     def test_acquire_and_release_lock(self):
