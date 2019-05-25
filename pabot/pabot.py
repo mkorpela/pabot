@@ -109,6 +109,7 @@ _PABOTLIBPROCESS = None
 ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
 _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # does not contain '"'
 _BAD_CHARS_SET = set(_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE)
+_NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
 
 _ROBOT_EXTENSIONS = ['.html', '.htm', '.xhtml', '.tsv', '.rst', '.rest', '.txt', '.robot']
 _ALL_ELAPSED = []
@@ -126,7 +127,9 @@ def _mapOptionalQuote(cmdargs):
     
 
 def execute_and_wait_with(args):
-    global CTRL_C_PRESSED
+    global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
+    is_last = _NUMBER_OF_ITEMS_TO_BE_EXECUTED == 1
+    _NUMBER_OF_ITEMS_TO_BE_EXECUTED -= 1
     if CTRL_C_PRESSED:
         # Keyboard interrupt has happened!
         return
@@ -138,7 +141,7 @@ def execute_and_wait_with(args):
     os.makedirs(outs_dir)
     
     caller_id = uuid.uuid4().hex
-    cmd = command + _options_for_custom_executor(options, outs_dir, execution_item, argfile, caller_id) + datasources        
+    cmd = command + _options_for_custom_executor(options, outs_dir, execution_item, argfile, caller_id, is_last) + datasources        
     cmd = _mapOptionalQuote(cmd)
     _try_execute_and_wait(cmd, outs_dir, execution_item.name, verbose, _make_id(), caller_id)
     outputxml_preprocessing(options, outs_dir, execution_item.name, verbose,  _make_id(), caller_id)
@@ -258,7 +261,7 @@ def _options_for_custom_executor(*args):
     return _options_to_cli_arguments(_options_for_executor(*args))
 
 
-def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id):
+def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id, is_last):
     options = options.copy()
     options['log'] = 'NONE'
     options['report'] = 'NONE'
@@ -274,6 +277,9 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id)
     pabotExecutionPoolId = "PABOTEXECUTIONPOOLID:%d" % _make_id()
     if pabotExecutionPoolId not in options['variable']:
         options['variable'].append(pabotExecutionPoolId)
+    pabotIsLast = 'PABOTISLASTEXECUTIONINPOOL:%s' % ('1' if is_last else '0')
+    if pabotIsLast not in options['variable']:
+        options['variable'].append(pabotIsLast)
     if argfile:
         options['argumentfile'] = argfile
     return _set_terminal_coloring_options(options)
@@ -1042,13 +1048,15 @@ def keyboard_interrupt(*args):
 
 
 def _parallel_execute(datasources, options, outs_dir, pabot_args, suite_names):
+    global _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
     pool = ThreadPool(pabot_args['processes'])
-    result = pool.map_async(execute_and_wait_with,
-                            ((datasources, outs_dir, options, suite,
-                              pabot_args['command'], pabot_args['verbose'], argfile)
-                             for suite in suite_names
-                             for argfile in pabot_args['argumentfiles'] or [("", None)]),1)
+    items = [(datasources, outs_dir, options, suite,
+              pabot_args['command'], pabot_args['verbose'], argfile)
+              for suite in suite_names
+              for argfile in pabot_args['argumentfiles'] or [("", None)]]
+    _NUMBER_OF_ITEMS_TO_BE_EXECUTED = len(items)
+    result = pool.map_async(execute_and_wait_with, items, 1)
     pool.close()
     while not result.ready():
         # keyboard interrupt is executed in main thread
