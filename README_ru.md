@@ -102,7 +102,7 @@ Example usages:
 pabot.PabotLib предоставляет ключевые слова, которые помогут коммуникации и обмену данными между процессами исполнителя.
 Это может быть полезно, когда вы должны убедиться, что только один из процессов использует какой-то фрагмент данных или одновременно работает с какой-либо частью тестируемой системы.
 
-Docs are located at https://cdn.rawgit.com/mkorpela/pabot/master/PabotLib.html
+Docs are located at https://mkorpela.github.io/PabotLib.html
 
 ### PabotLib example:
 
