@@ -111,6 +111,7 @@ _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # doe
 _BAD_CHARS_SET = set(_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE)
 _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
 _NUMBER_OF_ITEMS_TO_BE_COMPLETED = 0
+_NUMBER_OF_ITEMS_TO_BE_COMPLETED_LOCK = threading.Lock()
 
 _ROBOT_EXTENSIONS = ['.html', '.htm', '.xhtml', '.tsv', '.rst', '.rest', '.txt', '.robot']
 _ALL_ELAPSED = []
@@ -148,7 +149,6 @@ def execute_and_wait_with(args):
     outputxml_preprocessing(options, outs_dir, execution_item.name, verbose,  _make_id(), caller_id)
 
 def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id):
-    global _NUMBER_OF_ITEMS_TO_BE_COMPLETED
     plib = None
     if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
         plib = Remote(_PABOTLIBURI)
@@ -158,9 +158,7 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id)
                 process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id)
     except:
         print(sys.exc_info()[0])
-    _NUMBER_OF_ITEMS_TO_BE_COMPLETED -= 1
-    if plib and _NUMBER_OF_ITEMS_TO_BE_COMPLETED == 1:
-        plib.run_keyword('set_parallel_value_for_key', ['pabot_only_last_executing', 1], {})
+    _increase_completed(plib)
     # Thread-safe list append
     _ALL_ELAPSED.append(elapsed)
     if rc != 0:
@@ -210,6 +208,14 @@ def _make_id():
             EXECUTION_POOL_IDS += [thread_id]
         return EXECUTION_POOL_IDS.index(thread_id)
 
+def _increase_completed(plib):
+    global _NUMBER_OF_ITEMS_TO_BE_COMPLETED, _NUMBER_OF_ITEMS_TO_BE_COMPLETED_LOCK
+    if plib:
+        with _NUMBER_OF_ITEMS_TO_BE_COMPLETED_LOCK:
+            _NUMBER_OF_ITEMS_TO_BE_COMPLETED -= 1
+            if _NUMBER_OF_ITEMS_TO_BE_COMPLETED == 1:
+                plib.run_keyword('set_parallel_value_for_key', 
+                ['pabot_only_last_executing', 1], {}) 
 
 def _run(cmd, stderr, stdout, item_name, verbose, pool_id):
     timestamp = datetime.datetime.now()
