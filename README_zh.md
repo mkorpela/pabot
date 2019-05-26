@@ -102,7 +102,7 @@
 pabot.PabotLib提供的关键字有助于执行程序进程之间的通信和数据共享。
 当您必须确保只有一个进程使用某些数据或一次在被测系统的某些部分上运行时，这些可能会有所帮助。
 
-Docs are located at https://cdn.rawgit.com/mkorpela/pabot/master/PabotLib.html
+Docs are located at https://mkorpela.github.io/PabotLib.html
 
 ### PabotLib示例：
 
