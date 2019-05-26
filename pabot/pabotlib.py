@@ -166,7 +166,7 @@ class PabotLib(_PabotLib):
         This can be used to run a global teardown that should be only
         executed after all testing is done.
         """
-        is_last = int(BuiltIn().get_variable_value('${PABOTISLASTEXECUTIONINPOOL}') or 0) == 1
+        is_last = int(BuiltIn().get_variable_value('${PABOTISLASTEXECUTIONINPOOL}') or 1) == 1
         if not is_last:
             return
         if self._remotelib:
