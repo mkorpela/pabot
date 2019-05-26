@@ -36,10 +36,17 @@ class PabotLibTests(unittest.TestCase):
     def test_pabotlib_run_on_last_process(self):
         lib = pabotlib.PabotLib()
         self.assertEqual(self._runs, 0)
+        self.builtinmock.get_variable_value = lambda *args:'0'
         lib.run_on_last_process("keyword")
         self.assertEqual(self._runs, 0)
         self.builtinmock.get_variable_value = lambda *args:'1'
         lib.get_parallel_value_for_key = lambda *args: 1
+        lib.run_on_last_process("keyword")
+        self.assertEqual(self._runs, 1)
+
+    def test_pabotlib_run_on_last_process_defaults_to_running(self):
+        lib = pabotlib.PabotLib()
+        self.assertEqual(self._runs, 0)
         lib.run_on_last_process("keyword")
         self.assertEqual(self._runs, 1)
 
