@@ -109,13 +109,48 @@ class _PabotLib(object):
 
 class PabotLib(_PabotLib):
 
-    __version__ = 0.61
+    __version__ = 0.64
     ROBOT_LIBRARY_SCOPE = 'GLOBAL'
+    ROBOT_LISTENER_API_VERSION = 2
 
     def __init__(self):
         _PabotLib.__init__(self)
         self.__remotelib = None
         self.__my_id = None
+        self.ROBOT_LIBRARY_LISTENER = self
+
+    def _start_suite(self, name, attributes):
+        print('<- start suite ->')
+        print(repr(attributes))
+        print(name)
+
+    def _end_suite(self, name, attributes):
+        print(repr(attributes))
+        print(name)
+        print('<- end suite ->')
+
+    def _start_test(self, name, attributes):
+        print('<- start test ->')
+        print(repr(attributes))
+        print(name)
+
+    def _end_test(self, name, attributes):
+        print(repr(attributes))
+        print(name)
+        print('<- end test ->')
+
+    def _start_keyword(self, name, attributes):
+        print('<- start keyword ->')
+        print(repr(attributes))
+        print(name)
+
+    def _end_keyword(self, name, attributes):
+        print(repr(attributes))
+        print(name)
+        print('<- end keyword ->')
+
+    def _close(self):
+        print('<- close ->')
 
     @property
     def _my_id(self):
