@@ -1256,9 +1256,9 @@ def main(args):
                 if options.get("randomize") in ["all", "suites"] and \
                     "suitesfrom" not in pabot_args:
                     random.shuffle(suite_group)
-                items = [(datasources, outs_dir, options, suite,
+                items = [(datasources, outs_dir, opts_for_run, suite,
                     pabot_args['command'], pabot_args['verbose'], argfile)
-                    for suite in suite_names
+                    for suite in suite_group
                     for argfile in pabot_args['argumentfiles'] or [("", None)]]
                 _parallel_execute(items, pabot_args['processes'])
             sys.exit(_report_results(outs_dir, pabot_args, options, start_time_string,
