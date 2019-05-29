@@ -725,11 +725,12 @@ class PabotTests(unittest.TestCase):
         lib_process = pabot._start_remote_library(self._pabot_args)
         try:
             suite_names = [s(_s) for _s in self._all_suites]
-            pabot._parallel_execute(datasources=self._datasources,
-                                    options=self._options,
-                                    outs_dir=outs_dir,
-                                    pabot_args=self._pabot_args,
-                                    suite_names=suite_names)
+            items = [(self._datasources, outs_dir, self._options, suite,
+                    self._pabot_args['command'], 
+                    self._pabot_args['verbose'], argfile)
+                    for suite in suite_names
+                    for argfile in self._pabot_args['argumentfiles'] or [("", None)]]
+            pabot._parallel_execute(items, self._pabot_args['processes'])
             result_code = pabot._report_results(outs_dir,
                                                 self._pabot_args,
                                                 self._options,
