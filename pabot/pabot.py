@@ -163,8 +163,6 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id)
     _ALL_ELAPSED.append(elapsed)
     if rc != 0:
         _write_with_id(process, pool_id, _execution_failed_message(item_name, stdout, stderr, rc, verbose), Color.RED)
-        if plib:
-            plib.run_keyword('release_locks', [caller_id], {})
     else:
         _write_with_id(process, pool_id, _execution_passed_message(item_name, stdout, stderr, elapsed, verbose), Color.GREEN)
 

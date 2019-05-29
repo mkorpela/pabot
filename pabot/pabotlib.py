@@ -107,6 +107,7 @@ class _PabotLib(object):
             raise AssertionError('No value for key "%s"' % key)
         return self._owner_to_values[caller_id][key]
 
+
 class PabotLib(_PabotLib):
 
     __version__ = 0.64
@@ -118,39 +119,24 @@ class PabotLib(_PabotLib):
         self.__remotelib = None
         self.__my_id = None
         self.ROBOT_LIBRARY_LISTENER = self
+        self._position = []
+        self._row_index = 0
 
-    def _start_suite(self, name, attributes):
-        print('<- start suite ->')
-        print(repr(attributes))
-        print(name)
+    def _start(self, name, attributes):
+        self._position.append((name, self._row_index))
+        self._row_index = 0
 
-    def _end_suite(self, name, attributes):
-        print(repr(attributes))
-        print(name)
-        print('<- end suite ->')
-
-    def _start_test(self, name, attributes):
-        print('<- start test ->')
-        print(repr(attributes))
-        print(name)
-
-    def _end_test(self, name, attributes):
-        print(repr(attributes))
-        print(name)
-        print('<- end test ->')
-
-    def _start_keyword(self, name, attributes):
-        print('<- start keyword ->')
-        print(repr(attributes))
-        print(name)
-
-    def _end_keyword(self, name, attributes):
-        print(repr(attributes))
-        print(name)
-        print('<- end keyword ->')
+    def _end(self, name, attributes):
+        _, self._row_index = self._position[-1]
+        self._row_index += 1
+        self._position = self._position[:-1]
+    
+    _start_suite = _start_test = _start_keyword = _start
+    _end_suite = _end_test = _end_keyword = _end
 
     def _close(self):
-        print('<- close ->')
+        self.release_locks()
+        self.release_value_set()
 
     @property
     def _my_id(self):
