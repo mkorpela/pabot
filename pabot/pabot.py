@@ -1062,11 +1062,8 @@ def keyboard_interrupt(*args):
 
 
 def _parallel_execute(items, processes):
-    global _NUMBER_OF_ITEMS_TO_BE_EXECUTED, _NUMBER_OF_ITEMS_TO_BE_COMPLETED
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
     pool = ThreadPool(processes)
-    _NUMBER_OF_ITEMS_TO_BE_EXECUTED = len(items)
-    _NUMBER_OF_ITEMS_TO_BE_COMPLETED = _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     result = pool.map_async(execute_and_wait_with, items, 1)
     pool.close()
     while not result.ready():
@@ -1233,7 +1230,7 @@ def _run_tutorial():
 
 
 def main(args):
-    global _PABOTLIBPROCESS
+    global _PABOTLIBPROCESS, _NUMBER_OF_ITEMS_TO_BE_EXECUTED, _NUMBER_OF_ITEMS_TO_BE_COMPLETED
     start_time = time.time()
     start_time_string = _now()
     # NOTE: timeout option
@@ -1251,6 +1248,8 @@ def main(args):
         suite_names = solve_suite_names(outs_dir, datasources, options,
                                         pabot_args)
         if suite_names:
+            all_items = []
+            _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
             for suite_group in suite_names:
                 #TODO: Fix this better
                 if options.get("randomize") in ["all", "suites"] and \
@@ -1260,6 +1259,10 @@ def main(args):
                     pabot_args['command'], pabot_args['verbose'], argfile)
                     for suite in suite_group
                     for argfile in pabot_args['argumentfiles'] or [("", None)]]
+                _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(items)
+                all_items.append(items)
+            _NUMBER_OF_ITEMS_TO_BE_COMPLETED = _NUMBER_OF_ITEMS_TO_BE_EXECUTED
+            for items in all_items:
                 _parallel_execute(items, pabot_args['processes'])
             sys.exit(_report_results(outs_dir, pabot_args, options, start_time_string,
                                      _get_suite_root_name(suite_names)))
