@@ -19,6 +19,25 @@ class PabotLibTests(unittest.TestCase):
         pabotlib.BuiltIn = lambda:builtinmock
         self.builtinmock = builtinmock
 
+    def test_pabotlib_listener_path(self):
+        lib = pabotlib.PabotLib()
+        lib._start_suite('Suite', {})
+        self.assertEqual(lib._path, 'Suite')
+        lib._start_test('Test', {})
+        self.assertEqual(lib._path, 'Suite.Test')
+        lib._start_keyword('Keyword1', {})
+        self.assertEqual(lib._path, 'Suite.Test.0')
+        lib._end_keyword('Keyword1', {})
+        lib._start_keyword('Keyword2', {})
+        self.assertEqual(lib._path, 'Suite.Test.1')
+        lib._end_keyword('Keyword2', {})
+        self.assertEqual(lib._path, 'Suite.Test')
+        lib._end_test('Test', {})
+        self.assertEqual(lib._path, 'Suite')
+        lib._end_suite('Suite', {})
+        self.assertEqual(lib._path, '')
+        lib._close()
+
     def test_pabotlib_set_get_parallel_value(self):
         lib = pabotlib.PabotLib()
         lib.set_parallel_value_for_key("key", 1)

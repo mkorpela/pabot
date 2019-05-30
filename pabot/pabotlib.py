@@ -123,20 +123,30 @@ class PabotLib(_PabotLib):
         self._row_index = 0
 
     def _start(self, name, attributes):
-        self._position.append((name, self._row_index))
-        self._row_index = 0
+        self._position.append(name)
 
     def _end(self, name, attributes):
-        _, self._row_index = self._position[-1]
-        self._row_index += 1
         self._position = self._position[:-1]
+
+    def _start_keyword(self, name, attributes):
+        self._start(self._row_index, attributes)
+        self._row_index = 0
+
+    def _end_keyword(self, name, attributes):
+        self._row_index = self._position[-1]
+        self._row_index += 1
+        self._end(name, attributes)
     
-    _start_suite = _start_test = _start_keyword = _start
-    _end_suite = _end_test = _end_keyword = _end
+    _start_suite = _start_test = _start
+    _end_suite = _end_test = _end
 
     def _close(self):
         self.release_locks()
         self.release_value_set()
+
+    @property
+    def _path(self):
+        return ".".join(str(p) for p in self._position)
 
     @property
     def _my_id(self):
@@ -153,6 +163,23 @@ class PabotLib(_PabotLib):
             logger.debug('PabotLib URI %r' % uri)
             self.__remotelib = Remote(uri) if uri else None
         return self.__remotelib
+
+    def pabot_setup(self, keyword, *args):
+        lock_name = 'pabot_setup_%s' % self._path
+        try:
+            self.acquire_lock(lock_name)
+            passed = self.get_parallel_value_for_key(lock_name)
+            if passed != '':
+                if passed == 'FAILED':
+                    raise AssertionError('Setup failed in other process')
+                return
+            BuiltIn().run_keyword(keyword, *args)
+            self.set_parallel_value_for_key(lock_name, 'PASSED')
+        except:
+            self.set_parallel_value_for_key(lock_name, 'FAILED')
+            raise
+        finally:
+            self.release_lock(lock_name)
 
     def run_only_once(self, keyword):
         """
