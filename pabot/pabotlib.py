@@ -207,6 +207,16 @@ class PabotLib(_PabotLib):
         finally:
             self.release_lock(lock_name)
 
+    def pabot_teardown(self, keyword, *args):
+        last_level = BuiltIn().get_variable_value('${PABOTLASTLEVEL}')
+        if not (last_level and self._path.startswith(last_level)):
+            return
+        queue_index = int(BuiltIn().get_variable_value('${PABOTQUEUEINDEX}') or 0)
+        if self._remotelib:
+            while self.get_parallel_value_for_key('pabot_min_queue_index_executing') < queue_index:
+                time.sleep(0.3)
+        BuiltIn().run_keyword(keyword, *args)
+
     def run_on_last_process(self, keyword):
         """
         Runs a keyword on last process used by pabot.
