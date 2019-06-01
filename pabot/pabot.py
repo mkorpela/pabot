@@ -110,8 +110,9 @@ ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
 _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # does not contain '"'
 _BAD_CHARS_SET = set(_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE)
 _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
-_NUMBER_OF_ITEMS_TO_BE_COMPLETED = 0
-_NUMBER_OF_ITEMS_TO_BE_COMPLETED_LOCK = threading.Lock()
+
+_COMPLETED_LOCK = threading.Lock()
+_NOT_COMPLETED_INDEXES = []
 
 _ROBOT_EXTENSIONS = ['.html', '.htm', '.xhtml', '.tsv', '.rst', '.rest', '.txt', '.robot']
 _ALL_ELAPSED = []
@@ -128,7 +129,7 @@ def _mapOptionalQuote(cmdargs):
     return [arg if set(arg).isdisjoint(_BAD_CHARS_SET) else '"%s"'%arg for arg in cmdargs]
     
 
-def execute_and_wait_with(args):
+def execute_and_wait_with(item):
     global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     is_last = _NUMBER_OF_ITEMS_TO_BE_EXECUTED == 1
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED -= 1
@@ -136,19 +137,18 @@ def execute_and_wait_with(args):
         # Keyboard interrupt has happened!
         return
     time.sleep(0)
-    datasources, outs_dir, options, execution_item, command, verbose, (argfile_index, argfile) = args
-    datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in datasources]
+    datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in item.datasources]
     
-    outs_dir = os.path.join(outs_dir, argfile_index, execution_item.name)
+    outs_dir = os.path.join(item.outs_dir, item.argfile_index, item.execution_item.name)
     os.makedirs(outs_dir)
     
     caller_id = uuid.uuid4().hex
-    cmd = command + _options_for_custom_executor(options, outs_dir, execution_item, argfile, caller_id, is_last) + datasources        
+    cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last) + datasources        
     cmd = _mapOptionalQuote(cmd)
-    _try_execute_and_wait(cmd, outs_dir, execution_item.name, verbose, _make_id(), caller_id)
-    outputxml_preprocessing(options, outs_dir, execution_item.name, verbose,  _make_id(), caller_id)
+    _try_execute_and_wait(cmd, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id, item.index)
+    outputxml_preprocessing(item.options, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id)
 
-def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id):
+def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id, my_index=-1):
     plib = None
     if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
         plib = Remote(_PABOTLIBURI)
@@ -158,7 +158,7 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id)
                 process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id)
     except:
         print(sys.exc_info()[0])
-    _increase_completed(plib)
+    _increase_completed(plib, my_index)
     # Thread-safe list append
     _ALL_ELAPSED.append(elapsed)
     if rc != 0:
@@ -206,14 +206,22 @@ def _make_id():
             EXECUTION_POOL_IDS += [thread_id]
         return EXECUTION_POOL_IDS.index(thread_id)
 
-def _increase_completed(plib):
-    global _NUMBER_OF_ITEMS_TO_BE_COMPLETED, _NUMBER_OF_ITEMS_TO_BE_COMPLETED_LOCK
+def _increase_completed(plib, my_index):
+    global _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES
     if plib:
-        with _NUMBER_OF_ITEMS_TO_BE_COMPLETED_LOCK:
-            _NUMBER_OF_ITEMS_TO_BE_COMPLETED -= 1
-            if _NUMBER_OF_ITEMS_TO_BE_COMPLETED == 1:
+        with _COMPLETED_LOCK:
+            if my_index in _NOT_COMPLETED_INDEXES:
+                _NOT_COMPLETED_INDEXES.remove(my_index)
+            else:
+                return
+            if _NOT_COMPLETED_INDEXES:
                 plib.run_keyword('set_parallel_value_for_key', 
-                ['pabot_only_last_executing', 1], {}) 
+                [pabotlib.PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE,
+                _NOT_COMPLETED_INDEXES[0]],
+                {})
+            if len(_NOT_COMPLETED_INDEXES) == 1:
+                plib.run_keyword('set_parallel_value_for_key', 
+                ['pabot_only_last_executing', 1], {})
 
 def _run(cmd, stderr, stdout, item_name, verbose, pool_id):
     timestamp = datetime.datetime.now()
@@ -1227,6 +1235,20 @@ def _run_tutorial():
     print('This is another line in the tutorial.')
 
 
+class QueueItem(object):
+
+    def __init__(self, datasources, outs_dir, options, execution_item, command, verbose, argfile):
+        self.datasources = datasources
+        self.outs_dir = outs_dir
+        self.options = options
+        self. execution_item = execution_item
+        self.command = command
+        self.verbose = verbose
+        self.argfile_index = argfile[0]
+        self.argfile = argfile[1]
+        self.index = -1
+
+
 def main(args):
     global _PABOTLIBPROCESS, _NUMBER_OF_ITEMS_TO_BE_EXECUTED, _NUMBER_OF_ITEMS_TO_BE_COMPLETED
     start_time = time.time()
@@ -1253,13 +1275,19 @@ def main(args):
                 if options.get("randomize") in ["all", "suites"] and \
                     "suitesfrom" not in pabot_args:
                     random.shuffle(suite_group)
-                items = [(datasources, outs_dir, opts_for_run, suite,
+                items = [QueueItem(datasources, outs_dir, opts_for_run, suite,
                     pabot_args['command'], pabot_args['verbose'], argfile)
                     for suite in suite_group
                     for argfile in pabot_args['argumentfiles'] or [("", None)]]
                 _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(items)
                 all_items.append(items)
-            _NUMBER_OF_ITEMS_TO_BE_COMPLETED = _NUMBER_OF_ITEMS_TO_BE_EXECUTED
+            with _COMPLETED_LOCK:
+                index = 0
+                for item_group in all_items:
+                    for item in item_group:
+                        _NOT_COMPLETED_INDEXES.append(index)
+                        item.index = index
+                        index += 1
             for items in all_items:
                 _parallel_execute(items, pabot_args['processes'])
             sys.exit(_report_results(outs_dir, pabot_args, options, start_time_string,

@@ -26,6 +26,10 @@ from robot.libraries.Remote import Remote
 from robot.api import logger
 import time
 
+PABOT_LAST_LEVEL = "PABOTLASTLEVEL"
+PABOT_QUEUE_INDEX = "PABOTQUEUEINDEX"
+PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE = "pabot_min_queue_index_executing"
+
 
 class _PabotLib(object):
 
@@ -208,12 +212,12 @@ class PabotLib(_PabotLib):
             self.release_lock(lock_name)
 
     def pabot_teardown(self, keyword, *args):
-        last_level = BuiltIn().get_variable_value('${PABOTLASTLEVEL}')
+        last_level = BuiltIn().get_variable_value('${%s}' % PABOT_LAST_LEVEL)
         if not (last_level and self._path.startswith(last_level)):
             return
-        queue_index = int(BuiltIn().get_variable_value('${PABOTQUEUEINDEX}') or 0)
+        queue_index = int(BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) or 0)
         if self._remotelib:
-            while self.get_parallel_value_for_key('pabot_min_queue_index_executing') < queue_index:
+            while self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE) < queue_index:
                 time.sleep(0.3)
         BuiltIn().run_keyword(keyword, *args)
 
