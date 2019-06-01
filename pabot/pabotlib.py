@@ -168,7 +168,7 @@ class PabotLib(_PabotLib):
             self.__remotelib = Remote(uri) if uri else None
         return self.__remotelib
 
-    def pabot_setup(self, keyword, *args):
+    def run_setup_only_once(self, keyword, *args):
         lock_name = 'pabot_setup_%s' % self._path
         try:
             self.acquire_lock(lock_name)
@@ -211,7 +211,7 @@ class PabotLib(_PabotLib):
         finally:
             self.release_lock(lock_name)
 
-    def pabot_teardown(self, keyword, *args):
+    def run_teardown_only_once(self, keyword, *args):
         last_level = BuiltIn().get_variable_value('${%s}' % PABOT_LAST_LEVEL)
         if not (last_level and self._path.startswith(last_level)):
             return
