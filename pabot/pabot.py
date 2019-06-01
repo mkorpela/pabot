@@ -158,7 +158,8 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id,
                 process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id)
     except:
         print(sys.exc_info()[0])
-    _increase_completed(plib, my_index)
+    if plib:
+        _increase_completed(plib, my_index)
     # Thread-safe list append
     _ALL_ELAPSED.append(elapsed)
     if rc != 0:
@@ -208,20 +209,19 @@ def _make_id():
 
 def _increase_completed(plib, my_index):
     global _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES
-    if plib:
-        with _COMPLETED_LOCK:
-            if my_index in _NOT_COMPLETED_INDEXES:
-                _NOT_COMPLETED_INDEXES.remove(my_index)
-            else:
-                return
-            if _NOT_COMPLETED_INDEXES:
-                plib.run_keyword('set_parallel_value_for_key', 
-                [pabotlib.PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE,
-                _NOT_COMPLETED_INDEXES[0]],
-                {})
-            if len(_NOT_COMPLETED_INDEXES) == 1:
-                plib.run_keyword('set_parallel_value_for_key', 
-                ['pabot_only_last_executing', 1], {})
+    with _COMPLETED_LOCK:
+        if my_index in _NOT_COMPLETED_INDEXES:
+            _NOT_COMPLETED_INDEXES.remove(my_index)
+        else:
+            return
+        if _NOT_COMPLETED_INDEXES:
+            plib.run_keyword('set_parallel_value_for_key', 
+            [pabotlib.PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE,
+            _NOT_COMPLETED_INDEXES[0]],
+            {})
+        if len(_NOT_COMPLETED_INDEXES) == 1:
+            plib.run_keyword('set_parallel_value_for_key', 
+            ['pabot_only_last_executing', 1], {})
 
 def _run(cmd, stderr, stdout, item_name, verbose, pool_id):
     timestamp = datetime.datetime.now()
