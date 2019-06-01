@@ -143,7 +143,7 @@ def execute_and_wait_with(item):
     os.makedirs(outs_dir)
     
     caller_id = uuid.uuid4().hex
-    cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last) + datasources        
+    cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index) + datasources        
     cmd = _mapOptionalQuote(cmd)
     _try_execute_and_wait(cmd, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id, item.index)
     outputxml_preprocessing(item.options, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id)
@@ -154,7 +154,7 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id,
         plib = Remote(_PABOTLIBURI)
     try:
         with open(os.path.join(outs_dir, cmd[0]+'_stdout.txt'), 'w') as stdout:
-            with open(os.path.join(outs_dir,cmd[0]+'_stderr.txt'), 'w') as stderr:
+            with open(os.path.join(outs_dir, cmd[0]+'_stderr.txt'), 'w') as stderr:
                 process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id)
     except:
         print(sys.exc_info()[0])
@@ -281,7 +281,7 @@ def _options_for_custom_executor(*args):
     return _options_to_cli_arguments(_options_for_executor(*args))
 
 
-def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id, is_last):
+def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id, is_last, queueIndex):
     options = options.copy()
     options['log'] = 'NONE'
     options['report'] = 'NONE'
@@ -300,6 +300,9 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id,
     pabotIsLast = 'PABOTISLASTEXECUTIONINPOOL:%s' % ('1' if is_last else '0')
     if pabotIsLast not in options['variable']:
         options['variable'].append(pabotIsLast)
+    pabotIndex = pabotlib.PABOT_QUEUE_INDEX + ":" + str(queueIndex)
+    if pabotIndex not in options['variable']:
+        options['variable'].append(pabotIndex)
     if argfile:
         options['argumentfile'] = argfile
     return _set_terminal_coloring_options(options)
