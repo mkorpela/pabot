@@ -212,12 +212,18 @@ class PabotLib(_PabotLib):
             self.release_lock(lock_name)
 
     def run_teardown_only_once(self, keyword, *args):
+        """
+        Runs a teardown keyword with args only once after all executions have gone
+        throught this step in the last possible moment.
+        Note it is important to not have any conditions preventing from executing
+        this step as that may prevent this keyword from working correctly.
+        """
         last_level = BuiltIn().get_variable_value('${%s}' % PABOT_LAST_LEVEL)
         if last_level is None or not self._path.startswith(last_level):
             return
         queue_index = int(BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) or 0)
         if self._remotelib:
-            while self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE) < queue_index:
+            while int(self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE) or -1) < queue_index:
                 time.sleep(0.3)
         BuiltIn().run_keyword(keyword, *args)
 
