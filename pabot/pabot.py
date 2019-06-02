@@ -143,7 +143,7 @@ def execute_and_wait_with(item):
     os.makedirs(outs_dir)
     
     caller_id = uuid.uuid4().hex
-    cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index) + datasources        
+    cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index, item.last_level) + datasources        
     cmd = _mapOptionalQuote(cmd)
     _try_execute_and_wait(cmd, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id, item.index)
     outputxml_preprocessing(item.options, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id)
@@ -281,7 +281,7 @@ def _options_for_custom_executor(*args):
     return _options_to_cli_arguments(_options_for_executor(*args))
 
 
-def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id, is_last, queueIndex):
+def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id, is_last, queueIndex, last_level):
     options = options.copy()
     options['log'] = 'NONE'
     options['report'] = 'NONE'
@@ -303,6 +303,10 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id,
     pabotIndex = pabotlib.PABOT_QUEUE_INDEX + ":" + str(queueIndex)
     if pabotIndex not in options['variable']:
         options['variable'].append(pabotIndex)
+    if last_level is not None:
+        pabotLastLevel = pabotlib.PABOT_LAST_LEVEL + ":" + str(last_level)
+        if pabotLastLevel not in options['variable']:
+            options['variable'].append(pabotLastLevel)
     if argfile:
         options['argumentfile'] = argfile
     return _set_terminal_coloring_options(options)
@@ -1244,13 +1248,59 @@ class QueueItem(object):
         self.datasources = datasources
         self.outs_dir = outs_dir
         self.options = options
-        self. execution_item = execution_item
+        self.execution_item = execution_item
         self.command = command
         self.verbose = verbose
         self.argfile_index = argfile[0]
         self.argfile = argfile[1]
         self.index = -1
+        self.last_level = None
 
+
+def _create_execution_items(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args):
+    all_items = []
+    _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
+    for suite_group in suite_names:
+        #TODO: Fix this better
+        if options.get("randomize") in ["all", "suites"] and \
+            "suitesfrom" not in pabot_args:
+            random.shuffle(suite_group)
+        items = [QueueItem(datasources, outs_dir, opts_for_run, suite,
+            pabot_args['command'], pabot_args['verbose'], argfile)
+            for suite in suite_group
+            for argfile in pabot_args['argumentfiles'] or [("", None)]]
+        _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(items)
+        all_items.append(items)
+    with _COMPLETED_LOCK:
+        index = 0
+        for item_group in all_items:
+            for item in item_group:
+                _NOT_COMPLETED_INDEXES.append(index)
+                item.index = index
+                index += 1
+    _construct_last_levels(all_items)
+    return all_items
+
+def _find_ending_level(name, group):
+    n = name.split(".")
+    level = -1
+    for other in group:
+        o = other.split(".")
+        dif = [i for i in range(min(len(o), len(n))) if o[i] != n[i]]
+        if dif:
+            level = max(dif[0], level)
+        else:
+            return None
+    return ".".join(n[:(level+1)])
+
+def _construct_last_levels(all_items):
+    names = []
+    for items in all_items:
+        for item in items:
+            names.append(item.execution_item.name)
+    for items in all_items:
+        for item in items:
+            item.last_level = _find_ending_level(item.execution_item.name, names[item.index+1:])
 
 def main(args):
     global _PABOTLIBPROCESS, _NUMBER_OF_ITEMS_TO_BE_EXECUTED, _NUMBER_OF_ITEMS_TO_BE_COMPLETED
@@ -1271,27 +1321,9 @@ def main(args):
         suite_names = solve_suite_names(outs_dir, datasources, options,
                                         pabot_args)
         if suite_names:
-            all_items = []
-            _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
-            for suite_group in suite_names:
-                #TODO: Fix this better
-                if options.get("randomize") in ["all", "suites"] and \
-                    "suitesfrom" not in pabot_args:
-                    random.shuffle(suite_group)
-                items = [QueueItem(datasources, outs_dir, opts_for_run, suite,
-                    pabot_args['command'], pabot_args['verbose'], argfile)
-                    for suite in suite_group
-                    for argfile in pabot_args['argumentfiles'] or [("", None)]]
-                _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(items)
-                all_items.append(items)
-            with _COMPLETED_LOCK:
-                index = 0
-                for item_group in all_items:
-                    for item in item_group:
-                        _NOT_COMPLETED_INDEXES.append(index)
-                        item.index = index
-                        index += 1
-            for items in all_items:
+            for items in _create_execution_items(
+                suite_names, datasources, outs_dir, 
+                options, opts_for_run, pabot_args):
                 _parallel_execute(items, pabot_args['processes'])
             sys.exit(_report_results(outs_dir, pabot_args, options, start_time_string,
                                      _get_suite_root_name(suite_names)))

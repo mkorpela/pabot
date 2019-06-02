@@ -717,6 +717,13 @@ class PabotTests(unittest.TestCase):
         finally:
             os.rmdir(".pabotsuitenames")
 
+    def test_greates_common_name(self):
+        self.assertEqual(pabot._find_ending_level("foo.bar", ["a", "b"]), "foo")
+        self.assertEqual(pabot._find_ending_level("foo.bar", ["foo.zoo", "b"]), "foo.bar")
+        self.assertEqual(pabot._find_ending_level("foo.bar", []), "")
+        self.assertEqual(pabot._find_ending_level("foo.bar", ["foo.bar"]), None)
+        self.assertEqual(pabot._find_ending_level("foo.bar.zoo", ["foo.bar.boo", "foo.zoo"]), "foo.bar.zoo")
+
     def test_parallel_execution(self):
         dtemp = tempfile.mkdtemp()
         outs_dir = os.path.join(dtemp, 'pabot_results')

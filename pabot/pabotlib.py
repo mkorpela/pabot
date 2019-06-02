@@ -213,7 +213,7 @@ class PabotLib(_PabotLib):
 
     def run_teardown_only_once(self, keyword, *args):
         last_level = BuiltIn().get_variable_value('${%s}' % PABOT_LAST_LEVEL)
-        if not (last_level and self._path.startswith(last_level)):
+        if last_level is None or not self._path.startswith(last_level):
             return
         queue_index = int(BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) or 0)
         if self._remotelib:
