@@ -1258,6 +1258,7 @@ class QueueItem(object):
 
 
 def _create_execution_items(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args):
+    global _NUMBER_OF_ITEMS_TO_BE_EXECUTED, _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES
     all_items = []
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
     for suite_group in suite_names:
@@ -1318,7 +1319,7 @@ def _initialize_queue_index():
 
 
 def main(args):
-    global _PABOTLIBPROCESS, _NUMBER_OF_ITEMS_TO_BE_EXECUTED, _NUMBER_OF_ITEMS_TO_BE_COMPLETED
+    global _PABOTLIBPROCESS
     start_time = time.time()
     start_time_string = _now()
     # NOTE: timeout option

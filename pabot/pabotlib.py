@@ -28,8 +28,8 @@ import time
 
 PABOT_LAST_LEVEL = "PABOTLASTLEVEL"
 PABOT_QUEUE_INDEX = "PABOTQUEUEINDEX"
+PABOT_LAST_EXECUTION_IN_POOL = "PABOTISLASTEXECUTIONINPOOL"
 PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE = "pabot_min_queue_index_executing"
-
 
 class _PabotLib(object):
 
@@ -244,7 +244,7 @@ class PabotLib(_PabotLib):
         This can be used to run a global teardown that should be only
         executed after all testing is done.
         """
-        is_last = int(BuiltIn().get_variable_value('${PABOTISLASTEXECUTIONINPOOL}') or 1) == 1
+        is_last = int(BuiltIn().get_variable_value('${%s}' % PABOT_LAST_EXECUTION_IN_POOL) or 1) == 1
         if not is_last:
             logger.info("Skipped in this item")
             return
