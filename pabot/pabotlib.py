@@ -222,9 +222,12 @@ class PabotLib(_PabotLib):
         if last_level is None:
             BuiltIn().run_keyword(keyword, *args)
             return
+        logger.trace('Current path "%s" and expected last level "%s"' % (self._path, last_level))
         if not self._path.startswith(last_level):
+            logger.info("Teardown skipped in this item")
             return
         queue_index = int(BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) or 0)
+        logger.trace("Queue index (%d)" % queue_index)
         if self._remotelib:
             while int(self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE) or -1) < queue_index:
                 time.sleep(0.3)
