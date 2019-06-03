@@ -150,6 +150,8 @@ class PabotLib(_PabotLib):
 
     @property
     def _path(self):
+        if len(self._position) < 1:
+            return ""
         return self._position[-1]
 
     @property

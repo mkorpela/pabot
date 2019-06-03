@@ -21,9 +21,9 @@ class PabotLibTests(unittest.TestCase):
 
     def test_pabotlib_listener_path(self):
         lib = pabotlib.PabotLib()
-        lib._start_suite('Suite', {})
+        lib._start_suite('Suite', {'longname':'Suite'})
         self.assertEqual(lib._path, 'Suite')
-        lib._start_test('Test', {})
+        lib._start_test('Test', {'longname':'Suite.Test'})
         self.assertEqual(lib._path, 'Suite.Test')
         lib._start_keyword('Keyword1', {})
         self.assertEqual(lib._path, 'Suite.Test.0')
