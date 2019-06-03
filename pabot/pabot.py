@@ -152,6 +152,10 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id,
     plib = None
     if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
         plib = Remote(_PABOTLIBURI)
+        # INITIALISE PARALLEL QUEUE MIN INDEX
+        if my_index == 0:
+            plib.run_keyword('set_parallel_value_for_key', 
+            [pabotlib.PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE, 0], {})
     try:
         with open(os.path.join(outs_dir, cmd[0]+'_stdout.txt'), 'w') as stdout:
             with open(os.path.join(outs_dir, cmd[0]+'_stderr.txt'), 'w') as stderr:
@@ -1317,6 +1321,7 @@ def main(args):
             print(__doc__)
             sys.exit(0)
         _PABOTLIBPROCESS = _start_remote_library(pabot_args)
+        time.sleep(1)
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options,
                                         pabot_args)
