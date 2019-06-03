@@ -127,19 +127,19 @@ class PabotLib(_PabotLib):
         self._row_index = 0
 
     def _start(self, name, attributes):
-        self._position.append(name)
+        self._position.append(attributes["longname"])
 
     def _end(self, name, attributes):
         self._position = self._position[:-1]
 
     def _start_keyword(self, name, attributes):
-        self._start(self._row_index, attributes)
+        self._position.append(self._position[-1] + "." + str(self._row_index))
         self._row_index = 0
 
     def _end_keyword(self, name, attributes):
-        self._row_index = self._position[-1]
+        self._row_index = int(self._position[-1].split(".")[-1])
         self._row_index += 1
-        self._end(name, attributes)
+        self._position = self._position[:-1]
     
     _start_suite = _start_test = _start
     _end_suite = _end_test = _end
@@ -150,7 +150,7 @@ class PabotLib(_PabotLib):
 
     @property
     def _path(self):
-        return ".".join(str(p) for p in self._position)
+        return self._position[-1]
 
     @property
     def _my_id(self):
@@ -222,15 +222,17 @@ class PabotLib(_PabotLib):
         if last_level is None:
             BuiltIn().run_keyword(keyword, *args)
             return
-        logger.trace('Current path "%s" and expected last level "%s"' % (self._path, last_level))
+        logger.trace('Current path "%s" and last level "%s"' % (self._path, last_level))
         if not self._path.startswith(last_level):
             logger.info("Teardown skipped in this item")
             return
         queue_index = int(BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) or 0)
         logger.trace("Queue index (%d)" % queue_index)
         if self._remotelib:
-            while int(self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE) or -1) < queue_index:
+            while self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE) < queue_index:
+                logger.trace(self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE))
                 time.sleep(0.3)
+        logger.trace("Teardown conditions met. Executing keyword.")
         BuiltIn().run_keyword(keyword, *args)
 
     def run_on_last_process(self, keyword):
