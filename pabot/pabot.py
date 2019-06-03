@@ -1290,7 +1290,7 @@ def _find_ending_level(name, group):
         if dif:
             level = max(dif[0], level)
         else:
-            return None
+            return name+".PABOT_noend"
     return ".".join(n[:(level+1)])
 
 def _construct_last_levels(all_items):
