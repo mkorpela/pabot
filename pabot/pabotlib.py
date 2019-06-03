@@ -171,6 +171,11 @@ class PabotLib(_PabotLib):
         return self.__remotelib
 
     def run_setup_only_once(self, keyword, *args):
+        """
+        Runs a setup keyword with args only once at first possible moment when
+        an execution has gone throught this step. The executions after that
+        will skip this step. If the firts execution fails, all others will also.
+        """
         lock_name = 'pabot_setup_%s' % self._path
         try:
             self.acquire_lock(lock_name)
