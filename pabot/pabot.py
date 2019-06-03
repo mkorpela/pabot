@@ -1306,14 +1306,15 @@ def _initialize_queue_index():
     global _PABOTLIBURI
     plib = Remote(_PABOTLIBURI)
     # INITIALISE PARALLEL QUEUE MIN INDEX
-    while True:
+    for i in range(300):
         try:
             plib.run_keyword('set_parallel_value_for_key', 
             [pabotlib.PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE, 0], {})
-            break
+            return
         except RuntimeError as e:
             # REMOTE LIB NOT YET CONNECTED
             time.sleep(0.1)
+    raise RuntimeError('Can not connect to PabotLib at %s' % _PABOTLIBURI)
 
 
 def main(args):
