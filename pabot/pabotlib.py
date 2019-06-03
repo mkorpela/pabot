@@ -246,6 +246,7 @@ class PabotLib(_PabotLib):
         """
         is_last = int(BuiltIn().get_variable_value('${PABOTISLASTEXECUTIONINPOOL}') or 1) == 1
         if not is_last:
+            logger.info("Skipped in this item")
             return
         if self._remotelib:
             while self.get_parallel_value_for_key('pabot_only_last_executing') != 1:
