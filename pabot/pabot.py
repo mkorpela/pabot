@@ -1302,6 +1302,20 @@ def _construct_last_levels(all_items):
         for item in items:
             item.last_level = _find_ending_level(item.execution_item.name, names[item.index+1:])
 
+def _initialize_queue_index():
+    global _PABOTLIBURI
+    plib = Remote(_PABOTLIBURI)
+    # INITIALISE PARALLEL QUEUE MIN INDEX
+    while True:
+        try:
+            plib.run_keyword('set_parallel_value_for_key', 
+            [pabotlib.PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE, 0], {})
+            break
+        except RuntimeError as e:
+            # REMOTE LIB NOT YET CONNECTED
+            time.sleep(0.1)
+
+
 def main(args):
     global _PABOTLIBPROCESS, _NUMBER_OF_ITEMS_TO_BE_EXECUTED, _NUMBER_OF_ITEMS_TO_BE_COMPLETED
     start_time = time.time()
@@ -1318,16 +1332,7 @@ def main(args):
             sys.exit(0)
         _PABOTLIBPROCESS = _start_remote_library(pabot_args)
         if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
-            plib = Remote(_PABOTLIBURI)
-            # INITIALISE PARALLEL QUEUE MIN INDEX
-            while True:
-                try:
-                    plib.run_keyword('set_parallel_value_for_key', 
-                    [pabotlib.PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE, 0], {})
-                    break
-                except RuntimeError as e:
-                    # REMOTE LIB NOT YET CONNECTED
-                    time.sleep(0.1)
+            _initialize_queue_index()
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options,
                                         pabot_args)

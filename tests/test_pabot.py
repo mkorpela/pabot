@@ -730,6 +730,7 @@ class PabotTests(unittest.TestCase):
         self._options['outputdir'] = dtemp
         self._pabot_args['pabotlibport'] = 4000+random.randint(0, 1000)
         lib_process = pabot._start_remote_library(self._pabot_args)
+        pabot._initialize_queue_index()
         try:
             suite_names = [s(_s) for _s in self._all_suites]
             items = [pabot.QueueItem(self._datasources, outs_dir, self._options, suite,
