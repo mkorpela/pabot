@@ -53,6 +53,9 @@ class ResultMerger(SuiteVisitor):
         if not self.current:
             self.current = self._find_root(suite)
             assert(self.current)
+            if self.current is not suite:
+                for keyword in suite.keywords:
+                    self.current.keywords.append(keyword)
         else:
             next = self._find(self.current.suites, suite.name)
             if next is None:
