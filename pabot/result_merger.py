@@ -88,7 +88,17 @@ class ResultMerger(SuiteVisitor):
             return
         self.merge_missing_tests(suite)
         self.merge_time(suite)
+        self.clean_pabotlib_waiting_keywords(self.current)
         self.current = self.current.parent
+
+    def clean_pabotlib_waiting_keywords(self, suite):
+        for index, keyword in reversed(list(enumerate(suite.keywords))):
+            if (keyword.libname == "pabot.PabotLib" and
+                keyword.kwname.startswith("Run") and 
+                len(keyword.keywords) == 0):
+                suite.keywords.pop(index)
+
+
 
     def merge_missing_tests(self, suite):
         cur = self.current

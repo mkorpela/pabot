@@ -183,6 +183,7 @@ class PabotLib(_PabotLib):
             if passed != '':
                 if passed == 'FAILED':
                     raise AssertionError('Setup failed in other process')
+                logger.info("Setup skipped in this item")
                 return
             BuiltIn().run_keyword(keyword, *args)
             self.set_parallel_value_for_key(lock_name, 'PASSED')
@@ -209,6 +210,7 @@ class PabotLib(_PabotLib):
             if passed != '':
                 if passed == 'FAILED':
                     raise AssertionError('Keyword failed in other process')
+                logger.info("Skipped in this item")
                 return
             BuiltIn().run_keyword(keyword)
             self.set_parallel_value_for_key(lock_name, 'PASSED')
