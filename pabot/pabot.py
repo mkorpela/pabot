@@ -1318,8 +1318,9 @@ def _initialize_queue_index():
     raise RuntimeError('Can not connect to PabotLib at %s' % _PABOTLIBURI)
 
 
-def main(args):
+def main(args=None):
     global _PABOTLIBPROCESS
+    args = args or sys.argv[1:]
     start_time = time.time()
     start_time_string = _now()
     # NOTE: timeout option

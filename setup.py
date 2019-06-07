@@ -28,7 +28,6 @@ setup(name='robotframework-pabot',
             'Development Status :: 5 - Production/Stable',
             'Framework :: Robot Framework'
       ],
-      scripts=[os.path.join('scripts', 'pabot'),
-               os.path.join('scripts', 'pabot.bat')],
+      entry_points = {'console_scripts': ['pabot = pabot.pabot:main']},
       license='Apache License, Version 2.0',
       install_requires=['robotframework', 'robotremoteserver>=1.1'])
