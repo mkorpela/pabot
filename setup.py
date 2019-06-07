@@ -15,7 +15,7 @@ setup(name='robotframework-pabot',
                        'With Pabot you can split one execution into multiple and save test execution time.',
       author=name,
       author_email=address,
-      url='https://github.com/mkorpela/pabot',
+      url='https://pabot.org',
       download_url='https://pypi.python.org/pypi/robotframework-pabot',
       packages=find_packages(),
       classifiers=[
