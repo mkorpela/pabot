@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-from distutils.core import setup
 import os
-from setuptools import find_packages
+from setuptools import setup, find_packages
 
 name = 'Mikko Korpela'
 # I might be just a little bit too much afraid of those bots..
