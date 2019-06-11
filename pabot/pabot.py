@@ -153,8 +153,8 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id,
     if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
         plib = Remote(_PABOTLIBURI)
     try:
-        with open(os.path.join(outs_dir, cmd[0]+'_stdout.txt'), 'w') as stdout:
-            with open(os.path.join(outs_dir, cmd[0]+'_stderr.txt'), 'w') as stderr:
+        with open(os.path.join(outs_dir, cmd[0]+'_stdout.out'), 'w') as stdout:
+            with open(os.path.join(outs_dir, cmd[0]+'_stderr.out'), 'w') as stderr:
                 process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id)
     except:
         print(sys.exc_info()[0])
