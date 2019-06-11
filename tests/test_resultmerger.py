@@ -54,6 +54,12 @@ class ResultMergerTests(unittest.TestCase):
             visitor.suites
         )
 
+    def test_prefixing(self):
+        self.assertEqual(result_merger.prefix(os.path.join("foo", "bar", "zoo", "ba2r.xml")), "zoo")
+        self.assertEqual(result_merger.prefix(os.path.join("/zoo", "baa", "floo.txt")), "baa")
+        self.assertEqual(result_merger.prefix(os.path.join("koo", "foo.bar")), "koo")
+        self.assertEqual(result_merger.prefix("hui.txt"), "")
+
 
 if __name__ == '__main__':
     unittest.main()

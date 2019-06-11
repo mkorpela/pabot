@@ -17,10 +17,11 @@
 #  that was licensed under Apache License Version 2.0
 from __future__ import absolute_import, print_function
 
+import os, re
+
 from robot.api import ExecutionResult
 from robot.conf import RebotSettings
 from robot.result.executionresult import CombinedResult
-import re
 
 try:
     from robot.result import TestSuite
@@ -38,14 +39,19 @@ class ResultMerger(SuiteVisitor):
         self.current = None
         self._skip_until = None
         self._tests_root_name = tests_root_name
+        self._prefix = ""
 
     def merge(self, merged):
         try:
+            self._set_prefix(merged.source)
             merged.suite.visit(self)
             if self.errors!=merged.errors: self.errors.add(merged.errors)
         except:
             print('Error while merging result %s' % merged.source)
             raise
+
+    def _set_prefix(self, source):
+        self._prefix = prefix(source)
 
     def start_suite(self, suite):
         if self._skip_until and self._skip_until != suite:
@@ -98,8 +104,6 @@ class ResultMerger(SuiteVisitor):
                 len(keyword.keywords) == 0):
                 suite.keywords.pop(index)
 
-
-
     def merge_missing_tests(self, suite):
         cur = self.current
         for test in suite.tests:
@@ -120,9 +124,8 @@ class ResultMerger(SuiteVisitor):
             suites_names = parent.longname.split('.')
             if self._tests_root_name:
                 suites_names[0] = self._tests_root_name
-            prefix = '.'.join(suites_names)
             msg.message = re.sub(r'"([^"]+\.png)"',
-                                 r'"%s-\1"' % prefix, msg.message)
+                                 r'"%s-\1"' % self._prefix, msg.message)
 
 
 class ResultsCombiner(CombinedResult):
@@ -132,6 +135,12 @@ class ResultsCombiner(CombinedResult):
             self.suite.suites.append(suite)
         self.errors.add(other.errors)
 
+
+def prefix(source):
+    try:
+        return os.path.split(os.path.dirname(source))[1]
+    except:
+        return ""
 
 def group_by_root(results, critical_tags, non_critical_tags):
     groups = {}
