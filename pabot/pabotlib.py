@@ -255,7 +255,8 @@ class PabotLib(_PabotLib):
         if not is_last:
             logger.info("Skipped in this item")
             return
-        if self._remotelib:
+        queue_index = int(BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) or 0)
+        if queue_index > 0 and self._remotelib:
             while self.get_parallel_value_for_key('pabot_only_last_executing') != 1:
                 time.sleep(0.3)
         BuiltIn().run_keyword(keyword)
