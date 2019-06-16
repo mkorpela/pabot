@@ -921,7 +921,7 @@ def _with_modified_robot():
                                     ('[' in cells[1] or (first and '...' in cells[1]))):
                             populator.add(cells)
                             first = True
-                        elif first:
+                        elif first and not (len(cells) == 1 and cells[0].strip() == ''):
                             populator.add(['', 'No Operation'])
                             first = False
                 return populator.eof()
