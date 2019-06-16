@@ -145,8 +145,14 @@ class PabotLib(_PabotLib):
     _end_suite = _end_test = _end
 
     def _close(self):
-        self.release_locks()
-        self.release_value_set()
+        try:
+            self.release_locks()
+            self.release_value_set()
+        except RuntimeError:
+            # This is just last line of defence
+            # Ignore connection errors if library server already closed
+            logger.console("pabot.PabotLib#_close: threw an exception: is --pabotlib flag used?", stream='stderr')
+            pass
 
     @property
     def _path(self):
