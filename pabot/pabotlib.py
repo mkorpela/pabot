@@ -276,7 +276,12 @@ class PabotLib(_PabotLib):
 
     def _run_with_lib(self, keyword, *args):
         if self._remotelib:
-            return self._remotelib.run_keyword(keyword, args, {})
+            try:
+                return self._remotelib.run_keyword(keyword, args, {})
+            except RuntimeError:
+                logger.error('No connection - is pabot called with --pabotlib option?')
+                self.__remotelib = None
+                raise
         return getattr(_PabotLib, keyword)(self, *args)
 
     def get_parallel_value_for_key(self, key):
@@ -302,8 +307,9 @@ class PabotLib(_PabotLib):
                     logger.debug('waiting for lock to release')
                 return True
             except RuntimeError:
-                logger.warn('no connection')
+                logger.error('No connection - is pabot called with --pabotlib option?')
                 self.__remotelib = None
+                raise
         return _PabotLib.acquire_lock(self, name, self._my_id)
 
     def release_lock(self, name):
@@ -344,8 +350,9 @@ class PabotLib(_PabotLib):
                     time.sleep(0.1)
                     logger.debug('waiting for a value set')
             except RuntimeError:
-                logger.warn('no connection')
+                logger.error('No connection - is pabot called with --pabotlib option?')
                 self.__remotelib = None
+                raise
         return _PabotLib.acquire_value_set(self, self._my_id, *tags)
 
     def get_value_from_set(self, key):
