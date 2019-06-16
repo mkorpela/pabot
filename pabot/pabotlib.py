@@ -272,21 +272,19 @@ class PabotLib(_PabotLib):
         Set a globally available key and value that can be accessed
         from all the pabot processes.
         """
+        self._run_with_lib('set_parallel_value_for_key', key, value)
+
+    def _run_with_lib(self, keyword, *args):
         if self._remotelib:
-            self._remotelib.run_keyword('set_parallel_value_for_key',
-                                        [key, value], {})
-        else:
-            _PabotLib.set_parallel_value_for_key(self, key, value)
+            return self._remotelib.run_keyword(keyword, args, {})
+        return getattr(_PabotLib, keyword)(self, *args)
 
     def get_parallel_value_for_key(self, key):
         """
         Get the value for a key. If there is no value for the key then empty
         string is returned.
         """
-        if self._remotelib:
-            return self._remotelib.run_keyword('get_parallel_value_for_key',
-                                               [key], {})
-        return _PabotLib.get_parallel_value_for_key(self, key)
+        return self._run_with_lib('get_parallel_value_for_key', key)
 
     def acquire_lock(self, name):
         """
@@ -313,21 +311,13 @@ class PabotLib(_PabotLib):
         Release a lock with name.
         This will enable others to acquire the lock.
         """
-        if self._remotelib:
-            self._remotelib.run_keyword('release_lock',
-                                        [name, self._my_id], {})
-        else:
-            _PabotLib.release_lock(self, name, self._my_id)
+        self._run_with_lib('release_lock', name, self._my_id)
 
     def release_locks(self):
         """
         Release all locks called by instance.
         """
-        if self._remotelib:
-            self._remotelib.run_keyword('release_locks',
-                                        [self._my_id], {})
-        else:
-            _PabotLib.release_locks(self, self._my_id)
+        self._run_with_lib('release_locks', self._my_id)
 
     def acquire_value_set(self, *tags):
         """
@@ -381,10 +371,7 @@ class PabotLib(_PabotLib):
         """
         Release a reserved value set so that other executions can use it also.
         """
-        if self._remotelib:
-            self._remotelib.run_keyword('release_value_set', [self._my_id], {})
-        else:
-            _PabotLib.release_value_set(self, self._my_id)
+        self._run_with_lib('release_value_set', self._my_id)
 
 
 if __name__ == '__main__':
