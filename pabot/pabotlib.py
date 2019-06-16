@@ -97,9 +97,12 @@ class _PabotLib(object):
                 matching = True
                 if self._values[valueset_key] not in self._owner_to_values.values():
                     self._owner_to_values[caller_id] = self._values[valueset_key]
-                    return valueset_key
+                    return (valueset_key, self._values[valueset_key])
         if not matching:
             raise ValueError("No value set matching given tags exists.")
+        # This return value is for situations where no set could be reserved
+        # and the caller needs to wait until one is free.
+        return (None, None)
 
     def release_value_set(self, caller_id):
         self._owner_to_values[caller_id] = None
@@ -122,6 +125,7 @@ class PabotLib(_PabotLib):
         _PabotLib.__init__(self)
         self.__remotelib = None
         self.__my_id = None
+        self._valueset = None
         self.ROBOT_LIBRARY_LISTENER = self
         self._position = []
         self._row_index = 0
@@ -342,42 +346,31 @@ class PabotLib(_PabotLib):
         if self._remotelib:
             try:
                 while True:
-                    value = self._remotelib.run_keyword('acquire_value_set',
+                    key, self._valueset = self._remotelib.run_keyword('acquire_value_set',
                                                         [self._my_id]+list(tags), {})
-                    if value:
-                        logger.info('Value set "%s" acquired' % value)
-                        return value
+                    if key:
+                        logger.info('Value set "%s" acquired' % key)
+                        return key
                     time.sleep(0.1)
                     logger.debug('waiting for a value set')
             except RuntimeError:
                 logger.error('No connection - is pabot called with --pabotlib option?')
                 self.__remotelib = None
                 raise
-        return _PabotLib.acquire_value_set(self, self._my_id, *tags)
+        key, self._valueset = _PabotLib.acquire_value_set(self, self._my_id, *tags)
+        return key
 
     def get_value_from_set(self, key):
         """
         Get a value from previously reserved value set.
         """
-        #TODO: This should be done locally. 
-        # We do not really need to call centralised server if the set is already
-        # reserved as the data there is immutable during execution
-        key = key.lower()
-        if self._remotelib:
-            while True:
-                value = self._remotelib.run_keyword('get_value_from_set',
-                                                    [key, self._my_id], {})
-                if value:
-                    return value
-                time.sleep(0.1)
-                logger.debug('waiting for a value')
-        else:
-            return _PabotLib.get_value_from_set(self, key, self._my_id)
+        return self._valueset[key.lower()]
 
     def release_value_set(self):
         """
         Release a reserved value set so that other executions can use it also.
         """
+        self._valueset = None
         self._run_with_lib('release_value_set', self._my_id)
 
 
