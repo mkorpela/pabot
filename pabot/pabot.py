@@ -1141,8 +1141,12 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
 def _report_results_for_one_run(outs_dir, options, start_time_string, tests_root_name):
     output_path = _merge_one_run(outs_dir, options, tests_root_name)
     _copy_screenshots(options)
-    print('Output:  %s' % output_path)
-    options['output'] = None  # Do not write output again with rebot
+    if ('report' in options and options['report'] == "NONE" and
+        'log' in options and options['log'] == "NONE"):
+        options['output'] = output_path #REBOT will return error 252 if nothing is written
+    else:
+        print('Output:  %s' % output_path)
+        options['output'] = None  # Do not write output again with rebot
     return rebot(output_path, **_options_for_rebot(options,
                                                    start_time_string, _now()))
 
