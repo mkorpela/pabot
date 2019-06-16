@@ -84,8 +84,18 @@ class PabotLibTests(unittest.TestCase):
         vals = lib.acquire_value_set()
         self.assertIn(vals, ["MyValueSet", "TestSystemWithLasers", "TestSystemWithTachyonCannon"])
         value = lib.get_value_from_set("key")
+        try:
+            lib.get_value_from_set("nokey")
+            raise RuntimeError("This should not go here")
+        except AssertionError:
+            pass
         lib.release_value_set()
         self.assertEqual(value, "someval")
+        try:
+            lib.get_value_from_set("key")
+            raise RuntimeError("This should not go here")
+        except AssertionError:
+            pass
 
     def test_acquire_and_release_valueset_with_tag(self):
         lib = pabotlib.PabotLib()

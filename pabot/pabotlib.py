@@ -364,7 +364,12 @@ class PabotLib(_PabotLib):
         """
         Get a value from previously reserved value set.
         """
-        return self._valueset[key.lower()]
+        if self._valueset is None:
+            raise AssertionError('No value set reserved for caller process')
+        key = key.lower()
+        if key not in self._valueset:
+            raise AssertionError('No value for key "%s"' % key)
+        return self._valueset[key]
 
     def release_value_set(self):
         """
