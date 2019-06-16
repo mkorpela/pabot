@@ -398,37 +398,48 @@ def _parse_args(args):
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
             args = args[end_index + 1:]
+            continue
         if args[0] == '--processes':
             pabot_args['processes'] = int(args[1])
             args = args[2:]
+            continue
         if args[0] == '--verbose':
             pabot_args['verbose'] = True
             args = args[1:]
+            continue
         if args[0] == '--resourcefile':
             pabot_args['resourcefile'] = args[1]
             args = args[2:]
+            continue
         if args[0] == '--pabotlib':
             pabot_args['pabotlib'] = True
             args = args[1:]
+            continue
         if args[0] == '--testlevelsplit':
             pabot_args['testlevelsplit'] = True
             args = args[1:]
+            continue
         if args[0] == '--pabotlibhost':
             pabot_args['pabotlibhost'] = args[1]
             args = args[2:]
+            continue
         if args[0] == '--pabotlibport':
             pabot_args['pabotlibport'] = int(args[1])
             args = args[2:]
+            continue
         if args[0] == '--suitesfrom':
             pabot_args['suitesfrom'] = args[1]
             args = args[2:]
+            continue
         match = ARGSMATCHER.match(args[0])
         if ARGSMATCHER.match(args[0]):
             pabot_args['argumentfiles'] += [(match.group(1), args[1])]
             args = args[2:]
+            continue
         if args[0] == '--tutorial':
             pabot_args['tutorial'] = True
             args = args[1:]
+            continue
         if args and args[0] == '--help':
             pabot_args['help'] = True
             args = args[1:]
