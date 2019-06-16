@@ -169,6 +169,8 @@ def merge(result_files, rebot_options, tests_root_name):
     merged = merge_groups(result_files, settings.critical_tags,
                           settings.non_critical_tags, tests_root_name)
     if len(merged) == 1:
+        if not merged[0].suite.doc:
+            merged[0].suite.doc = '[https://pabot.org/?ref=log|Pabot] result from %d executions.' % len(result_files)
         return merged[0]
     else:
         return ResultsCombiner(merged)
