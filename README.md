@@ -34,7 +34,7 @@ OR clone this repository and run:
 
 ## Contact
 
-[Pabot Slack channel](https://robotframework.slack.com/messages/C7HKR2L6L) in Robot Framework slack.
+Join [Pabot Slack channel](https://robotframework.slack.com/messages/C7HKR2L6L) in Robot Framework slack.
 [Get invite to Robot Framework slack](https://robotframework-slack-invite.herokuapp.com/).
 
 
