@@ -32,6 +32,12 @@ OR clone this repository and run:
    - Pabot will split test execution from suite files by default. For test level split use ```--testlevelsplit``` flag.
    - In general case you can't count on tests that haven't designed to be executed parallely to work out of the box when executing parallely. For example if the tests manipulate or use the same data, you might get yourself in trouble (one test suite logs in to the system while another logs the same session out etc.). PabotLib can help you solve these problems of concurrency. Also see [TRICKS](./TRICKS.md) for helpful tips.
 
+## Contact
+
+[Pabot Slack channel](https://robotframework.slack.com/messages/C7HKR2L6L) in Robot Framework slack.
+[Get invite to Robot Framework slack](https://robotframework-slack-invite.herokuapp.com/).
+
+
 ## Contributing to the project
 
 There are several ways you can help in improving this tool:
