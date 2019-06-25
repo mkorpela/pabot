@@ -19,6 +19,7 @@ from __future__ import absolute_import, print_function
 
 import os, re
 
+from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
 from robot.conf import RebotSettings
 from robot.result.executionresult import CombinedResult
@@ -97,12 +98,19 @@ class ResultMerger(SuiteVisitor):
         self.clean_pabotlib_waiting_keywords(self.current)
         self.current = self.current.parent
 
-    def clean_pabotlib_waiting_keywords(self, suite):
-        for index, keyword in reversed(list(enumerate(suite.keywords))):
-            if (keyword.libname == "pabot.PabotLib" and
-                keyword.kwname.startswith("Run") and 
-                len(keyword.keywords) == 0):
-                suite.keywords.pop(index)
+    if ROBOT_VERSION <= '3.0':
+
+        def clean_pabotlib_waiting_keywords(self, suite):
+            pass
+
+    else:
+
+        def clean_pabotlib_waiting_keywords(self, suite):
+            for index, keyword in reversed(list(enumerate(suite.keywords))):
+                if (keyword.libname == "pabot.PabotLib" and
+                    keyword.kwname.startswith("Run") and
+                    len(keyword.keywords) == 0):
+                    suite.keywords.pop(index)
 
     def merge_missing_tests(self, suite):
         cur = self.current
