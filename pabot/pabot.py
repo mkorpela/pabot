@@ -84,7 +84,7 @@ from contextlib import contextmanager
 from robot import run, rebot
 from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
-from robot.errors import Information
+from robot.errors import Information, DataError
 from robot.result.visitor import ResultVisitor
 from robot.libraries.Remote import Remote
 from multiprocessing.pool import ThreadPool
@@ -893,14 +893,10 @@ def generate_suite_names_with_dryrun(outs_dir, datasources, options):
     if not suite_names and not options.get('runemptysuite', False):
         stdout_value = opts['stdout'].getvalue()
         if stdout_value:
-            print("[STDOUT] from suite search:")
-            print(stdout_value)
-            print("[STDOUT] end")
+            _write("[STDOUT] from suite search:\n"+stdout_value+"[STDOUT] end", Color.YELLOW)
         stderr_value = opts['stderr'].getvalue()
         if stderr_value:
-            print("[STDERR] from suite search:")
-            print(stderr_value)
-            print("[STDERR] end")
+            _write("[STDERR] from suite search:\n"+stderr_value+"[STDERR] end", Color.RED)
     return list(sorted(set(suite_names)))
 
 
@@ -1230,7 +1226,11 @@ def _start_remote_library(pabot_args):
 
 def _stop_remote_library(process):
     _write('Stopping PabotLib process')
-    Remote(_PABOTLIBURI).run_keyword('stop_remote_server', [], {})
+    try:
+        Remote(_PABOTLIBURI).run_keyword('stop_remote_server', [], {})
+    except RuntimeError:
+        _write('Could not connect to PabotLib - assuming stopped already')
+        return
     i = 50
     while i > 0 and process.poll() is None:
         time.sleep(0.1)
@@ -1362,12 +1362,18 @@ def main(args=None):
             sys.exit(_report_results(outs_dir, pabot_args, options, start_time_string,
                                      _get_suite_root_name(suite_names)))
         else:
-            print('No tests to execute')
+            _write('No tests to execute')
             if not options.get('runemptysuite', False):
                 sys.exit(252)
     except Information as i:
         print(__doc__)
         print(i.message)
+    except DataError as err:
+        print(err.message)
+    except Exception:
+        _write("[ERROR] EXCEPTION RAISED DURING PABOT EXECUTION", Color.RED)
+        _write("[ERROR] PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues", Color.RED)
+        raise
     finally:
         if _PABOTLIBPROCESS:
             _stop_remote_library(_PABOTLIBPROCESS)
