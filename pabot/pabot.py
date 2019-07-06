@@ -890,7 +890,7 @@ def generate_suite_names_with_dryrun(outs_dir, datasources, options):
         run(*datasources, **opts)
     output = os.path.join(outs_dir, opts['output'])
     suite_names = get_suite_names(output)
-    if not suite_names:
+    if not suite_names and not options.get('runemptysuite', False):
         stdout_value = opts['stdout'].getvalue()
         if stdout_value:
             print("[STDOUT] from suite search:")
@@ -1354,7 +1354,7 @@ def main(args=None):
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options,
                                         pabot_args)
-        if suite_names:
+        if suite_names and suite_names != [[]]:
             for items in _create_execution_items(
                 suite_names, datasources, outs_dir, 
                 options, opts_for_run, pabot_args):
@@ -1363,6 +1363,8 @@ def main(args=None):
                                      _get_suite_root_name(suite_names)))
         else:
             print('No tests to execute')
+            if not options.get('runemptysuite', False):
+                sys.exit(252)
     except Information as i:
         print(__doc__)
         print(i.message)
