@@ -61,7 +61,7 @@ Supports all Robot Framework command line options and also following options (th
   add them as suite files.
 
 --command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command    
-  RF script for situations where pybot is not used directly
+  RF script for situations where robot is not used directly
 
 --processes   [NUMBER OF PROCESSES]          
   How many parallel executors to use (default max of 2 and cpu count)
