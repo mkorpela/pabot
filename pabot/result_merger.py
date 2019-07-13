@@ -64,7 +64,7 @@ class ResultMerger(SuiteVisitor):
                 for keyword in suite.keywords:
                     self.current.keywords.append(keyword)
         else:
-            next = self._find(self.current.suites, suite.name)
+            next = self._find(self.current.suites, suite)
             if next is None:
                 self.current.suites.append(suite)
                 suite.parent = self.current
@@ -81,9 +81,11 @@ class ResultMerger(SuiteVisitor):
                              (self.root.name, suite.name))
         return self.root
 
-    def _find(self, items, name):
+    def _find(self, items, suite):
+        name = suite.name
+        source = suite.source
         for item in items:
-            if item.name == name:
+            if item.name == name and item.source == source:
                 return item
         return None
 
