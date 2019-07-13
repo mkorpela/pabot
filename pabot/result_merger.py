@@ -21,6 +21,7 @@ import os, re
 
 from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
+from robot.errors import DataError
 from robot.conf import RebotSettings
 from robot.result.executionresult import CombinedResult
 
@@ -155,7 +156,12 @@ def prefix(source):
 def group_by_root(results, critical_tags, non_critical_tags):
     groups = {}
     for src in results:
-        res = ExecutionResult(src)
+        try:
+            res = ExecutionResult(src)
+        except DataError as err:
+            print(err.message)
+            print("Skipping '%s' from final result" % src)
+            continue
         res.suite.set_criticality(critical_tags, non_critical_tags)
         groups[res.suite.name] = groups.get(res.suite.name, []) + [res]
     return groups
