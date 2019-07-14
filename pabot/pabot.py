@@ -1352,6 +1352,10 @@ def main(args=None):
         if pabot_args['help']:
             print(__doc__)
             sys.exit(0)
+        if len(datasources) == 0:
+            print("[ "+_wrap_with(Color.RED, "ERROR")+" ]: No datasources given.")
+            print("Try --help for usage information.")
+            sys.exit(252)
         _PABOTLIBPROCESS = _start_remote_library(pabot_args)
         if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
             _initialize_queue_index()
