@@ -1336,6 +1336,10 @@ def _initialize_queue_index():
 def main(args=None):
     global _PABOTLIBPROCESS
     args = args or sys.argv[1:]
+    if len(args) == 0:
+        print("[ "+_wrap_with(Color.RED, "ERROR")+" ]: Expected at least 1 argument, got 0.")
+        print("Try --help for usage information.")
+        sys.exit(252)
     start_time = time.time()
     start_time_string = _now()
     # NOTE: timeout option
