@@ -448,11 +448,13 @@ def _parse_args(args):
                                           auto_argumentfile=True,
                                           env_options='ROBOT_OPTIONS'). \
         parse_args(args)
-    options_for_subprocesses, _ = ArgumentParser(USAGE,
+    options_for_subprocesses, sources_without_argfile = ArgumentParser(USAGE,
                                           auto_pythonpath=False,
                                           auto_argumentfile=False,
                                           env_options='ROBOT_OPTIONS'). \
         parse_args(args)
+    if len(datasources) != len(sources_without_argfile):
+        raise DataError('Pabot does not support datasources in argumentfiles.\nPlease move datasources to commandline.')
     if len(datasources) > 1 and options['name'] is None:
         options['name'] = 'Suites'
         options_for_subprocesses['name'] = 'Suites'
