@@ -324,26 +324,21 @@ def _set_terminal_coloring_options(options):
 
 
 def _options_to_cli_arguments(opts):
-    others = res = []
-    arg_files = []
+    res = []
     for k, v in opts.items():
-        key = '--' + str(k)
-        if key == '--argumentfile':
-            res = arg_files
         if isinstance(v, str):
-            res += [key, str(v)]
+            res += ['--' + str(k), str(v)]
         elif PY2 and is_unicode(v):
-            res += [key, v.encode('utf-8')]
+            res += ['--' + str(k), v.encode('utf-8')]
         elif isinstance(v, bool) and (v is True):
-            res += [key]
+            res += ['--' + str(k)]
         elif isinstance(v, list):
             for value in v:
                 if PY2 and is_unicode(value):
-                    res += [key, value.encode('utf-8')]
+                    res += ['--' + str(k), value.encode('utf-8')]
                 else:
-                    res += [key, str(value)]
-        res = others
-    return others + arg_files
+                    res += ['--' + str(k), str(value)]
+    return res
 
 
 class GatherSuiteNames(ResultVisitor):
