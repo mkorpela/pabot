@@ -1380,6 +1380,7 @@ def main(args=None):
         print(i.message)
     except DataError as err:
         print(err.message)
+        sys.exit(252)
     except Exception:
         _write("[ERROR] EXCEPTION RAISED DURING PABOT EXECUTION", Color.RED)
         _write("[ERROR] PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues", Color.RED)
