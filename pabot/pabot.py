@@ -1177,6 +1177,9 @@ def _glob_escape(pathname):
 def _writer():
     while True:
         message = MESSAGE_QUEUE.get()
+        if message is None:
+            MESSAGE_QUEUE.task_done()
+            return
         print(message)
         sys.stdout.flush()
         MESSAGE_QUEUE.task_done()
@@ -1198,11 +1201,11 @@ def _is_output_coloring_supported():
 
 def _start_message_writer():
     t = threading.Thread(target=_writer)
-    t.daemon = True
     t.start()
 
 
 def _stop_message_writer():
+    MESSAGE_QUEUE.put(None)
     MESSAGE_QUEUE.join()
 
 
