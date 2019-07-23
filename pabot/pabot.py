@@ -472,7 +472,7 @@ def _delete_none_keys(d):
 
 def hash_directory(digest, path):
     if os.path.isfile(path):
-        digest.update(hashlib.sha1(path.encode()).digest())
+        digest.update(_digest(path))
         get_hash_of_file(path, digest)
         return
     for root, _, files in os.walk(path):
@@ -481,10 +481,14 @@ def hash_directory(digest, path):
             if os.path.isfile(file_path) and \
                 any(file_path.endswith(p) for p in _ROBOT_EXTENSIONS):
                 # DO NOT ALLOW CHANGE TO FILE LOCATION
-                digest.update(hashlib.sha1(root.encode()).digest())
+                digest.update(_digest(root))
                 # DO THESE IN TWO PHASES BECAUSE SEPARATOR DIFFERS IN DIFFERENT OS
-                digest.update(hashlib.sha1(name.encode()).digest())
+                digest.update(_digest(name))
                 get_hash_of_file(file_path, digest)
+
+def _digest(text):
+    text = text.decode('utf-8') if PY2 else text
+    return hashlib.sha1(text.encode('utf-8')).digest()
 
 def get_hash_of_file(filename, digest):
     if not os.path.isfile(filename):
