@@ -1181,7 +1181,7 @@ def _writer():
         if message is None:
             MESSAGE_QUEUE.task_done()
             return
-        print(message.encode("utf-8") if PY2 and is_unicode(message) else message)
+        print(message)
         sys.stdout.flush()
         MESSAGE_QUEUE.task_done()
 
