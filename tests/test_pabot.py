@@ -6,6 +6,7 @@ import os
 import tempfile
 import shutil
 import random
+import codecs
 from pabot import pabot
 
 s = pabot.SuiteItem
@@ -301,7 +302,7 @@ class PabotTests(unittest.TestCase):
             '69a5d7361495ccb3d0261c7b9f276c988056adb9',
             *self._all_with_tests
             )
-        with open(".pabotsuitenames", "r") as f:
+        with codecs.open('.pabotsuitenames', encoding='utf-8') as f:
             actual = f.readlines()
         self.assertEqual(expected, actual)
 
@@ -328,7 +329,7 @@ class PabotTests(unittest.TestCase):
             '69a5d7361495ccb3d0261c7b9f276c988056adb9',
             *self._all_with_tests
             )
-        with open(".pabotsuitenames", "r") as f:
+        with codecs.open('.pabotsuitenames', encoding='utf-8') as f:
             actual = f.readlines()
         self.assertEqual(expected, actual)
 

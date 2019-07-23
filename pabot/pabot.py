@@ -855,7 +855,7 @@ def _file_hash(lines):
     hashes = 0
     for line in lines[4:]:
         if line != '#WAIT':
-            hashes ^= int(hashlib.sha1(line.encode()).hexdigest(), 16)
+            hashes ^= int(hashlib.sha1(line.encode('utf-8')).hexdigest(), 16)
     digest.update(str(hashes).encode())
     return digest.hexdigest()
 
@@ -871,7 +871,7 @@ def store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suite_n
             "datasources:"+hash_of_dirs, 
             "commandlineoptions:"+hash_of_command, 
             "suitesfrom:"+hash_of_suitesfrom, None]+ suite_lines)+'\n')
-        suitenamesfile.writelines(suite_name+'\n' for suite_name in suite_lines)
+        suitenamesfile.writelines((d+'\n').encode('utf-8') if PY2 and is_unicode(d) else d+'\n' for d in suite_lines)
 
 def generate_suite_names(outs_dir, datasources, options, pabot_args):
     suites = []
