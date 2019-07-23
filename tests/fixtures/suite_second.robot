@@ -3,7 +3,7 @@ Library  pabot.PabotLib
 Suite Setup    run_only_once  setup123
 
 *** Test Cases ***
-Testing Case One of Second
+Testing Case One of Second with Scändic Chör
   Log  passing
 
 Testing Case One and a half Of Second
