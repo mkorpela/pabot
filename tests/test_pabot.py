@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*- 
 import unittest
 import time
 import os
@@ -34,7 +36,7 @@ class PabotTests(unittest.TestCase):
             'Fixtures.Suite One.1.2 Test Case Two',
             'Fixtures.Suite One.1.3 Test Value Set',
             'Fixtures.Suite One.1.4 Testing arg file',
-            'Fixtures.Suite Second.Testing Case One of Second with Scändic Chör',
+            u'Fixtures.Suite Second.Testing Case One of Second with Scändic Chör',
             'Fixtures.Suite Second.Testing Case One and a half Of Second',
             'Fixtures.Suite Second.Testing Case Two of Second',
             'Fixtures.Suite Special.Passing test Case',
