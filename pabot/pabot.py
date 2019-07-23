@@ -625,7 +625,7 @@ class SuiteItem(ExecutionItem):
 
     def __init__(self, name, tests=None, suites=None):
         assert(isinstance(name, str))
-        self.name = name
+        self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
         self.tests = [TestItem(t) for t in tests or []]
         self.suites = [SuiteItem(s) for s in suites or []]
 
@@ -654,7 +654,7 @@ class TestItem(ExecutionItem):
     type = 'test'
 
     def __init__(self, name):
-        self.name = name
+        self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
 
     def line(self):
         return '--test '+self.name
@@ -855,6 +855,7 @@ def _file_hash(lines):
     hashes = 0
     for line in lines[4:]:
         if line != '#WAIT':
+            line = line.decode('utf-8') if PY2 else line
             hashes ^= int(hashlib.sha1(line.encode('utf-8')).hexdigest(), 16)
     digest.update(str(hashes).encode())
     return digest.hexdigest()

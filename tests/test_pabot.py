@@ -8,6 +8,7 @@ import shutil
 import random
 import codecs
 from pabot import pabot
+from robot.utils import PY2
 
 s = pabot.SuiteItem
 t = pabot.TestItem
@@ -302,8 +303,10 @@ class PabotTests(unittest.TestCase):
             '69a5d7361495ccb3d0261c7b9f276c988056adb9',
             *self._all_with_tests
             )
-        with codecs.open('.pabotsuitenames', encoding='utf-8') as f:
+        with open('.pabotsuitenames') as f:
             actual = f.readlines()
+            if PY2:
+                actual = [l.decode("utf-8") for l in actual]
         self.assertEqual(expected, actual)
 
     def test_solve_suite_names_with_testlevelsplit_option_added(self):
@@ -329,8 +332,10 @@ class PabotTests(unittest.TestCase):
             '69a5d7361495ccb3d0261c7b9f276c988056adb9',
             *self._all_with_tests
             )
-        with codecs.open('.pabotsuitenames', encoding='utf-8') as f:
+        with open('.pabotsuitenames') as f:
             actual = f.readlines()
+            if PY2:
+                actual = [l.decode("utf-8") for l in actual]
         self.assertEqual(expected, actual)
 
     def test_solve_suite_names_ignores_testlevelsplit_if_suites_and_tests(self):
@@ -632,7 +637,7 @@ class PabotTests(unittest.TestCase):
             'Fixtures.Suite With Valueset Tags']], suite_names)
 
     def _assert_equal_names(self, names, output):
-        output_names = [[s.name for s in suites] for suites in output]
+        output_names = [[s.name.decode("utf-8") if PY2 else s.name for s in suites] for suites in output]
         self.assertEqual(names, output_names)
 
     def test_solve_suite_names_works_with_pabotsuitenames_file_with_wait_command_when_cli_change(self):
