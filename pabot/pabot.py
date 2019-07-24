@@ -487,7 +487,7 @@ def hash_directory(digest, path):
                 get_hash_of_file(file_path, digest)
 
 def _digest(text):
-    text = text.decode('utf-8') if PY2 else text
+    text = text.decode('utf-8') if PY2 and not is_unicode(text)  else text
     return hashlib.sha1(text.encode('utf-8')).digest()
 
 def get_hash_of_file(filename, digest):
