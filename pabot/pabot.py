@@ -628,7 +628,7 @@ class SuiteItem(ExecutionItem):
     type = 'suite'
 
     def __init__(self, name, tests=None, suites=None):
-        assert(isinstance(name, basestring))
+        assert((PY2 and isinstance(name, basestring)) or isinstance(name, str))
         self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
         self.tests = [TestItem(t) for t in tests or []]
         self.suites = [SuiteItem(s) for s in suites or []]

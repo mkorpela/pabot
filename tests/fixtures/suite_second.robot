@@ -7,7 +7,7 @@ ${FOO}=   oldvalue
 
 *** Test Cases ***
 Testing Case One of Second with Scändic Chör
-  Log  passing
+  Log  pässing
 
 Testing Case One and a half Of Second
   Fail
