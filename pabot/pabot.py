@@ -1271,7 +1271,7 @@ class QueueItem(object):
 
     def __init__(self, datasources, outs_dir, options, execution_item, command, verbose, argfile):
         self.datasources = datasources
-        self.outs_dir = outs_dir
+        self.outs_dir = outs_dir.encode('utf-8') if PY2 and is_unicode(outs_dir) else outs_dir
         self.options = options
         self.execution_item = execution_item
         self.command = command
