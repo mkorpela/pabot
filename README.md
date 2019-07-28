@@ -47,6 +47,11 @@ There are several ways you can help in improving this tool:
 
 ## Command-line options
 
+    pabot [--verbose|--testlevelsplit|--command .. --end-command|
+           --processes num|--pabotlib|--pabotlibhost host|--pabotlibport port|
+           --resourcefile file|--argumentfile[num] file|--suitesfrom file] 
+          [robot options] [path ...]
+
 Supports all Robot Framework command line options and also following options (these must be before normal RF options):
 
 --verbose     
