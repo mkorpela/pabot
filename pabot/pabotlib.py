@@ -182,9 +182,9 @@ class PabotLib(_PabotLib):
 
     def run_setup_only_once(self, keyword, *args):
         """
-        Runs a setup keyword with args only once at first possible moment when
-        an execution has gone throught this step. The executions after that
-        will skip this step. If the firts execution fails, all others will also.
+        Runs a keyword only once at the first possible moment when
+        an execution has gone through this step.
+        [https://pabot.org/PabotLib.html?ref=log#run-setup-only-once|Open online docs.]
         """
         lock_name = 'pabot_setup_%s' % self._path
         try:
@@ -206,12 +206,7 @@ class PabotLib(_PabotLib):
     def run_only_once(self, keyword):
         """
         Runs a keyword only once in one of the parallel processes.
-        As the keyword will be called
-        only in one process and the return value could basically be anything.
-        The "Run Only Once" can't return the actual return value.
-        If the keyword fails, "Run Only Once" fails.
-        Others executing "Run Only Once" wait before going through this
-        keyword before the actual command has been executed.
+        [https://pabot.org/PabotLib.html?ref=log#run-only-once|Open online docs.]
         """
         lock_name = 'pabot_run_only_once_%s' % keyword
         try:
@@ -232,10 +227,8 @@ class PabotLib(_PabotLib):
 
     def run_teardown_only_once(self, keyword, *args):
         """
-        Runs a teardown keyword with args only once after all executions have gone
-        throught this step in the last possible moment.
-        Note it is important to not have any conditions preventing from executing
-        this step as that may prevent this keyword from working correctly.
+        Runs a keyword only once after all executions have gone throught this step in the last possible moment.
+        [https://pabot.org/PabotLib.html?ref=log#run-teardown-only-once|Open online docs.]
         """
         last_level = BuiltIn().get_variable_value('${%s}' % PABOT_LAST_LEVEL)
         if last_level is None:
@@ -256,10 +249,8 @@ class PabotLib(_PabotLib):
 
     def run_on_last_process(self, keyword):
         """
-        Runs a keyword on last process used by pabot.
-        Keyword will wait until all other processes have stopped executing.
-        This can be used to run a global teardown that should be only
-        executed after all testing is done.
+        Runs a keyword only on last process used by pabot.
+        [https://pabot.org/PabotLib.html?ref=log#run-on-last-process|Open online docs.]
         """
         is_last = int(BuiltIn().get_variable_value('${%s}' % PABOT_LAST_EXECUTION_IN_POOL) or 1) == 1
         if not is_last:
@@ -275,6 +266,7 @@ class PabotLib(_PabotLib):
         """
         Set a globally available key and value that can be accessed
         from all the pabot processes.
+        [https://pabot.org/PabotLib.html?ref=log#set-parallel-value-for-key|Open online docs.]
         """
         self._run_with_lib('set_parallel_value_for_key', key, value)
 
@@ -292,16 +284,14 @@ class PabotLib(_PabotLib):
         """
         Get the value for a key. If there is no value for the key then empty
         string is returned.
+        [https://pabot.org/PabotLib.html?ref=log#get-parallel-value-for-key|Open online docs.]
         """
         return self._run_with_lib('get_parallel_value_for_key', key)
 
     def acquire_lock(self, name):
         """
         Wait for a lock with name.
-        This will prevent other processes from acquiring the lock with
-        the name while it is held. Thus they will wait in the position
-        where they are acquiring the lock until the process that has it
-        releases it.
+        [https://pabot.org/PabotLib.html?ref=log#acquire-lock|Open online docs.]
         """
         if self._remotelib:
             try:
@@ -319,23 +309,21 @@ class PabotLib(_PabotLib):
     def release_lock(self, name):
         """
         Release a lock with name.
-        This will enable others to acquire the lock.
+        [https://pabot.org/PabotLib.html?ref=log#release-lock|Open online docs.]
         """
         self._run_with_lib('release_lock', name, self._my_id)
 
     def release_locks(self):
         """
         Release all locks called by instance.
+        [https://pabot.org/PabotLib.html?ref=log#release-locks|Open online docs.]
         """
         self._run_with_lib('release_locks', self._my_id)
 
     def acquire_value_set(self, *tags):
         """
         Reserve a set of values for this execution.
-        No other process can reserve the same set of values while the set is
-        reserved. Acquired value set needs to be released after use to allow
-        other processes to access it.
-        Add tags to limit the possible value sets that this returns.
+        [https://pabot.org/PabotLib.html?ref=log#acquire-value-set|Open online docs.]
         """
         setname = self._acquire_value_set(*tags)
         if setname is None:
@@ -363,6 +351,7 @@ class PabotLib(_PabotLib):
     def get_value_from_set(self, key):
         """
         Get a value from previously reserved value set.
+        [https://pabot.org/PabotLib.html?ref=log#get-value-from-set|Open online docs.]
         """
         if self._valueset is None:
             raise AssertionError('No value set reserved for caller process')
@@ -374,6 +363,7 @@ class PabotLib(_PabotLib):
     def release_value_set(self):
         """
         Release a reserved value set so that other executions can use it also.
+        [https://pabot.org/PabotLib.html?ref=log#release-value-set|Open online docs.]
         """
         self._valueset = None
         self._run_with_lib('release_value_set', self._my_id)
