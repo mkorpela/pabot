@@ -181,6 +181,8 @@ There are three possibilities to influence the execution:
 
 Pabot will insert following global variables to Robot Framework namespace. These are here to enable PabotLib functionality and for custom listeners etc. to get some information on the overall execution of pabot.
 
+      PABOTQUEUEINDEX - this contains a unique index number for the execution. Indexes start from 0.
       PABOTLIBURI - this contains the URI for the running PabotLib server
       PABOTEXECUTIONPOOLID - this contains the pool id (an integer) for the current Robot Framework executor. This is helpful for example when visualizing the execution flow from your own listener.
+      CALLER_ID - a universally unique identifier for this execution.
  
