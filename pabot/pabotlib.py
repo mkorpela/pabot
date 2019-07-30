@@ -369,6 +369,8 @@ class PabotLib(_PabotLib):
         self._run_with_lib('release_value_set', self._my_id)
 
 
+# Module import will give a bad error message in log file
+# Workaround: expose PabotLib also as pabotlib
 pabotlib = PabotLib
 
 if __name__ == '__main__':
