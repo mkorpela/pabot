@@ -369,6 +369,8 @@ class PabotLib(_PabotLib):
         self._run_with_lib('release_value_set', self._my_id)
 
 
+pabotlib = PabotLib
+
 if __name__ == '__main__':
     import sys
     RobotRemoteServer(_PabotLib(sys.argv[1]), host=sys.argv[2],
