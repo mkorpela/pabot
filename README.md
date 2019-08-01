@@ -1,4 +1,4 @@
-# Pabot [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Doing%20Robot%20Framework%20parallel%20test%20execution%20with%20Pabot20&url=https://pabot.org&hashtags=testing,testautomation,robotframework)
+# Pabot [![Tweet](https://img.shields.io/twitter/url/http/shields.io.svg?style=social)](https://twitter.com/intent/tweet?text=Doing%20Robot%20Framework%20parallel%20test%20execution%20with%20Pabot204&url=https://pabot.org&hashtags=testing,testautomation,robotframework)
 
 [Русская версия](README_ru.md)
 [中文版](README_zh.md)
