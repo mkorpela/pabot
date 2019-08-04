@@ -110,6 +110,7 @@ ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
 _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # does not contain '"'
 _BAD_CHARS_SET = set(_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE)
 _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
+_ABNORMAL_EXIT_HAPPENED = False
 
 _COMPLETED_LOCK = threading.Lock()
 _NOT_COMPLETED_INDEXES = []
@@ -1163,7 +1164,8 @@ def _merge_one_run(outs_dir, options, tests_root_name, outputfile='output.xml'):
         _write('WARN: No output files in "%s"' % outs_dir, Color.YELLOW)
         return ""
     def invalid_xml_callback():
-        _write('Invalid XML')
+        global _ABNORMAL_EXIT_HAPPENED
+        _ABNORMAL_EXIT_HAPPENED = True
     merge(files, options, tests_root_name, invalid_xml_callback).save(output_path)
     return output_path
 
@@ -1379,8 +1381,9 @@ def main(args=None):
                 suite_names, datasources, outs_dir, 
                 options, opts_for_run, pabot_args):
                 _parallel_execute(items, pabot_args['processes'])
-            sys.exit(_report_results(outs_dir, pabot_args, options, start_time_string,
-                                     _get_suite_root_name(suite_names)))
+            result_code = _report_results(outs_dir, pabot_args, options, 
+                                    start_time_string, _get_suite_root_name(suite_names))
+            sys.exit(result_code if not _ABNORMAL_EXIT_HAPPENED else 252)
         else:
             _write('No tests to execute')
             if not options.get('runemptysuite', False):
