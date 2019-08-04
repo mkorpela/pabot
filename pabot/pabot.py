@@ -1162,7 +1162,9 @@ def _merge_one_run(outs_dir, options, tests_root_name, outputfile='output.xml'):
     if not files:
         _write('WARN: No output files in "%s"' % outs_dir, Color.YELLOW)
         return ""
-    merge(files, options, tests_root_name).save(output_path)
+    def invalid_xml_callback():
+        _write('Invalid XML')
+    merge(files, options, tests_root_name, invalid_xml_callback).save(output_path)
     return output_path
 
 

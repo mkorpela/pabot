@@ -153,7 +153,7 @@ def prefix(source):
     except:
         return ""
 
-def group_by_root(results, critical_tags, non_critical_tags):
+def group_by_root(results, critical_tags, non_critical_tags, invalid_xml_callback):
     groups = {}
     for src in results:
         try:
@@ -161,16 +161,17 @@ def group_by_root(results, critical_tags, non_critical_tags):
         except DataError as err:
             print(err.message)
             print("Skipping '%s' from final result" % src)
+            invalid_xml_callback()
             continue
         res.suite.set_criticality(critical_tags, non_critical_tags)
         groups[res.suite.name] = groups.get(res.suite.name, []) + [res]
     return groups
 
 
-def merge_groups(results, critical_tags, non_critical_tags, tests_root_name):
+def merge_groups(results, critical_tags, non_critical_tags, tests_root_name, invalid_xml_callback):
     merged = []
     for group in group_by_root(results, critical_tags,
-                               non_critical_tags).values():
+                               non_critical_tags, invalid_xml_callback).values():
         base = group[0]
         merger = ResultMerger(base, tests_root_name)
         for out in group:
@@ -179,11 +180,14 @@ def merge_groups(results, critical_tags, non_critical_tags, tests_root_name):
     return merged
 
 
-def merge(result_files, rebot_options, tests_root_name):
+def merge(result_files, rebot_options, tests_root_name, invalid_xml_callback=None):
     assert(len(result_files) > 0)
+    if invalid_xml_callback is None:
+        invalid_xml_callback = lambda:0
     settings = RebotSettings(rebot_options)
     merged = merge_groups(result_files, settings.critical_tags,
-                          settings.non_critical_tags, tests_root_name)
+                          settings.non_critical_tags, tests_root_name,
+                          invalid_xml_callback)
     if len(merged) == 1:
         if not merged[0].suite.doc:
             merged[0].suite.doc = '[https://pabot.org/?ref=log|Pabot] result from %d executions.' % len(result_files)
