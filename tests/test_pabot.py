@@ -727,6 +727,20 @@ class PabotTests(unittest.TestCase):
         finally:
             os.rmdir(".pabotsuitenames")
 
+    def test_rebot_conf(self):
+        opt = self._options.copy()
+        opt['suite'] = ['s1', 's2']
+        opt['test'] = ['t1', 't2']
+        opt['include'] = ['tag']
+        opt['exclude'] = ['nontag']
+        options = pabot._options_for_rebot(opt, "starttime", "endtime")
+        self.assertEqual(options['suite'], [])
+        self.assertEqual(options['test'], [])
+        self.assertEqual(options['include'], [])
+        self.assertEqual(options['exclude'], [])
+        for key in self._options:
+            self.assertEqual(options[key], self._options[key])
+
     def test_greates_common_name(self):
         self.assertEqual(pabot._find_ending_level("foo.bar", ["a", "b"]), "foo")
         self.assertEqual(pabot._find_ending_level("foo.bar", ["foo.zoo", "b"]), "foo.bar")

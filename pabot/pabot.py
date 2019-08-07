@@ -1052,6 +1052,10 @@ def _options_for_rebot(options, start_time_string, end_time_string):
     rebot_options['starttime'] = start_time_string
     rebot_options['endtime'] = end_time_string
     rebot_options['monitorcolors'] = 'off'
+    rebot_options['suite'] = []
+    rebot_options['test'] = []
+    rebot_options['exclude'] = []
+    rebot_options['include'] = []
     if ROBOT_VERSION >= '2.8':
         options['monitormarkers'] = 'off'
     return rebot_options
