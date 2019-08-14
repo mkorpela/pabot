@@ -1071,7 +1071,7 @@ def _options_for_dryrun(options, outs_dir):
     options['log'] = 'NONE'
     options['report'] = 'NONE'
     options['xunit'] = 'NONE'
-    options['variable'] = options.get('variable')[:]
+    options['variable'] = options.get('variable', [])[:]
     options['variable'].append(pabotlib.PABOT_QUEUE_INDEX + ":-1")
     if ROBOT_VERSION >= '2.8':
         options['dryrun'] = True
