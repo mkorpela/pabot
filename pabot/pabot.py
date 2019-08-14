@@ -289,7 +289,7 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id,
     options['log'] = 'NONE'
     options['report'] = 'NONE'
     options['xunit'] = 'NONE'
-    options[execution_item.type] = execution_item.name
+    execution_item.add_options_for_executor(options)
     options['outputdir'] = outs_dir
     options['variable'] = options.get('variable')[:]
     options['variable'].append('CALLER_ID:%s' % caller_id)
@@ -350,7 +350,9 @@ class GatherSuiteNames(ResultVisitor):
 
     def end_suite(self, suite):
         if len(suite.tests):
-            self.result.append(SuiteItem(suite.longname, tests=[t.longname for t in suite.tests]))
+            tests = [t.longname for t in suite.tests if 'pabot:dynamictest' not in t.tags]
+            dynamictests = [d.longname for d in suite.tests if 'pabot:dynamictest' in d.tags]
+            self.result.append(SuiteItem(suite.longname, tests=tests, dynamictests=dynamictests))
 
 
 def get_suite_names(output_file):
@@ -612,6 +614,9 @@ class ExecutionItem(object):
     def difference(self, from_items):
         return []
 
+    def add_options_for_executor(self, options):
+        options[self.type] = self.name
+
     def __eq__(self, other):
         if isinstance(other, ExecutionItem):
             return ((self.name, self.type) == (other.name, other.type))
@@ -681,6 +686,34 @@ class TestItem(ExecutionItem):
         return []
 
 
+class DynamicTestItem(ExecutionItem):
+
+    type = 'dynamictest'
+    
+    def __init__(self, name, suite):
+        self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
+        self.suite = suite
+
+    def line(self):
+        return 'DYNAMICTEST %s :: %s' % (self.suite, self.name)
+
+    def add_options_for_executor(self, options):
+        options['suite'] = self.suite
+        variables = options.get('variable')[:]
+        variables.append("DYNAMICTEST:"+self.name)
+        options['variable'] = variables
+
+    def difference(self, from_items):
+        return []
+
+    def contains(self, other):
+        return self == other
+
+    def tags(self):
+        #TODO Make this happen
+        return []
+
+
 class WaitItem(ExecutionItem):
 
     type = "wait"
@@ -717,6 +750,9 @@ def _parse_line(text):
         return TestItem(text[7:])
     if text.startswith('--include '):
         return IncludeItem(text[10:])
+    if text.startswith('DYNAMICTEST'):
+        suite, test = test[12:].split(" :: ")
+        return DynamicTestItem(test, suite)
     if text == "#WAIT":
         return WaitItem()
     # Assume old suite name
