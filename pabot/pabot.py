@@ -751,7 +751,7 @@ def _parse_line(text):
     if text.startswith('--include '):
         return IncludeItem(text[10:])
     if text.startswith('DYNAMICTEST'):
-        suite, test = test[12:].split(" :: ")
+        suite, test = text[12:].split(" :: ")
         return DynamicTestItem(test, suite)
     if text == "#WAIT":
         return WaitItem()
