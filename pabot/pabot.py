@@ -291,7 +291,7 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id,
     options['xunit'] = 'NONE'
     execution_item.add_options_for_executor(options)
     options['outputdir'] = outs_dir
-    options['variable'] = options.get('variable')[:]
+    options['variable'] = options.get('variable', [])[:]
     options['variable'].append('CALLER_ID:%s' % caller_id)
     pabotLibURIVar = 'PABOTLIBURI:%s' % _PABOTLIBURI
     # Prevent multiple appending of PABOTLIBURI variable setting
@@ -699,7 +699,7 @@ class DynamicTestItem(ExecutionItem):
 
     def add_options_for_executor(self, options):
         options['suite'] = self.suite
-        variables = options.get('variable')[:]
+        variables = options.get('variable', [])[:]
         variables.append("DYNAMICTEST:"+self.name)
         options['variable'] = variables
 
