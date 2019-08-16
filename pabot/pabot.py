@@ -347,9 +347,7 @@ class GatherSuiteNames(ResultVisitor):
 
     def end_suite(self, suite):
         if len(suite.tests):
-            tests = [t for t in suite.tests if 'pabot:dynamictest' not in t.tags]
-            dynamictests = [d for d in suite.tests if 'pabot:dynamictest' in d.tags]
-            self.result.append(SuiteItem(suite.longname, tests=tests, dynamictests=dynamictests))
+            self.result.append(SuiteItem(suite.longname, tests=[t.longname for t in suite.tests]))
 
 
 def get_suite_names(output_file):
@@ -629,10 +627,10 @@ class SuiteItem(ExecutionItem):
 
     type = 'suite'
 
-    def __init__(self, name, tests=None, suites=None, dynamictests=None):
+    def __init__(self, name, tests=None, suites=None):
         assert((PY2 and isinstance(name, basestring)) or isinstance(name, str))
         self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
-        self.tests = [TestItem(t) for t in tests or []] + [DynamicTestItem(t, self.name) for t in dynamictests or []]
+        self.tests = [TestItem(t) for t in tests or []]
         self.suites = [SuiteItem(s) for s in suites or []]
 
     def line(self):
@@ -664,28 +662,6 @@ class TestItem(ExecutionItem):
 
     def line(self):
         return '--test '+self.name
-
-    def difference(self, from_items):
-        return []
-
-    def contains(self, other):
-        return self == other
-
-    def tags(self):
-        #TODO Make this happen
-        return []
-
-
-class DynamicTestItem(ExecutionItem):
-
-    type = 'dynamictest'
-    
-    def __init__(self, name, suite):
-        self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
-        self.suite = suite
-
-    def line(self):
-        return '--suite %s --variable DYNAMICTEST:%s' % (self.suite, self.name)
 
     def difference(self, from_items):
         return []
