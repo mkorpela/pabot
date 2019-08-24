@@ -87,7 +87,7 @@ class _PabotLib(object):
     def acquire_value_set(self, caller_id, *tags):
         if not self._values:
             raise AssertionError(
-                'Value set cannot be aquired - it was never imported. Use --resourcefile option to import.')
+                'Value set cannot be aquired. It was never imported or all are disabled. Use --resourcefile option to import.')
         # CAN ONLY RESERVE ONE VALUE SET AT A TIME
         if caller_id in self._owner_to_values and self._owner_to_values[caller_id] is not None:
             raise ValueError("Caller has already reserved a value set.")
@@ -106,6 +106,10 @@ class _PabotLib(object):
 
     def release_value_set(self, caller_id):
         self._owner_to_values[caller_id] = None
+
+    def disable_value_set(self, setname, caller_id):
+        self._owner_to_values[caller_id] = None
+        del self._values[setname]
 
     def get_value_from_set(self, key, caller_id):
         if caller_id not in self._owner_to_values:
@@ -126,6 +130,7 @@ class PabotLib(_PabotLib):
         self.__remotelib = None
         self.__my_id = None
         self._valueset = None
+        self._setname = None
         self.ROBOT_LIBRARY_LISTENER = self
         self._position = []
         self._row_index = 0
@@ -334,19 +339,19 @@ class PabotLib(_PabotLib):
         if self._remotelib:
             try:
                 while True:
-                    key, self._valueset = self._remotelib.run_keyword('acquire_value_set',
+                    self._setname, self._valueset = self._remotelib.run_keyword('acquire_value_set',
                                                         [self._my_id]+list(tags), {})
-                    if key:
-                        logger.info('Value set "%s" acquired' % key)
-                        return key
+                    if self._setname:
+                        logger.info('Value set "%s" acquired' % self._setname)
+                        return self._setname
                     time.sleep(0.1)
                     logger.debug('waiting for a value set')
             except RuntimeError:
                 logger.error('No connection - is pabot called with --pabotlib option?')
                 self.__remotelib = None
                 raise
-        key, self._valueset = _PabotLib.acquire_value_set(self, self._my_id, *tags)
-        return key
+        self._setname, self._valueset = _PabotLib.acquire_value_set(self, self._my_id, *tags)
+        return self._setname
 
     def get_value_from_set(self, key):
         """
@@ -366,7 +371,17 @@ class PabotLib(_PabotLib):
         [https://pabot.org/PabotLib.html?ref=log#release-value-set|Open online docs.]
         """
         self._valueset = None
+        self._setname = None
         self._run_with_lib('release_value_set', self._my_id)
+
+    def disable_value_set(self):
+        """
+        Disable a reserved value set.
+        [https://pabot.org/PabotLib.html?ref=log#disable-value-set|Open online docs.]
+        """
+        self._valueset = None
+        self._run_with_lib('disable_value_set', self._setname, self._my_id)
+        self._setname = None
 
 
 # Module import will give a bad error message in log file

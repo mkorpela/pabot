@@ -97,6 +97,16 @@ class PabotLibTests(unittest.TestCase):
         except AssertionError:
             pass
 
+    def test_acquire_and_disable_valueset(self):
+        lib = pabotlib.PabotLib()
+        lib._values = lib._parse_values(resourcefile=os.path.join("tests", "resourcefile.dat"))
+        vals = lib.acquire_value_set()
+        self.assertIn(vals, ["MyValueSet", "TestSystemWithLasers", "TestSystemWithTachyonCannon"])
+        lib.disable_value_set()
+        vals2 = lib.acquire_value_set()
+        self.assertNotEqual(vals, vals2)
+        lib.release_value_set()
+
     def test_acquire_and_release_valueset_with_tag(self):
         lib = pabotlib.PabotLib()
         lib._values = lib._parse_values(resourcefile=os.path.join("tests", "resourcefile.dat"))
