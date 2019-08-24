@@ -121,7 +121,7 @@ class _PabotLib(object):
 
 class PabotLib(_PabotLib):
 
-    __version__ = 0.64
+    __version__ = 0.65
     ROBOT_LIBRARY_SCOPE = 'GLOBAL'
     ROBOT_LISTENER_API_VERSION = 2
 
