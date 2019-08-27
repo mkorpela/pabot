@@ -383,6 +383,9 @@ class PabotLib(_PabotLib):
         self._run_with_lib('disable_value_set', self._setname, self._my_id)
         self._setname = None
 
+    def sync_library(self, name, *args):
+        pass
+
 
 # Module import will give a bad error message in log file
 # Workaround: expose PabotLib also as pabotlib

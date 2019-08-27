@@ -6,6 +6,11 @@ import shutil
 import random
 from pabot import pabotlib
 from robot.libraries.BuiltIn import BuiltIn
+from robot.running.context import EXECUTION_CONTEXTS
+from robot.running.namespace import Namespace
+from robot.running.model import TestSuite
+from robot.output import Output
+from robot.variables import Variables
 
 class PabotLibTests(unittest.TestCase):
 
@@ -150,6 +155,43 @@ class PabotLibTests(unittest.TestCase):
             self.fail("Should have thrown an exception")
         except ValueError:
             pass
+
+    def _output(self):
+        output = lambda:0
+        output.start_keyword = output.end_keyword = lambda *a:0
+        output.fail = output.debug = output.trace = lambda *a:0
+        return output
+
+    def _create_ctx(self):
+        suite = TestSuite()
+        variables = Variables()
+        EXECUTION_CONTEXTS._contexts = []
+        EXECUTION_CONTEXTS.start_suite(suite,
+            Namespace(variables, suite, suite.resource),
+            self._output())
+
+    def test_sync_library_robot_run(self):
+        self._create_ctx()
+        lib = pabotlib.PabotLib()
+        BuiltIn().import_library("mylib.py")
+        result1 = BuiltIn().run_keyword("mylib.mykeyword")
+        self.assertEqual(result1, "hello world 1")
+        lib.sync_library("mylib.py")
+        result2 = BuiltIn().run_keyword("mylib.mykeyword")
+        self.assertEqual(result2, "hello world 2")
+        EXECUTION_CONTEXTS.end_suite()
+
+    def test_sync_library_pabot_run(self):
+        self._create_ctx()
+        lib = pabotlib.PabotLib()
+        BuiltIn().import_library("mylib.py")
+        result1 = BuiltIn().run_keyword("mylib.mykeyword")
+        self.assertEqual(result1, "hello world 1")
+        lib.__remotelib = lambda:0
+        lib.sync_library("mylib.py")
+        result2 = BuiltIn().run_keyword("mylib.mykeyword")
+        self.assertEqual(result2, "hello world 1")
+        EXECUTION_CONTEXTS.end_suite()
 
 
 if __name__ == '__main__':
