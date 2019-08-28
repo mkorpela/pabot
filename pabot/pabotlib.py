@@ -23,7 +23,9 @@ except:
 from robot.libraries.BuiltIn import BuiltIn
 from robotremoteserver import RobotRemoteServer
 from robot.libraries.Remote import Remote
+from robot.running import TestLibrary
 from robot.api import logger
+import threading
 import time
 
 PABOT_LAST_LEVEL = "PABOTLASTLEVEL"
@@ -117,6 +119,14 @@ class _PabotLib(object):
         if key not in self._owner_to_values[caller_id]:
             raise AssertionError('No value for key "%s"' % key)
         return self._owner_to_values[caller_id][key]
+
+    def sync_library(self, name, *args):
+        imported = TestLibrary(name)
+        server = RobotRemoteServer(imported, port=0, serve=False, allow_stop=True)
+        server_thread = threading.Thread(target=server.serve)
+        server_thread.start()
+        time.sleep(2)
+        return server.server_port
 
 
 class PabotLib(_PabotLib):
@@ -383,8 +393,17 @@ class PabotLib(_PabotLib):
         self._run_with_lib('disable_value_set', self._setname, self._my_id)
         self._setname = None
 
-    def sync_library(self, name, *args):
-        pass
+    def sync_library(self, name):
+        if self._remotelib:
+            try:
+                port = self._remotelib.run_keyword("sync_library", [name], {})
+            except RuntimeError:
+                logger.error('No connection - is pabot called with --pabotlib option?')
+                self.__remotelib = None
+                raise
+            BuiltIn().import_library("Remote", "http://127.0.0.1:%s" % port, "WITH NAME", "FOO")
+            BuiltIn().run_keyword("FOO.mykeyword")
+            print("Lib imported with name FOO http://localhost:%s" % port)
 
 
 # Module import will give a bad error message in log file
