@@ -41,7 +41,7 @@ class _PabotLib(object):
         self._locks = {}
         self._owner_to_values = {}
         self._parallel_values = {}
-        self._remote_libraries = set()
+        self._remote_libraries = {}
         self._values = self._parse_values(resourcefile)
 
     def _parse_values(self, resourcefile):
@@ -122,19 +122,22 @@ class _PabotLib(object):
         return self._owner_to_values[caller_id][key]
 
     def import_shared_library(self, name):
+        if name in self._remote_libraries:
+            return self._remote_libraries[name][0]
         imported = TestLibrary(name)
         server = RobotRemoteServer(imported.get_instance(), port=0, serve=False, allow_stop=True)
         server_thread = threading.Thread(target=server.serve)
         server_thread.start()
-        time.sleep(2)
-        self._remote_libraries.add((server, server_thread))
-        return server.server_port
+        time.sleep(1)
+        port = server.server_port
+        self._remote_libraries[name] = (port, server, server_thread)
+        return port
 
     def stop_remote_libraries(self):
-        for server, _ in self._remote_libraries:
-            server.stop_remote_server()
-        for _, thread in self._remote_libraries:
-            thread.join()
+        for name in self._remote_libraries:
+            self._remote_libraries[name][1].stop_remote_server()
+        for name in self._remote_libraries:
+            self._remote_libraries[name][2].join()
 
 class PabotLib(_PabotLib):
 
@@ -409,7 +412,7 @@ class PabotLib(_PabotLib):
                 self.__remotelib = None
                 raise
             BuiltIn().import_library("Remote", "http://127.0.0.1:%s" % port, "WITH NAME", name)
-            print("Lib imported with name FOO http://localhost:%s" % port)
+            print("Lib imported with name %s from http://127.0.0.1:%s" % (name, port))
 
 
 # Module import will give a bad error message in log file
