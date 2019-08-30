@@ -1,6 +1,6 @@
 *** Settings ***
 Library  pabot.PabotLib
-Suite Setup    run_only_once  setup123
+Suite Setup    generic setup
 
 *** Test Cases ***
 1.1 Test Case One
@@ -15,6 +15,7 @@ Suite Setup    run_only_once  setup123
   set_parallel_value_for_key  Key  Value
   release_lock  MyLock
   Should Be Equal  ${VALUE}  Value
+  None Shall Pass   ${null}
 
 1.3 Test Value Set
   acquire_value_set
@@ -28,6 +29,10 @@ Suite Setup    run_only_once  setup123
   Should Be Equal  ${PASSINGARG}  Yep
 
 *** Keywords ***
+generic setup
+  Import Shared Library  Easter
+  run_only_once  setup123
+
 setup123
   acquire_lock  setup123
   ${VALUE}=  get_parallel_value_for_key  ONCE
