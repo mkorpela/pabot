@@ -122,7 +122,7 @@ class _PabotLib(object):
 
     def sync_library(self, name, *args):
         imported = TestLibrary(name)
-        server = RobotRemoteServer(imported, port=0, serve=False, allow_stop=True)
+        server = RobotRemoteServer(imported.get_instance(), port=0, serve=False, allow_stop=True)
         server_thread = threading.Thread(target=server.serve)
         server_thread.start()
         time.sleep(2)
@@ -401,8 +401,7 @@ class PabotLib(_PabotLib):
                 logger.error('No connection - is pabot called with --pabotlib option?')
                 self.__remotelib = None
                 raise
-            BuiltIn().import_library("Remote", "http://127.0.0.1:%s" % port, "WITH NAME", "FOO")
-            BuiltIn().run_keyword("FOO.mykeyword")
+            BuiltIn().import_library("Remote", "http://127.0.0.1:%s" % port, "WITH NAME", name)
             print("Lib imported with name FOO http://localhost:%s" % port)
 
 
