@@ -170,31 +170,6 @@ class PabotLibTests(unittest.TestCase):
             Namespace(variables, suite, suite.resource),
             self._output())
 
-    def test_sync_library_robot_run(self):
-        self._create_ctx()
-        lib = pabotlib.PabotLib()
-        BuiltIn().import_library("mylib.py")
-        result1 = BuiltIn().run_keyword("mylib.mykeyword")
-        self.assertEqual(result1, "hello world 1")
-        lib.sync_library("mylib.py")
-        result2 = BuiltIn().run_keyword("mylib.mykeyword")
-        self.assertEqual(result2, "hello world 2")
-        EXECUTION_CONTEXTS.end_suite()
-
-    def test_sync_library_pabot_run(self):
-        self._create_ctx()
-        lib = pabotlib.PabotLib()
-        BuiltIn().import_library("mylib.py")
-        result1 = BuiltIn().run_keyword("mylib.mykeyword")
-        self.assertEqual(result1, "hello world 1")
-        lib._PabotLib__remotelib = lambda:0
-        lib._PabotLib__remotelib.run_keyword = lambda *a:0
-        assert(lib._remotelib)
-        lib.sync_library("mylib.py")
-        result2 = BuiltIn().run_keyword("mylib.mykeyword")
-        self.assertEqual(result2, "hello world 1")
-        EXECUTION_CONTEXTS.end_suite()
-
 
 if __name__ == '__main__':
     unittest.main()
