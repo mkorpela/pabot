@@ -1244,7 +1244,9 @@ def _start_remote_library(pabot_args):
 def _stop_remote_library(process):
     _write('Stopping PabotLib process')
     try:
-        Remote(_PABOTLIBURI).run_keyword('stop_remote_server', [], {})
+        remoteLib = Remote(_PABOTLIBURI)
+        remoteLib.run_keyword('stop_remote_libraries', [], {})
+        remoteLib.run_keyword('stop_remote_server', [], {})
     except RuntimeError:
         _write('Could not connect to PabotLib - assuming stopped already')
         return

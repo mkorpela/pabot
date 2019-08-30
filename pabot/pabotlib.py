@@ -41,6 +41,7 @@ class _PabotLib(object):
         self._locks = {}
         self._owner_to_values = {}
         self._parallel_values = {}
+        self._remote_libraries = set()
         self._values = self._parse_values(resourcefile)
 
     def _parse_values(self, resourcefile):
@@ -120,14 +121,20 @@ class _PabotLib(object):
             raise AssertionError('No value for key "%s"' % key)
         return self._owner_to_values[caller_id][key]
 
-    def sync_library(self, name, *args):
+    def import_shared_library(self, name):
         imported = TestLibrary(name)
         server = RobotRemoteServer(imported.get_instance(), port=0, serve=False, allow_stop=True)
         server_thread = threading.Thread(target=server.serve)
         server_thread.start()
         time.sleep(2)
+        self._remote_libraries.add((server, server_thread))
         return server.server_port
 
+    def stop_remote_libraries(self):
+        for server, _ in self._remote_libraries:
+            server.stop_remote_server()
+        for _, thread in self._remote_libraries:
+            thread.join()
 
 class PabotLib(_PabotLib):
 
@@ -393,10 +400,10 @@ class PabotLib(_PabotLib):
         self._run_with_lib('disable_value_set', self._setname, self._my_id)
         self._setname = None
 
-    def sync_library(self, name):
+    def import_shared_library(self, name):
         if self._remotelib:
             try:
-                port = self._remotelib.run_keyword("sync_library", [name], {})
+                port = self._remotelib.run_keyword("import_shared_library", [name], {})
             except RuntimeError:
                 logger.error('No connection - is pabot called with --pabotlib option?')
                 self.__remotelib = None
