@@ -409,6 +409,7 @@ class PabotLib(_PabotLib):
         [https://pabot.org/PabotLib.html?ref=log#import-shared-library|Open online docs.]
         """
         if BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) is None:
+            logger.debug("Not currently running pabot. Importing library for this process.")
             BuiltIn().import_library(name)
             return
         if self._remotelib:
