@@ -16,9 +16,10 @@
 from __future__ import absolute_import
 
 try:
-    import configparser
+    import configparser # type: ignore 
 except:
-    import ConfigParser as configparser  # Support Python 2
+    import ConfigParser as configparser  # type: ignore 
+    # Support Python 2
 
 from robot.libraries.BuiltIn import BuiltIn
 from robotremoteserver import RobotRemoteServer

@@ -95,17 +95,19 @@ from . import pabotlib
 from .result_merger import merge
 
 try:
-    import queue
+    import queue # type: ignore 
 except ImportError:
-    import Queue as queue
+    import Queue as queue # type: ignore 
+
+from typing import List, Optional, Union
 
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = queue.Queue()
-EXECUTION_POOL_IDS = []
+EXECUTION_POOL_IDS = [] # type: List[int]
 EXECUTION_POOL_ID_LOCK = threading.Lock()
 POPEN_LOCK = threading.Lock()
 _PABOTLIBURI = '127.0.0.1:8270'
-_PABOTLIBPROCESS = None
+_PABOTLIBPROCESS = None # type: Optional[subprocess.Popen]
 ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
 _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # does not contain '"'
 _BAD_CHARS_SET = set(_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE)
@@ -113,10 +115,10 @@ _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
 _ABNORMAL_EXIT_HAPPENED = False
 
 _COMPLETED_LOCK = threading.Lock()
-_NOT_COMPLETED_INDEXES = []
+_NOT_COMPLETED_INDEXES = [] # type: List[int]
 
 _ROBOT_EXTENSIONS = ['.html', '.htm', '.xhtml', '.tsv', '.rst', '.rest', '.txt', '.robot']
-_ALL_ELAPSED = []
+_ALL_ELAPSED = [] # type: List[Union[int, float]]
 
 class Color:
     SUPPORTED_OSES = ['posix']
@@ -177,8 +179,8 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
         fk = options['flattenkeywords']
         #print("debug preprocess rk="+str(rk)+"  fk="+str(fk))
         if not rk and not fk: return  #  => no preprocessing needed if no removekeywords or flattenkeywords present
-        rkargs = []
-        fkargs =  []
+        rkargs = [] # type: List[str]
+        fkargs =  [] # type: List[str]
         for k in rk: rkargs+=['--removekeywords',k]
         for k in fk: fkargs+=['--flattenkeywords',k]
         outputxmlfile = os.path.join(outs_dir, 'output.xml')
@@ -200,9 +202,10 @@ def _write_with_id(process, pool_id, message, color=None, timestamp=None):
     _write("%s [PID:%s] [%s] %s" % (timestamp, process.pid, pool_id, message), color)
 
 
-def _make_id():
+def _make_id(): # type: () -> int
     global EXECUTION_POOL_IDS, EXECUTION_POOL_ID_LOCK
     thread_id = threading.current_thread().ident
+    assert thread_id is not None
     with EXECUTION_POOL_ID_LOCK:
         if thread_id not in EXECUTION_POOL_IDS:
             EXECUTION_POOL_IDS += [thread_id]
@@ -323,8 +326,8 @@ def _set_terminal_coloring_options(options):
     return options
 
 
-def _options_to_cli_arguments(opts):
-    res = []
+def _options_to_cli_arguments(opts): # type: (dict) -> List[str]
+    res = [] # type: List[str]
     for k, v in opts.items():
         if isinstance(v, str):
             res += ['--' + str(k), str(v)]
@@ -343,7 +346,7 @@ def _options_to_cli_arguments(opts):
 
 class GatherSuiteNames(ResultVisitor):
     def __init__(self):
-        self.result = []
+        self.result = [] # type: List[SuiteItem]
 
     def end_suite(self, suite):
         if len(suite.tests):
@@ -1221,7 +1224,7 @@ def _stop_message_writer():
     MESSAGE_QUEUE.join()
 
 
-def _start_remote_library(pabot_args):
+def _start_remote_library(pabot_args): # type: (dict) -> Optional[subprocess.Popen]
     global _PABOTLIBURI
     _PABOTLIBURI = '%s:%s' % (pabot_args['pabotlibhost'],
                               pabot_args['pabotlibport'])
