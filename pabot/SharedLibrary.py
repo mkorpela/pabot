@@ -22,7 +22,6 @@ class SharedLibrary(object):
                 port = remotelib.run_keyword("import_shared_library", [name], {})
             except RuntimeError:
                 logger.error('No connection - is pabot called with --pabotlib option?')
-                self.__remotelib = None
                 raise
             BuiltIn().import_library("Remote", "http://127.0.0.1:%s" % port, "WITH NAME", name)
             logger.debug("Lib imported with name %s from http://127.0.0.1:%s" % (name, port))
