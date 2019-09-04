@@ -99,7 +99,7 @@ try:
 except ImportError:
     import Queue as queue # type: ignore 
 
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict, Tuple
 
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = queue.Queue()
@@ -435,7 +435,7 @@ def _parse_args(args):
             args = args[2:]
             continue
         match = ARGSMATCHER.match(args[0])
-        if ARGSMATCHER.match(args[0]):
+        if match:
             pabot_args['argumentfiles'] += [(match.group(1), args[1])]
             args = args[2:]
             continue
@@ -561,18 +561,17 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         with open(".pabotsuitenames", "r") as suitenamesfile:
             lines = [line.strip() for line in suitenamesfile.readlines()]
             corrupted = len(lines) < 5
+            hash_suites = None # type: Optional[str]
+            hash_command = None # type: Optional[str]
+            suitesfrom_hash = None # type: Optional[str]
+            file_hash = None # type: Optional[str]
+            hash_of_file = None # type: Optional[str]
             if not corrupted:
                 hash_suites = lines[0][len("datasources:"):]
                 hash_command = lines[1][len("commandlineoptions:"):]
                 suitesfrom_hash = lines[2][len("suitesfrom:"):]
                 file_hash = lines[3][len("file:"):]
                 hash_of_file = _file_hash(lines)
-            else:
-                hash_suites = None
-                hash_command = None
-                suitesfrom_hash = None
-                file_hash = None
-                hash_of_file = None
             corrupted = corrupted or any(not l.startswith('--suite ') and
                                         not l.startswith('--test ') and
                                         l != '#WAIT' for l in lines[4:])
@@ -601,12 +600,17 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
 class ExecutionItem(object):
 
     isWait = False
-
+    type = None # type: str
+    name = None #type: str
+    
     def top_name(self):
         return self.name.split('.')[0]
 
     def contains(self, other):
         return False
+
+    def difference(self, from_items):
+        return []
 
     def __eq__(self, other):
         if isinstance(other, ExecutionItem):
@@ -720,7 +724,7 @@ def _parse_line(text):
 
 
 def _group_by_wait(lines):
-    suites = [[]]
+    suites = [[]] # type: List[List[ExecutionItem]]
     for suite in lines:
         if not suite.isWait:
             if suite:
@@ -753,7 +757,7 @@ def _regenerate(
     else:
         suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
         if pabot_args.get('testlevelsplit'):
-            tests = []
+            tests = [] # type: List[TestItem]
             for s in suites:
                 tests.extend(s.tests)
             suites = tests
@@ -789,16 +793,16 @@ def _preserve_order(new_items, old_items):
     return _fix_items(exists_in_old_and_new + exists_only_in_new)
 
 
-def _fix_items(items):
+def _fix_items(items): # type: (List[ExecutionItem]) -> List[ExecutionItem]
     assert(all(isinstance(s, ExecutionItem) for s in items))
-    to_be_removed = []
+    to_be_removed = [] # type: List[int]
     for i in range(len(items)):
         for j in range(i+1, len(items)):
             if items[i].contains(items[j]):
                 to_be_removed.append(j)
     items = [item for i, item in enumerate(items) if i not in to_be_removed]
-    result = []
-    to_be_splitted = {}
+    result = [] # type: List[ExecutionItem]
+    to_be_splitted = {} # type: Dict[int, List[ExecutionItem]]
     for i in range(len(items)):
         if i in to_be_splitted:
             result.extend(items[i].difference(to_be_splitted[i]))
@@ -833,7 +837,7 @@ def _get_preserve_and_ignore(new_items, old_items, old_contains_suites_and_tests
     return preserve, ignorable
 
 
-def _remove_double_waits(exists_in_old_and_new):
+def _remove_double_waits(exists_in_old_and_new): # type: (List[ExecutionItem]) -> None
     doubles = []
     for i,(j,k) in enumerate(zip(exists_in_old_and_new, exists_in_old_and_new[1:])):
         if j.isWait and k == j:
@@ -841,8 +845,8 @@ def _remove_double_waits(exists_in_old_and_new):
     for i in reversed(doubles):
         del exists_in_old_and_new[i]
 
-def _split_partially_to_tests(new_suites, old_suites):
-    suits = []
+def _split_partially_to_tests(new_suites, old_suites): # type: (List[SuiteItem], List[ExecutionItem]) -> List[ExecutionItem]
+    suits = [] # type: List[ExecutionItem]
     for s in new_suites:
         split = False
         for old_test in old_suites:
@@ -881,18 +885,18 @@ def store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suite_n
             "suitesfrom:"+hash_of_suitesfrom, None]+ suite_lines)+'\n')
         suitenamesfile.writelines((d+'\n').encode('utf-8') if PY2 and is_unicode(d) else d+'\n' for d in suite_lines)
 
-def generate_suite_names(outs_dir, datasources, options, pabot_args):
-    suites = []
+def generate_suite_names(outs_dir, datasources, options, pabot_args): # type: (object, object, object, Dict[str, str]) -> List[ExecutionItem]
+    suites = [] # type: List[SuiteItem]
     if 'suitesfrom' in pabot_args and os.path.isfile(pabot_args['suitesfrom']):
         suites = _suites_from_outputxml(pabot_args['suitesfrom'])
     else:
         suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
     if pabot_args.get('testlevelsplit'):
-        tests = []
+        tests = [] # type: List[ExecutionItem]
         for s in suites:
             tests.extend(s.tests)
         return tests
-    return suites
+    return list(suites)
 
 def generate_suite_names_with_dryrun(outs_dir, datasources, options):
     opts = _options_for_dryrun(options, outs_dir)
@@ -1010,7 +1014,7 @@ def _with_modified_robot():
 
 class SuiteNotPassingsAndTimes(ResultVisitor):
     def __init__(self):
-        self.suites = []
+        self.suites = [] # type: List[Tuple[bool, int, SuiteItem]]
 
     def start_suite(self, suite):
         if len(suite.tests) > 0:
@@ -1136,7 +1140,7 @@ def _copy_screenshots(options):
 
 def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root_name):
     if pabot_args['argumentfiles']:
-        outputs = []
+        outputs = [] # type: List[str]
         for index, _ in pabot_args['argumentfiles']:
             outputs += [_merge_one_run(os.path.join(outs_dir, index), options, tests_root_name,
                                        outputfile=os.path.join('pabot_results', 'output%s.xml' % index))]
@@ -1244,7 +1248,7 @@ def _start_remote_library(pabot_args): # type: (dict) -> Optional[subprocess.Pop
         shell=True)
 
 
-def _stop_remote_library(process):
+def _stop_remote_library(process): # type: (subprocess.Popen) -> None
     _write('Stopping PabotLib process')
     try:
         remoteLib = Remote(_PABOTLIBURI)
