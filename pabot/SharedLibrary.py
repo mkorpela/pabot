@@ -1,6 +1,7 @@
 from robot.libraries.BuiltIn import BuiltIn
 from robot.libraries.Remote import Remote
 from robot.api import logger
+from robot.running.testlibraries import TestLibrary
 from .pabotlib import PABOT_QUEUE_INDEX
 
 class SharedLibrary(object):
@@ -14,7 +15,7 @@ class SharedLibrary(object):
         """
         if BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) is None:
             logger.debug("Not currently running pabot. Importing library for this process.")
-            BuiltIn().import_library(name)
+            self._lib = TestLibrary(name)
             return
         uri = BuiltIn().get_variable_value('${PABOTLIBURI}')
         logger.debug('PabotLib URI %r' % uri)
@@ -25,12 +26,14 @@ class SharedLibrary(object):
             except RuntimeError:
                 logger.error('No connection - is pabot called with --pabotlib option?')
                 raise
-            BuiltIn().import_library("Remote", "http://127.0.0.1:%s" % port, "WITH NAME", name)
+            self._lib = Remote("http://127.0.0.1:%s" % port)
             logger.debug("Lib imported with name %s from http://127.0.0.1:%s" % (name, port))
         else:
             logger.error('No connection - is pabot called with --pabotlib option?')
             raise AssertionError('No connection to pabotlib')
 
+    def get_keyword_names(self):
+        return self._lib.get_keyword_names()
 
-    def passing_keyword(self):
-        pass
+    def run_keyword(self, name, args, kwargs):
+        return self._lib.run_keyword(name, args, kwargs)
