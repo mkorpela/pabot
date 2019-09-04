@@ -3,6 +3,7 @@ from robot.libraries.Remote import Remote
 from robot.api import logger
 from robot.running.testlibraries import TestLibrary
 from robot.running.context import EXECUTION_CONTEXTS
+from robot.running.model import Keyword
 from .pabotlib import PABOT_QUEUE_INDEX
 
 class SharedLibrary(object):
@@ -43,4 +44,7 @@ class SharedLibrary(object):
         if self._remote:
             return self._remote.run_keyword(name, args, kwargs)
         print(repr(kwargs))
-        self._lib.handlers[name].create_runner(name)._run(EXECUTION_CONTEXTS.current, args)
+        handler = self._lib.handlers[name]
+        runner = handler.create_runner(name)
+        print(repr(runner))
+        runner.run(Keyword(name, args=args), EXECUTION_CONTEXTS.current)
