@@ -5,6 +5,8 @@ from .pabotlib import PABOT_QUEUE_INDEX
 
 class SharedLibrary(object):
 
+    ROBOT_LIBRARY_SCOPE = 'GLOBAL'
+
     def __init__(self, name):
         """
         Import a library so that the library instance is shared between executions.
