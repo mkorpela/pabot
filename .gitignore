@@ -1,4 +1,5 @@
 tmp
+.mypy_cache
 pabot_results
 .pabotsuitenames
 build
