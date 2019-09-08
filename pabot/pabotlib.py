@@ -28,6 +28,7 @@ from robot.running import TestLibrary
 from robot.api import logger
 import threading
 import time
+from typing import List
 
 PABOT_LAST_LEVEL = "PABOTLASTLEVEL"
 PABOT_QUEUE_INDEX = "PABOTQUEUEINDEX"
@@ -153,7 +154,7 @@ class PabotLib(_PabotLib):
         self._valueset = None
         self._setname = None
         self.ROBOT_LIBRARY_LISTENER = self
-        self._position = []
+        self._position = [] # type: List[str]
         self._row_index = 0
 
     def _start(self, name, attributes):

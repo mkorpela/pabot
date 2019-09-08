@@ -351,7 +351,7 @@ class GatherSuiteNames(ResultVisitor):
     def end_suite(self, suite):
         if len(suite.tests):
             tests = [t.longname for t in suite.tests if 'pabot:dynamictest' not in t.tags]
-            dynamictests = [d.longname for d in suite.tests if 'pabot:dynamictest' in d.tags]
+            dynamictests = [t.longname for t in suite.tests if 'pabot:dynamictest' in t.tags]
             self.result.append(SuiteItem(suite.longname, tests=tests, dynamictests=dynamictests))
 
 
