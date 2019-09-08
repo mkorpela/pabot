@@ -29,4 +29,4 @@ setup(name='robotframework-pabot',
       ],
       entry_points = {'console_scripts': ['pabot = pabot.pabot:main']},
       license='Apache License, Version 2.0',
-      install_requires=['robotframework', 'robotremoteserver>=1.1'])
+      install_requires=['robotframework', 'robotremoteserver>=1.1', 'typing'])
