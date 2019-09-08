@@ -603,16 +603,23 @@ class ExecutionItem(object):
 
     isWait = False
     type = None # type: str
-    name = None #type: str
+    name = None # type: str
     
     def top_name(self):
+        # type: () -> str
         return self.name.split('.')[0]
 
     def contains(self, other):
+        # type: (ExecutionItem) -> bool
         return False
 
     def difference(self, from_items):
+        # type: (List[ExecutionItem]) -> List[ExecutionItem]
         return []
+
+    def line(self):
+        # type: () -> str
+        return ""
 
     def add_options_for_executor(self, options):
         options[self.type] = self.name
@@ -649,9 +656,11 @@ class SuiteItem(ExecutionItem):
         self.suites = [SuiteItem(s) for s in suites or []]
 
     def line(self):
+        # type: () -> str
         return '--suite '+self.name
 
     def difference(self, from_items):
+        # type: (List[ExecutionItem]) -> List[ExecutionItem]
         if self.tests:
             return [t for t in self.tests if t not in from_items]
         if self.suites:
@@ -659,6 +668,7 @@ class SuiteItem(ExecutionItem):
         return []
 
     def contains(self, other):
+        # type: (ExecutionItem) -> bool
         if self == other:
             return True
         return other.name.startswith(self.name+".")
@@ -673,15 +683,19 @@ class TestItem(ExecutionItem):
     type = 'test'
 
     def __init__(self, name):
+        # type: (str) -> None
         self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
 
     def line(self):
+        # type: () -> str
         return '--test '+self.name
 
     def difference(self, from_items):
+        # type: (List[ExecutionItem]) -> List[ExecutionItem]
         return []
 
     def contains(self, other):
+        # type: (ExecutionItem) -> bool
         return self == other
 
     def tags(self):
@@ -956,8 +970,8 @@ def generate_suite_names_with_dryrun(outs_dir, datasources, options):
 
 @contextmanager
 def _with_modified_robot():
-    RobotReader = None
-    TsvReader = None
+    RobotReader = None # type: Optional[object]
+    TsvReader = None # type: Optional[object]
     old_read = None
     try:
         # RF 3.1

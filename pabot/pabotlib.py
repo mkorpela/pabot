@@ -28,7 +28,7 @@ from robot.running import TestLibrary
 from robot.api import logger
 import threading
 import time
-from typing import List
+from typing import List, Dict, Tuple
 
 PABOT_LAST_LEVEL = "PABOTLASTLEVEL"
 PABOT_QUEUE_INDEX = "PABOTQUEUEINDEX"
@@ -40,7 +40,7 @@ class _PabotLib(object):
     _TAGS_KEY = "tags"
 
     def __init__(self, resourcefile=None):
-        self._locks = {}
+        self._locks = {} # type: Dict[str, List[str, int]]
         self._owner_to_values = {}
         self._parallel_values = {}
         self._remote_libraries = {}
@@ -83,6 +83,7 @@ class _PabotLib(object):
             del self._locks[name]
 
     def release_locks(self, caller_id):
+        # type: (str) -> None
         for key in self._locks.keys():
             if self._locks[key][0] == caller_id:
                 self._locks[key][1] -= 1
@@ -140,6 +141,8 @@ class _PabotLib(object):
             self._remote_libraries[name][1].stop_remote_server()
         for name in self._remote_libraries:
             self._remote_libraries[name][2].join()
+
+
 
 class PabotLib(_PabotLib):
 
