@@ -408,28 +408,6 @@ class PabotLib(_PabotLib):
         self._run_with_lib('disable_value_set', self._setname, self._my_id)
         self._setname = None
 
-    def import_shared_library(self, name):
-        """
-        Import a library so that the library instance is shared between executions.
-        [https://pabot.org/PabotLib.html?ref=log#import-shared-library|Open online docs.]
-        """
-        if BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) is None:
-            logger.debug("Not currently running pabot. Importing library for this process.")
-            BuiltIn().import_library(name)
-            return
-        if self._remotelib:
-            try:
-                port = self._remotelib.run_keyword("import_shared_library", [name], {})
-            except RuntimeError:
-                logger.error('No connection - is pabot called with --pabotlib option?')
-                self.__remotelib = None
-                raise
-            BuiltIn().import_library("Remote", "http://127.0.0.1:%s" % port, "WITH NAME", name)
-            logger.debug("Lib imported with name %s from http://127.0.0.1:%s" % (name, port))
-        else:
-            logger.error('No connection - is pabot called with --pabotlib option?')
-            raise AssertionError('No connection to pabotlib')
-
 
 # Module import will give a bad error message in log file
 # Workaround: expose PabotLib also as pabotlib

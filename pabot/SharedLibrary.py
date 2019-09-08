@@ -4,6 +4,7 @@ from robot.api import logger
 from robot.running.testlibraries import TestLibrary
 from robot.running.context import EXECUTION_CONTEXTS
 from robot.running.model import Keyword
+from robotremoteserver import RemoteLibraryFactory
 from .pabotlib import PABOT_QUEUE_INDEX
 
 class SharedLibrary(object):
@@ -15,10 +16,11 @@ class SharedLibrary(object):
         Import a library so that the library instance is shared between executions.
         [https://pabot.org/PabotLib.html?ref=log#import-shared-library|Open online docs.]
         """
+        # FIXME: RELATIVE IMPORTS WITH FILE NAME
         self._remote = None
         if BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) is None:
             logger.debug("Not currently running pabot. Importing library for this process.")
-            self._lib = TestLibrary(name)
+            self._lib = RemoteLibraryFactory(TestLibrary(name).get_instance())
             return
         uri = BuiltIn().get_variable_value('${PABOTLIBURI}')
         logger.debug('PabotLib URI %r' % uri)
@@ -38,13 +40,12 @@ class SharedLibrary(object):
     def get_keyword_names(self):
         if self._remote:
             return self._remote.get_keyword_names()
-        return [handler.name for handler in self._lib.handlers]
+        return self._lib.get_keyword_names()
 
     def run_keyword(self, name, args, kwargs):
         if self._remote:
             return self._remote.run_keyword(name, args, kwargs)
-        print(repr(kwargs))
-        handler = self._lib.handlers[name]
-        runner = handler.create_runner(name)
-        print(repr(runner))
-        runner.run(Keyword(name, args=args), EXECUTION_CONTEXTS.current)
+        result = self._lib.run_keyword(name, args, kwargs)
+        if result['status'] == 'FAIL':
+            raise AssertionError(result['error'])
+        return result['return']
