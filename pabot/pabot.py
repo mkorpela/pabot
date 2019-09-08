@@ -639,10 +639,13 @@ class SuiteItem(ExecutionItem):
 
     type = 'suite'
 
-    def __init__(self, name, tests=None, suites=None):
+    def __init__(self, name, tests=None, suites=None, dynamictests=None): 
+        # type: (str, Optional[List[str]], Optional[List[str]], Optional[List[str]]) -> None
         assert((PY2 and isinstance(name, basestring)) or isinstance(name, str))
         self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
-        self.tests = [TestItem(t) for t in tests or []]
+        testslist = [TestItem(t) for t in tests or []] # type: List[Union[TestItem, DynamicTestItem]]
+        dynamictestslist = [DynamicTestItem(t, self) for t in dynamictests or []] # type: List[Union[TestItem, DynamicTestItem]]
+        self.tests = testslist + dynamictestslist
         self.suites = [SuiteItem(s) for s in suites or []]
 
     def line(self):
@@ -1050,7 +1053,7 @@ def _with_modified_robot():
 
 class SuiteNotPassingsAndTimes(ResultVisitor):
     def __init__(self):
-        self.suites = [] # type: List[Tuple[bool, int, SuiteItem]]
+        self.suites = [] # type: List[Tuple[bool, int, str]]
 
     def start_suite(self, suite):
         if len(suite.tests) > 0:
