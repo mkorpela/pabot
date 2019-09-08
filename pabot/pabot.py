@@ -644,7 +644,7 @@ class SuiteItem(ExecutionItem):
         assert((PY2 and isinstance(name, basestring)) or isinstance(name, str))
         self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
         testslist = [TestItem(t) for t in tests or []] # type: List[Union[TestItem, DynamicTestItem]]
-        dynamictestslist = [DynamicTestItem(t, self) for t in dynamictests or []] # type: List[Union[TestItem, DynamicTestItem]]
+        dynamictestslist = [DynamicTestItem(t, self.name) for t in dynamictests or []] # type: List[Union[TestItem, DynamicTestItem]]
         self.tests = testslist + dynamictestslist
         self.suites = [SuiteItem(s) for s in suites or []]
 
@@ -694,8 +694,9 @@ class DynamicTestItem(ExecutionItem):
     type = 'dynamictest'
     
     def __init__(self, name, suite):
+        # type: (str, str) -> None
         self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
-        self.suite = suite
+        self.suite = suite # type:str
 
     def line(self):
         return 'DYNAMICTEST %s :: %s' % (self.suite, self.name)
@@ -1015,7 +1016,7 @@ def _with_modified_robot():
         # RF 3.0
         from robot.parsing.tsvreader import TsvReader, Utf8Reader
 
-        def new_read(self, tsvfile, populator):
+        def new_read2(self, tsvfile, populator):
             process = False
             first = True
             for row in Utf8Reader(tsvfile).readlines():
@@ -1038,7 +1039,7 @@ def _with_modified_robot():
             populator.eof()
 
         old_read = TsvReader.read
-        TsvReader.read = new_read
+        TsvReader.read = new_read2
     except:
         pass
 
