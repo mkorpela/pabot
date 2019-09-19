@@ -1201,7 +1201,8 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
             outputs += [_merge_one_run(os.path.join(outs_dir, index), options, tests_root_name,
                                        outputfile=os.path.join('pabot_results', 'output%s.xml' % index))]
             _copy_screenshots(options)
-        options['output'] = 'output.xml'
+        if not options['output']:
+            options['output'] = 'output.xml'
         return rebot(*outputs, **_options_for_rebot(options,
                                                     start_time_string, _now()))
     else:
