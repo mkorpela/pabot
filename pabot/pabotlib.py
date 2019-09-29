@@ -28,7 +28,7 @@ from robot.running import TestLibrary
 from robot.api import logger
 import threading
 import time
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union, Optional
 
 PABOT_LAST_LEVEL = "PABOTLASTLEVEL"
 PABOT_QUEUE_INDEX = "PABOTQUEUEINDEX"
@@ -40,14 +40,14 @@ class _PabotLib(object):
     _TAGS_KEY = "tags"
 
     def __init__(self, resourcefile=None):
-        self._locks = {} # type: Dict[str, List[str, int]]
-        self._owner_to_values = {}
-        self._parallel_values = {}
-        self._remote_libraries = {}
+        self._locks = {} # type: Dict[str, List[Union[str, int]]]
+        self._owner_to_values = {} # type: Dict[str, Dict[str, object]]
+        self._parallel_values = {} # type: Dict[str, object]
+        self._remote_libraries = {} # type: Dict[str, object]
         self._values = self._parse_values(resourcefile)
 
     def _parse_values(self, resourcefile):
-        vals = {}
+        vals = {} # type: Dict[str, Dict[str, any]]
         if resourcefile is None:
             return vals
         conf = configparser.ConfigParser()
