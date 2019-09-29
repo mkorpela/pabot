@@ -379,7 +379,6 @@ def _processes_count():
 def _parse_args(args):
     pabot_args = {'command': ['pybot' if ROBOT_VERSION < '3.1' else 'robot'],
                   'verbose': False,
-                  'tutorial': False,
                   'help': False,
                   'testlevelsplit': False,
                   'pabotlib': False,
@@ -390,7 +389,6 @@ def _parse_args(args):
     while args and (args[0] in ['--' + param for param in ['command',
                                                            'processes',
                                                            'verbose',
-                                                           'tutorial',
                                                            'resourcefile',
                                                            'testlevelsplit',
                                                            'pabotlib',
@@ -440,10 +438,6 @@ def _parse_args(args):
         if match:
             pabot_args['argumentfiles'] += [(match.group(1), args[1])]
             args = args[2:]
-            continue
-        if args[0] == '--tutorial':
-            pabot_args['tutorial'] = True
-            args = args[1:]
             continue
         if args and args[0] == '--help':
             pabot_args['help'] = True
@@ -1333,13 +1327,6 @@ def _get_suite_root_name(suite_names):
     return ''
 
 
-def _run_tutorial():
-    print('Hi, This is a short introduction to using Pabot.')
-    user_input = raw_input if PY2 else input
-    user_input("Press Enter to continue...")
-    print('This is another line in the tutorial.')
-
-
 class QueueItem(object):
 
     def __init__(self, datasources, outs_dir, options, execution_item, command, verbose, argfile):
@@ -1429,9 +1416,6 @@ def main(args=None):
     try:
         _start_message_writer()
         options, datasources, pabot_args, opts_for_run = _parse_args(args)
-        if pabot_args['tutorial']:
-            _run_tutorial()
-            sys.exit(0)
         if pabot_args['help']:
             print(__doc__)
             sys.exit(0)
