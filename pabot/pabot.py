@@ -52,6 +52,9 @@ options (these must be before normal RF options):
 --pabotlibport [PORT]
   Port number of the PabotLib remote server (default is 8270)
 
+--ordering [FILE PATH]
+  Optionally give execution order from a file.
+
 --suitesfrom [FILEPATH TO OUTPUTXML]
   Optionally read suites from output.xml file. Failed suites will run
   first and longer running ones will be executed before shorter ones.
@@ -394,6 +397,7 @@ def _parse_args(args):
                                                            'pabotlib',
                                                            'pabotlibhost',
                                                            'pabotlibport',
+                                                           'ordering',
                                                            'suitesfrom',
                                                            'help']] or
                         ARGSMATCHER.match(args[0])):
@@ -417,6 +421,10 @@ def _parse_args(args):
         if args[0] == '--pabotlib':
             pabot_args['pabotlib'] = True
             args = args[1:]
+            continue
+        if args[0] == '--ordering':
+            pabot_args['ordering'] = args[1]
+            args = args[2:]
             continue
         if args[0] == '--testlevelsplit':
             pabot_args['testlevelsplit'] = True
