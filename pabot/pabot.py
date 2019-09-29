@@ -80,6 +80,7 @@ import random
 from glob import glob
 from io import BytesIO, StringIO
 from functools import total_ordering
+from collections import namedtuple
 import shutil
 import subprocess
 import threading
@@ -543,24 +544,30 @@ def get_hash_of_command(options, pabot_args):
     digest.update(repr(sorted(hopts.items())).encode("utf-8"))
     return digest.hexdigest()
 
-def solve_suite_names(outs_dir, datasources, options, pabot_args):
-    hash_of_dirs = get_hash_of_dirs(datasources)
-    hash_of_command = get_hash_of_command(options, pabot_args)
-    hash_of_suitesfrom = "no-suites-from-option"
+
+Hashes = namedtuple('Hashes', ['dirs', 'cmd', 'suitesfrom'])
+
+
+def _suitesfrom_hash(pabot_args):
     if "suitesfrom" in pabot_args:
         digest = hashlib.sha1()
         get_hash_of_file(pabot_args["suitesfrom"], digest)
-        hash_of_suitesfrom = digest.hexdigest()
+        return digest.hexdigest()
+    else:
+        return "no-suites-from-option"
+
+
+def solve_suite_names(outs_dir, datasources, options, pabot_args):
+    h = Hashes(dirs=get_hash_of_dirs(datasources),
+                cmd=get_hash_of_command(options, pabot_args),
+                suitesfrom=_suitesfrom_hash(pabot_args))
     try:
         if not os.path.isfile(".pabotsuitenames"):
             suite_names = generate_suite_names(outs_dir, 
                                             datasources, 
                                             options, 
                                             pabot_args)
-            store_suite_names(hash_of_dirs, 
-                        hash_of_command, 
-                        hash_of_suitesfrom, 
-                        suite_names)
+            store_suite_names(h, suite_names)
             return [suite_names]
         with open(".pabotsuitenames", "r") as suitenamesfile:
             lines = [line.strip() for line in suitenamesfile.readlines()]
@@ -581,20 +588,20 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                                         l != '#WAIT' for l in lines[4:])
             execution_item_lines = [_parse_line(l) for l in lines[4:]]
             if (corrupted or
-            hash_suites != hash_of_dirs or 
-            hash_command != hash_of_command or
+            hash_suites != h.dirs or 
+            hash_command != h.cmd or
             file_hash != hash_of_file or
-            suitesfrom_hash != hash_of_suitesfrom):
+            suitesfrom_hash != h.suitesfrom):
                 return _group_by_wait(_regenerate(suitesfrom_hash, 
-                                        hash_of_suitesfrom,
+                                        h.suitesfrom,
                                         pabot_args,
                                         hash_suites,
-                                        hash_of_dirs,
+                                        h.dirs,
                                         outs_dir,
                                         datasources,
                                         options,
                                         execution_item_lines,
-                                        hash_of_command))
+                                        h.cmd))
         return _group_by_wait(execution_item_lines)
     except IOError:
         return  [generate_suite_names_with_dryrun(outs_dir, datasources, options)]
@@ -819,7 +826,11 @@ def _regenerate(
             suites = tests
         suites = _preserve_order(suites, [suite for suite in lines if suite])
     if suites:
-        store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suites)
+        store_suite_names(Hashes(
+            dirs = hash_of_dirs,
+            cmd = hash_of_command,
+            suitesfrom = hash_of_suitesfrom
+        ), suites)
     assert(all(isinstance(s, ExecutionItem) for s in suites))
     return suites
 
@@ -927,18 +938,18 @@ def _file_hash(lines):
     digest.update(str(hashes).encode())
     return digest.hexdigest()
 
-def store_suite_names(hash_of_dirs, hash_of_command, hash_of_suitesfrom, suite_names):
+def store_suite_names(hashes, suite_names): # type: (Hashes, List[ExecutionItem]) -> None
     assert(all(isinstance(s, ExecutionItem) for s in suite_names))
     suite_lines = [s.line() for s in suite_names]
     _write("Storing .pabotsuitenames file")
     with open(".pabotsuitenames", "w") as suitenamesfile:
-        suitenamesfile.write("datasources:"+hash_of_dirs+'\n')
-        suitenamesfile.write("commandlineoptions:"+hash_of_command+'\n')
-        suitenamesfile.write("suitesfrom:"+hash_of_suitesfrom+'\n')
+        suitenamesfile.write("datasources:"+hashes.dirs+'\n')
+        suitenamesfile.write("commandlineoptions:"+hashes.cmd+'\n')
+        suitenamesfile.write("suitesfrom:"+hashes.suitesfrom+'\n')
         suitenamesfile.write("file:"+_file_hash([
-            "datasources:"+hash_of_dirs, 
-            "commandlineoptions:"+hash_of_command, 
-            "suitesfrom:"+hash_of_suitesfrom, None]+ suite_lines)+'\n')
+            "datasources:"+hashes.dirs, 
+            "commandlineoptions:"+hashes.cmd, 
+            "suitesfrom:"+hashes.suitesfrom, None]+ suite_lines)+'\n')
         suitenamesfile.writelines((d+'\n').encode('utf-8') if PY2 and is_unicode(d) else d+'\n' for d in suite_lines)
 
 def generate_suite_names(outs_dir, datasources, options, pabot_args): # type: (object, object, object, Dict[str, str]) -> List[ExecutionItem]
