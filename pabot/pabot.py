@@ -572,15 +572,15 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         with open(".pabotsuitenames", "r") as suitenamesfile:
             lines = [line.strip() for line in suitenamesfile.readlines()]
             corrupted = len(lines) < 5
-            hash_suites = None # type: Optional[str]
-            hash_command = None # type: Optional[str]
-            suitesfrom_hash = None # type: Optional[str]
+            file_h = None # type: Optional[Hashes]
             file_hash = None # type: Optional[str]
             hash_of_file = None # type: Optional[str]
             if not corrupted:
-                hash_suites = lines[0][len("datasources:"):]
-                hash_command = lines[1][len("commandlineoptions:"):]
-                suitesfrom_hash = lines[2][len("suitesfrom:"):]
+                file_h = Hashes(
+                    dirs = lines[0][len("datasources:"):],
+                    cmd = lines[1][len("commandlineoptions:"):],
+                    suitesfrom = lines[2][len("suitesfrom:"):]
+                )
                 file_hash = lines[3][len("file:"):]
                 hash_of_file = _file_hash(lines)
             corrupted = corrupted or any(not l.startswith('--suite ') and
@@ -588,20 +588,17 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                                         l != '#WAIT' for l in lines[4:])
             execution_item_lines = [_parse_line(l) for l in lines[4:]]
             if (corrupted or
-            hash_suites != h.dirs or 
-            hash_command != h.cmd or
+            file_h is None or
+            file_h.dirs != h.dirs or 
+            file_h.cmd != h.cmd or
             file_hash != hash_of_file or
-            suitesfrom_hash != h.suitesfrom):
-                return _group_by_wait(_regenerate(suitesfrom_hash, 
-                                        h.suitesfrom,
+            file_h.suitesfrom != h.suitesfrom):
+                return _group_by_wait(_regenerate(file_h, h,
                                         pabot_args,
-                                        hash_suites,
-                                        h.dirs,
                                         outs_dir,
                                         datasources,
                                         options,
-                                        execution_item_lines,
-                                        h.cmd))
+                                        execution_item_lines))
         return _group_by_wait(execution_item_lines)
     except IOError:
         return  [generate_suite_names_with_dryrun(outs_dir, datasources, options)]
@@ -797,22 +794,19 @@ def _group_by_wait(lines):
     return suites
 
 def _regenerate(
-    suitesfrom_hash, 
-    hash_of_suitesfrom,
+    file_h,
+    h,
     pabot_args,
-    hash_suites,
-    hash_of_dirs,
     outs_dir,
     datasources,
     options,
-    lines,
-    hash_of_command):
+    lines): # type: (Optional[Hashes], Hashes, Dict[str, str], str, List[str], Dict[str, str], List[ExecutionItem]) -> List[ExecutionItem]
     assert(all(isinstance(s, ExecutionItem) for s in lines))
-    if suitesfrom_hash != hash_of_suitesfrom \
+    if (file_h is None or file_h.suitesfrom != h.suitesfrom) \
         and 'suitesfrom' in pabot_args \
         and os.path.isfile(pabot_args['suitesfrom']):
         suites = _suites_from_outputxml(pabot_args['suitesfrom'])
-        if hash_suites != hash_of_dirs:
+        if file_h is None or file_h.dirs != h.dirs:
             all_suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
         else:
             all_suites = [suite for suite in lines if suite]
@@ -826,11 +820,7 @@ def _regenerate(
             suites = tests
         suites = _preserve_order(suites, [suite for suite in lines if suite])
     if suites:
-        store_suite_names(Hashes(
-            dirs = hash_of_dirs,
-            cmd = hash_of_command,
-            suitesfrom = hash_of_suitesfrom
-        ), suites)
+        store_suite_names(h, suites)
     assert(all(isinstance(s, ExecutionItem) for s in suites))
     return suites
 
