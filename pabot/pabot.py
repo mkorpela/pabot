@@ -588,11 +588,8 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                                         l != '#WAIT' for l in lines[4:])
             execution_item_lines = [_parse_line(l) for l in lines[4:]]
             if (corrupted or
-            file_h is None or
-            file_h.dirs != h.dirs or 
-            file_h.cmd != h.cmd or
-            file_hash != hash_of_file or
-            file_h.suitesfrom != h.suitesfrom):
+                h != file_h or
+                file_hash != hash_of_file):
                 return _group_by_wait(_regenerate(file_h, h,
                                         pabot_args,
                                         outs_dir,
