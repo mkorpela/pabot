@@ -103,6 +103,11 @@ try:
 except ImportError:
     import Queue as queue # type: ignore 
 
+try:
+    from shlex import quote # type: ignore 
+except ImportError:
+    from pipes import quote # type: ignore 
+
 from typing import List, Optional, Union, Dict, Tuple
 
 CTRL_C_PRESSED = False
@@ -132,9 +137,12 @@ class Color:
     ENDC = '\033[0m'
     YELLOW = '\033[93m'
 
+
 def _mapOptionalQuote(cmdargs):
+    if os.name == 'posix':
+        return [quote(arg) for arg in cmdargs]
     return [arg if set(arg).isdisjoint(_BAD_CHARS_SET) else '"%s"'%arg for arg in cmdargs]
-    
+
 
 def execute_and_wait_with(item):
     global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
