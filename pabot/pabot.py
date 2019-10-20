@@ -1450,6 +1450,13 @@ def main(args=None):
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options,
                                         pabot_args)
+        ordering = pabot_args['ordering']
+        if ordering:
+            names = [] # type: List[ExecutionItem]
+            for suits in suite_names:
+                names.extend(suits)
+                names.append(WaitItem())
+            suite_names = _group_by_wait(_preserve_order(names[:-1], ordering))
         if suite_names and suite_names != [[]]:
             for items in _create_execution_items(
                 suite_names, datasources, outs_dir, 
