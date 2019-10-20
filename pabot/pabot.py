@@ -1450,7 +1450,7 @@ def main(args=None):
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options,
                                         pabot_args)
-        ordering = pabot_args['ordering']
+        ordering = pabot_args.get('ordering')
         if ordering:
             names = [] # type: List[ExecutionItem]
             for suits in suite_names:

@@ -35,9 +35,9 @@ class PabotPassJsonUsingVariableOptionTests(unittest.TestCase):
 
     def test_stdout_should_display_passed_test(self):
         if sys.version_info < (3, 0):
-            self.assertIn('PASSED Test', self.stdout)
+            self.assertIn('PASSED Test', self.stdout, self.stderr)
         else:
-            self.assertIn(b'PASSED Test', self.stdout)
+            self.assertIn(b'PASSED Test', self.stdout, self.stderr)
 
     def tearDown(self):
         shutil.rmtree(self.tmpdir)
