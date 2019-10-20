@@ -53,7 +53,7 @@ options (these must be before normal RF options):
   Port number of the PabotLib remote server (default is 8270)
 
 --ordering [FILE PATH]
-  Optionally give execution order from a file.
+  Optionally give execution order from a file. WIP
 
 --suitesfrom [FILEPATH TO OUTPUTXML]
   Optionally read suites from output.xml file. Failed suites will run
