@@ -432,7 +432,7 @@ def _parse_args(args):
             args = args[1:]
             continue
         if args[0] == '--ordering':
-            pabot_args['ordering'] = args[1]
+            pabot_args['ordering'] = _parse_ordering(args[1])
             args = args[2:]
             continue
         if args[0] == '--testlevelsplit':
@@ -477,6 +477,13 @@ def _parse_args(args):
     _delete_none_keys(options)
     _delete_none_keys(options_for_subprocesses)
     return options, datasources, pabot_args, options_for_subprocesses
+
+def _parse_ordering(filename): # type: (str) -> Optional[List[ExecutionItem]]
+    try:
+        with open(filename, "r") as orderingfile:
+            return [_parse_line(line.strip()) for line in orderingfile.readlines()]
+    except:
+        raise DataError("Error parsing ordering file '%s'" % filename)
 
 def _delete_none_keys(d):
     keys = set()
