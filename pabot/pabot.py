@@ -99,7 +99,7 @@ from . import pabotlib
 from .result_merger import merge
 
 try:
-    import queue # type: ignore 
+    import queue # type: ignore
 except ImportError:
     import Queue as queue # type: ignore 
 
@@ -983,7 +983,7 @@ def _with_modified_robot():
     old_read = None
     try:
         # RF 3.1
-        from robot.parsing.robotreader import RobotReader, Utf8Reader
+        from robot.parsing.robotreader import RobotReader, Utf8Reader  # type: ignore
 
         # RF 3.1.2
         if "_process_row" not in dir(RobotReader):
@@ -1032,11 +1032,11 @@ def _with_modified_robot():
                             first = False
                 return populator.eof()
 
-        old_read = RobotReader.read
-        RobotReader.read = new_read
+        old_read = RobotReader.read  # type: ignore
+        RobotReader.read = new_read  # type: ignore
     except ImportError:
         # RF 3.0
-        from robot.parsing.tsvreader import TsvReader, Utf8Reader
+        from robot.parsing.tsvreader import TsvReader, Utf8Reader  # type: ignore
 
         def new_read2(self, tsvfile, populator):
             process = False
@@ -1060,8 +1060,8 @@ def _with_modified_robot():
                         first = False
             populator.eof()
 
-        old_read = TsvReader.read
-        TsvReader.read = new_read2
+        old_read = TsvReader.read  # type: ignore
+        TsvReader.read = new_read2  # type: ignore
     except:
         pass
 
@@ -1069,9 +1069,9 @@ def _with_modified_robot():
         yield
     finally:
         if RobotReader:
-            RobotReader.read = old_read
+            RobotReader.read = old_read  # type: ignore
         if TsvReader:
-            TsvReader.read = old_read
+            TsvReader.read = old_read  # type: ignore
 
 
 class SuiteNotPassingsAndTimes(ResultVisitor):
