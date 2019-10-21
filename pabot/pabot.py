@@ -16,7 +16,7 @@
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
 """A parallel executor for Robot Framework test cases.
-Version 0.90.
+Version 0.91.
 
 Supports all Robot Framework command line options and also following
 options (these must be before normal RF options):
@@ -53,7 +53,7 @@ options (these must be before normal RF options):
   Port number of the PabotLib remote server (default is 8270)
 
 --ordering [FILE PATH]
-  Optionally give execution order from a file. WIP
+  Optionally give execution order from a file.
 
 --suitesfrom [FILEPATH TO OUTPUTXML]
   Optionally read suites from output.xml file. Failed suites will run
