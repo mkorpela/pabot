@@ -167,9 +167,11 @@ pabot call
 .pabotsuitenames file contains the list of suites that will be executed.
 File is created during pabot execution if not already there.
 The file is a cache that pabot uses when re-executing same tests to speed up processing. 
-This file can be partially manually edited.
+This file can be partially manually edited but easier option is to use ```--ordering FILENAME```.
 First 4 rows contain information that should not be edited - pabot will edit these when something changes.
 After this come the suite names. 
+
+With ```--ordering FILENAME``` you can have a list that controls order also. The syntax is same as .pabotsuitenames file syntax but does not contain 4 hash rows that are present in .pabotsuitenames. 
 
 There are three possibilities to influence the execution:
 
