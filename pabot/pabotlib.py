@@ -16,9 +16,9 @@
 from __future__ import absolute_import
 
 try:
-    import configparser # type: ignore 
+    import configparser # type: ignore
 except:
-    import ConfigParser as configparser  # type: ignore 
+    import ConfigParser as configparser  # type: ignore
     # Support Python 2
 
 from robot.libraries.BuiltIn import BuiltIn
@@ -174,7 +174,7 @@ class PabotLib(_PabotLib):
         self._row_index = int(self._position[-1].split(".")[-1])
         self._row_index += 1
         self._position = self._position[:-1]
-    
+
     _start_suite = _start_test = _start
     _end_suite = _end_test = _end
 
