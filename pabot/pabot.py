@@ -101,12 +101,12 @@ from .result_merger import merge
 try:
     import queue # type: ignore
 except ImportError:
-    import Queue as queue # type: ignore 
+    import Queue as queue # type: ignore
 
 try:
-    from shlex import quote # type: ignore 
+    from shlex import quote # type: ignore
 except ImportError:
-    from pipes import quote # type: ignore 
+    from pipes import quote # type: ignore
 
 from typing import List, Optional, Union, Dict, Tuple
 
@@ -153,12 +153,12 @@ def execute_and_wait_with(item):
         return
     time.sleep(0)
     datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in item.datasources]
-    
+
     outs_dir = os.path.join(item.outs_dir, item.argfile_index, item.execution_item.name)
     os.makedirs(outs_dir)
-    
+
     caller_id = uuid.uuid4().hex
-    cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index, item.last_level) + datasources        
+    cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index, item.last_level) + datasources
     cmd = _mapOptionalQuote(cmd)
     _try_execute_and_wait(cmd, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id, item.index)
     outputxml_preprocessing(item.options, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id)
@@ -182,7 +182,7 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id,
     else:
         _write_with_id(process, pool_id, _execution_passed_message(item_name, stdout, stderr, elapsed, verbose), Color.GREEN)
 
-        
+
 # optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
 def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, caller_id):
     try:
@@ -199,7 +199,7 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
         oldsize = os.path.getsize(outputxmlfile)
         cmd = ['rebot', '--log', 'NONE', '--report', 'NONE', '--xunit', 'NONE', '--consolecolors', 'off', '--NoStatusRC']+rkargs+fkargs+['--output', outputxmlfile, outputxmlfile]
         cmd = _mapOptionalQuote(cmd)
-        
+
         pool_id = _make_id()
         _try_execute_and_wait(cmd, outs_dir, 'preprocessing output.xml on ' + item_name, verbose,  pool_id, caller_id)
         newsize = os.path.getsize(outputxmlfile)
@@ -231,12 +231,12 @@ def _increase_completed(plib, my_index):
         else:
             return
         if _NOT_COMPLETED_INDEXES:
-            plib.run_keyword('set_parallel_value_for_key', 
+            plib.run_keyword('set_parallel_value_for_key',
             [pabotlib.PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE,
             _NOT_COMPLETED_INDEXES[0]],
             {})
         if len(_NOT_COMPLETED_INDEXES) == 1:
-            plib.run_keyword('set_parallel_value_for_key', 
+            plib.run_keyword('set_parallel_value_for_key',
             ['pabot_only_last_executing', 1], {})
 
 def _run(cmd, stderr, stdout, item_name, verbose, pool_id):
@@ -578,9 +578,9 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                 suitesfrom=_suitesfrom_hash(pabot_args))
     try:
         if not os.path.isfile(".pabotsuitenames"):
-            suite_names = generate_suite_names(outs_dir, 
-                                            datasources, 
-                                            options, 
+            suite_names = generate_suite_names(outs_dir,
+                                            datasources,
+                                            options,
                                             pabot_args)
             store_suite_names(h, suite_names)
             return [suite_names]
@@ -622,7 +622,7 @@ class ExecutionItem(object):
     isWait = False
     type = None # type: str
     name = None # type: str
-    
+
     def top_name(self):
         # type: () -> str
         return self.name.split('.')[0]
@@ -664,7 +664,7 @@ class SuiteItem(ExecutionItem):
 
     type = 'suite'
 
-    def __init__(self, name, tests=None, suites=None, dynamictests=None): 
+    def __init__(self, name, tests=None, suites=None, dynamictests=None):
         # type: (str, Optional[List[str]], Optional[List[str]], Optional[List[str]]) -> None
         assert((PY2 and isinstance(name, basestring)) or isinstance(name, str))
         self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
@@ -724,7 +724,7 @@ class TestItem(ExecutionItem):
 class DynamicTestItem(ExecutionItem):
 
     type = 'dynamictest'
-    
+
     def __init__(self, name, suite):
         # type: (str, str) -> None
         self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
@@ -765,7 +765,7 @@ class WaitItem(ExecutionItem):
 class IncludeItem(ExecutionItem):
 
     type = "include"
-    
+
     def __init__(self, tag):
         self.name = tag
 
@@ -822,7 +822,7 @@ def _regenerate(
             all_suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
         else:
             all_suites = [suite for suite in lines if suite]
-        suites = _preserve_order(all_suites, suites) 
+        suites = _preserve_order(all_suites, suites)
     else:
         suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
         if pabot_args.get('testlevelsplit'):
@@ -852,7 +852,7 @@ def _preserve_order(new_items, old_items):
         new_items = _split_partially_to_tests(new_items, old_items)
     #TODO: Preserving order when suites => tests OR tests => suites
     preserve, ignorable = _get_preserve_and_ignore(
-        new_items, old_items, 
+        new_items, old_items,
         old_contains_tests and old_contains_suites)
     exists_in_old_and_new = [s for s in old_items
                 if (s in new_items and s not in ignorable)
@@ -901,7 +901,7 @@ def _get_preserve_and_ignore(new_items, old_items, old_contains_suites_and_tests
                 ignorable.append(new_item)
         if old_item.isWait:
             preserve.append(old_item)
-    preserve = [new_item for new_item in preserve 
+    preserve = [new_item for new_item in preserve
         if not any([i.contains(new_item) and i != new_item for i in preserve])]
     return preserve, ignorable
 
@@ -949,8 +949,8 @@ def store_suite_names(hashes, suite_names): # type: (Hashes, List[ExecutionItem]
         suitenamesfile.write("commandlineoptions:"+hashes.cmd+'\n')
         suitenamesfile.write("suitesfrom:"+hashes.suitesfrom+'\n')
         suitenamesfile.write("file:"+_file_hash([
-            "datasources:"+hashes.dirs, 
-            "commandlineoptions:"+hashes.cmd, 
+            "datasources:"+hashes.dirs,
+            "commandlineoptions:"+hashes.cmd,
             "suitesfrom:"+hashes.suitesfrom, None]+ suite_lines)+'\n')
         suitenamesfile.writelines((d+'\n').encode('utf-8') if PY2 and is_unicode(d) else d+'\n' for d in suite_lines)
 
@@ -1415,7 +1415,7 @@ def _initialize_queue_index():
     # INITIALISE PARALLEL QUEUE MIN INDEX
     for i in range(300):
         try:
-            plib.run_keyword('set_parallel_value_for_key', 
+            plib.run_keyword('set_parallel_value_for_key',
             [pabotlib.PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE, 0], {})
             return
         except RuntimeError as e:
@@ -1459,10 +1459,10 @@ def main(args=None):
             suite_names = _group_by_wait(_preserve_order(names[:-1], ordering))
         if suite_names and suite_names != [[]]:
             for items in _create_execution_items(
-                suite_names, datasources, outs_dir, 
+                suite_names, datasources, outs_dir,
                 options, opts_for_run, pabot_args):
                 _parallel_execute(items, pabot_args['processes'])
-            result_code = _report_results(outs_dir, pabot_args, options, 
+            result_code = _report_results(outs_dir, pabot_args, options,
                                     start_time_string, _get_suite_root_name(suite_names))
             sys.exit(result_code if not _ABNORMAL_EXIT_HAPPENED else 252)
         else:
