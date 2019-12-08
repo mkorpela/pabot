@@ -84,7 +84,7 @@ class _PabotLib(object):
 
     def release_locks(self, caller_id):
         # type: (str) -> None
-        for key in self._locks.keys():
+        for key in list(self._locks.keys()):
             if self._locks[key][0] == caller_id:
                 self._locks[key][1] -= 1
                 if self._locks[key][1] == 0:
