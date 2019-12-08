@@ -83,6 +83,16 @@ class PabotLibTests(unittest.TestCase):
         lib.release_lock("lock2")
         lib.release_lock("lockname")
 
+    def test_releasing_lock_on_close(self):
+        lib = pabotlib.PabotLib()
+        self.assertTrue(lib.acquire_lock("somelock"))
+        self.assertTrue(lib.acquire_lock("somelock2"))
+        self.assertTrue("somelock" in lib._locks)
+        self.assertTrue("somelock2" in lib._locks)
+        lib._close()
+        self.assertTrue("somelock" not in lib._locks)
+        self.assertTrue("somelock2" not in lib._locks)
+
     def test_acquire_and_release_valueset(self):
         lib = pabotlib.PabotLib()
         lib._values = lib._parse_values(resourcefile=os.path.join("tests", "resourcefile.dat"))

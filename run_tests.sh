@@ -1,4 +1,4 @@
-virtualenv -p /usr/local/bin/python3 .pabotenv
+virtualenv -p /usr/bin/python3 .pabotenv
 source .pabotenv/bin/activate
 pip install nose
 pip install .
