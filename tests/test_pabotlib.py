@@ -43,6 +43,20 @@ class PabotLibTests(unittest.TestCase):
         self.assertEqual(lib._path, '')
         lib._close()
 
+    def test_pabotlib_listener_when_dynamic_import_with_import_library(self):
+        lib = pabotlib.PabotLib()
+        lib._end_keyword('Import Library', {})
+        self.assertEqual(lib._path, '')
+        lib._start_keyword('Some Keyword', {})
+        self.assertEqual(lib._path, '.1')
+        lib._end_keyword('Some Keyword', {})
+        self.assertEqual(lib._path, '')
+        lib._end_test('Test', {})
+        self.assertEqual(lib._path, '')
+        lib._end_suite('Suite', {})
+        self.assertEqual(lib._path, '')
+        lib._close()
+
     def test_pabotlib_set_get_parallel_value(self):
         lib = pabotlib.PabotLib()
         lib.set_parallel_value_for_key("key", 1)
