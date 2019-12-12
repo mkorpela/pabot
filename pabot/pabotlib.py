@@ -164,16 +164,24 @@ class PabotLib(_PabotLib):
         self._position.append(attributes["longname"])
 
     def _end(self, name, attributes):
-        self._position = self._position[:-1]
+        self._position = self._position[:-1] if len(self._position) > 1 else [attributes["longname"][:-len(name)-1]]
 
     def _start_keyword(self, name, attributes):
-        self._position.append(self._position[-1] + "." + str(self._row_index))
+        if not(self._position):
+            self._position = ['0', '0.' + str(self._row_index)]
+        else:
+            self._position.append(self._position[-1] + "." + str(self._row_index))
         self._row_index = 0
 
     def _end_keyword(self, name, attributes):
-        self._row_index = int(self._position[-1].split(".")[-1])
+        if not(self._position):
+            self._row_index = 1
+            self._position = ['0']
+            return
+        splitted = self._position[-1].split(".")
+        self._row_index = int(splitted[-1]) if len(splitted) > 1 else 0
         self._row_index += 1
-        self._position = self._position[:-1]
+        self._position = self._position[:-1] if len(self._position) > 1 else [str(int(splitted[0])+1)]
 
     _start_suite = _start_test = _start
     _end_suite = _end_test = _end
