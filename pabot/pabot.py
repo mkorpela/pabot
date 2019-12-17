@@ -708,6 +708,13 @@ class TestItem(ExecutionItem):
         # type: () -> str
         return '--test '+self.name
 
+    if ROBOT_VERSION >= '3.1':
+        def add_options_for_executor(self, options):
+            name = self.name
+            for char in ['[', '?', '*']:
+                name = name.replace(char, '['+char+']')
+            options[self.type] = name
+
     def difference(self, from_items):
         # type: (List[ExecutionItem]) -> List[ExecutionItem]
         return []

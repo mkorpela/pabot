@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 import unittest
 import time
 import os
@@ -9,6 +9,7 @@ import random
 import codecs
 from pabot import pabot
 from robot.utils import PY2
+from robot import __version__ as ROBOT_VERSION
 
 s = pabot.SuiteItem
 t = pabot.TestItem
@@ -27,7 +28,7 @@ class PabotTests(unittest.TestCase):
                                                                                 'tests/fixtures'])
         self._outs_dir = pabot._output_dir(self._options)
         self._all_suites = [
-        'Fixtures.Suite One', 
+        'Fixtures.Suite One',
         'Fixtures.Suite Second',
         'Fixtures.Suite Special',
         'Fixtures.Suite With Valueset Tags',
@@ -211,13 +212,13 @@ class PabotTests(unittest.TestCase):
 
     def _suites(self, list_of_names):
         return [s(name) if name != "#WAIT" else pabot.WaitItem() for name in list_of_names]
-    
+
     def _test_preserve_order(self, expected, new_suites, old_suites):
         self.assertEqual(self._suites(expected), pabot._preserve_order(self._suites(new_suites), self._suites(old_suites)))
 
     def test_suite_ordering_adds_new_suite(self):
         self._test_preserve_order(['newSuite'], ['newSuite'], [])
-    
+
     def test_suite_ordering_removes_old_suite(self):
         self._test_preserve_order(['newSuite'], ['newSuite'], ['oldSuite'])
 
@@ -237,7 +238,7 @@ class PabotTests(unittest.TestCase):
     def test_suite_ordering_preserves_wait_command(self):
         self._test_preserve_order(['s2', '#WAIT', 's1', 's3'], ['s1', 's2', 's3'], ['s2', '#WAIT', 's1'])
         self._test_preserve_order(['s2', '#WAIT', 's3'], ['s2', 's3'], ['s2', '#WAIT', 's1'])
-    
+
     def test_suite_ordering_removes_wait_command_if_it_would_be_first_element(self):
         self._test_preserve_order(['s1', 's3'], ['s1', 's3'], ['s2', '#WAIT', 's1'])
 
@@ -258,6 +259,16 @@ class PabotTests(unittest.TestCase):
 
     def test_suite_ordering_removes_old_duplicate(self):
         self._test_preserve_order(['a'], ['a'], ['a', 'a'])
+
+
+    def test_test_item_name_replaces_pattern_chars(self):
+        item = t('Test [WITH] *funny* name?')
+        opts = {}
+        item.add_options_for_executor(opts)
+        if ROBOT_VERSION >= '3.1':
+            self.assertEqual(opts['test'], 'Test [[]WITH] [*]funny[*] name[?]')
+        else:
+            self.assertEqual(opts['test'], 'Test [WITH] *funny* name?')
 
     def test_fix_items_splits_to_tests_when_suite_after_test_from_that_suite(self):
         expected_items = [t("s.t1"), t("s.t2")]
@@ -401,7 +412,7 @@ class PabotTests(unittest.TestCase):
                                               datasources=self._datasources,
                                               options=self._options,
                                               pabot_args=pabot_args)
-        self._assert_equal_names([['Fixtures.Suite Second', 
+        self._assert_equal_names([['Fixtures.Suite Second',
                           'Fixtures.Suite One',
                           'Fixtures.Suite Special']],
                          suite_names)
@@ -434,7 +445,7 @@ class PabotTests(unittest.TestCase):
                                                   datasources=self._datasources,
                                                   options=self._options,
                                                   pabot_args=pabot_args)
-        self._assert_equal_names([['Fixtures.Suite Second', 
+        self._assert_equal_names([['Fixtures.Suite Second',
                           'Fixtures.Suite One',
                           'Fixtures.Suite Special']],
                          suite_names)
@@ -468,7 +479,7 @@ class PabotTests(unittest.TestCase):
                                                   datasources=self._datasources,
                                                   options=self._options,
                                                   pabot_args=pabot_args)
-        self._assert_equal_names([['Fixtures.Suite Second', 
+        self._assert_equal_names([['Fixtures.Suite Second',
                           'Fixtures.Suite One',
                           'Fixtures.Suite Special',
                           'Fixtures.Suite With Valueset Tags']],
@@ -508,7 +519,7 @@ class PabotTests(unittest.TestCase):
                                                   pabot_args=pabot_args)
         finally:
             os.rename("tests/output.xml.tmp", "tests/output.xml")
-        self._assert_equal_names([['Fixtures.Suite Second', 
+        self._assert_equal_names([['Fixtures.Suite Second',
                             'Fixtures.Suite One',
                             'Fixtures.Suite Special',
                             'Fixtures.Suite With Valueset Tags']], suite_names)
@@ -699,7 +710,7 @@ class PabotTests(unittest.TestCase):
             'Fixtures.Suite Special',
             'Fixtures.Suite Second',
             'Fixtures.Suite With Valueset Tags',
-            'Fixtures.Suite One', 
+            'Fixtures.Suite One',
         ]], suite_names)
         expected = self._psuitenames(
             '195524bdb66da94d08decc859867c5fb0b6cf95b',
@@ -759,7 +770,7 @@ class PabotTests(unittest.TestCase):
         try:
             suite_names = [s(_s) for _s in self._all_suites]
             items = [pabot.QueueItem(self._datasources, outs_dir, self._options, suite,
-                    self._pabot_args['command'], 
+                    self._pabot_args['command'],
                     self._pabot_args['verbose'], argfile)
                     for suite in suite_names
                     for argfile in self._pabot_args['argumentfiles'] or [("", None)]]
@@ -786,7 +797,7 @@ class PabotTests(unittest.TestCase):
         try:
             test_names = [t(_t) for _t in self._all_tests]
             items = [pabot.QueueItem(self._datasources, outs_dir, self._options, test,
-                    self._pabot_args['command'], 
+                    self._pabot_args['command'],
                     self._pabot_args['verbose'], argfile)
                     for test in test_names
                     for argfile in self._pabot_args['argumentfiles'] or [("", None)]]
