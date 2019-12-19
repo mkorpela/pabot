@@ -481,9 +481,26 @@ def _parse_args(args):
 def _parse_ordering(filename): # type: (str) -> Optional[List[ExecutionItem]]
     try:
         with open(filename, "r") as orderingfile:
-            return [_parse_line(line.strip()) for line in orderingfile.readlines()]
+            return _parse_groups([_parse_line(line.strip()) for line in orderingfile.readlines()])
     except:
         raise DataError("Error parsing ordering file '%s'" % filename)
+
+def _parse_groups(lines):
+    result = []
+    group = None
+    for token in lines:
+        if token == '{':
+            group = GroupItem()
+            continue
+        if token == '}':
+            result.append(group)
+            group = None
+            continue
+        if group != None:
+            group.add(token)
+        else:
+            result.append(token)
+    return result
 
 def _delete_none_keys(d):
     keys = set()
@@ -600,11 +617,11 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                 hash_of_file = _file_hash(lines)
             corrupted = corrupted or any(not l.startswith('--suite ') and
                                         not l.startswith('--test ') and
-                                        l != '#WAIT' for l in lines[4:])
-            execution_item_lines = [_parse_line(l) for l in lines[4:]]
-            if (corrupted or
+                                        l != '#WAIT' and l != '{' and l != '}' for l in lines[4:])
+            execution_item_lines = _parse_groups([_parse_line(l) for l in lines[4:]])
+            if (False and (corrupted or
                 h != file_h or
-                file_hash != hash_of_file):
+                file_hash != hash_of_file)):
                 return _group_by_wait(_regenerate(file_h, h,
                                         pabot_args,
                                         outs_dir,
@@ -658,6 +675,26 @@ class ExecutionItem(object):
 
     def __repr__(self):
         return "<" + self.type + ":" + self.name + ">"
+
+
+class GroupItem(ExecutionItem):
+
+    type = 'group'
+
+    def __init__(self):
+        self.name = 'group'
+        self._items = []
+
+    def add(self, item):
+        self._items.append(item)
+
+    def add_options_for_executor(self, options):
+        for item in self._items:
+            if item.type not in options:
+                options[item.type] = []
+            opts = {}
+            item.add_options_for_executor(opts)
+            options[item.type].append(opts[item.type])
 
 
 class SuiteItem(ExecutionItem):
@@ -798,6 +835,8 @@ def _parse_line(text):
         return DynamicTestItem(test, suite)
     if text == "#WAIT":
         return WaitItem()
+    if text in "{}":
+        return text
     # Assume old suite name
     return SuiteItem(text)
 
