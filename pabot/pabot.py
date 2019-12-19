@@ -481,18 +481,18 @@ def _parse_args(args):
 def _parse_ordering(filename): # type: (str) -> Optional[List[ExecutionItem]]
     try:
         with open(filename, "r") as orderingfile:
-            return _parse_groups([_parse_line(line.strip()) for line in orderingfile.readlines()])
+            return [_parse_line(line.strip()) for line in orderingfile.readlines()]
     except:
         raise DataError("Error parsing ordering file '%s'" % filename)
 
-def _parse_groups(lines):
+def _group_by_groups(tokens):
     result = []
     group = None
-    for token in lines:
-        if token == '{':
+    for token in tokens:
+        if isinstance(token, GroupStartItem):
             group = GroupItem()
             continue
-        if token == '}':
+        if isinstance(token, GroupEndItem):
             result.append(group)
             group = None
             continue
@@ -618,17 +618,17 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
             corrupted = corrupted or any(not l.startswith('--suite ') and
                                         not l.startswith('--test ') and
                                         l != '#WAIT' and l != '{' and l != '}' for l in lines[4:])
-            execution_item_lines = _parse_groups([_parse_line(l) for l in lines[4:]])
+            execution_item_lines = [_parse_line(l) for l in lines[4:]]
             if (corrupted or
                 h != file_h or
                 file_hash != hash_of_file):
-                return _group_by_wait(_regenerate(file_h, h,
+                return _group_by_wait(_group_by_groups(_regenerate(file_h, h,
                                         pabot_args,
                                         outs_dir,
                                         datasources,
                                         options,
-                                        execution_item_lines))
-        return _group_by_wait(execution_item_lines)
+                                        execution_item_lines)))
+        return _group_by_wait(_group_by_groups(execution_item_lines))
     except IOError:
         return  [generate_suite_names_with_dryrun(outs_dir, datasources, options)]
 
@@ -682,10 +682,15 @@ class GroupItem(ExecutionItem):
     type = 'group'
 
     def __init__(self):
-        self.name = 'group'
+        self.name = 'Group:'
         self._items = []
 
     def add(self, item):
+        if item.isWait:
+            raise DataError("[EXCEPTION] Ordering : Group can not contain #WAIT")
+        if len(self._items) > 0:
+            self.name += ', '
+        self.name += item.name
         self._items.append(item)
 
     def add_options_for_executor(self, options):
@@ -806,6 +811,28 @@ class WaitItem(ExecutionItem):
         return self.name
 
 
+class GroupStartItem(ExecutionItem):
+
+    type = "group"
+
+    def __init__(self):
+        self.name = "#START"
+
+    def line(self):
+        return "{"
+
+
+class GroupEndItem(ExecutionItem):
+
+    type = "group"
+
+    def __init__(self):
+        self.name = "#END"
+
+    def line(self):
+        return "}"
+
+
 class IncludeItem(ExecutionItem):
 
     type = "include"
@@ -835,8 +862,10 @@ def _parse_line(text):
         return DynamicTestItem(test, suite)
     if text == "#WAIT":
         return WaitItem()
-    if text in "{}":
-        return text
+    if text == "{":
+        return GroupStartItem()
+    if text == "}":
+        return GroupEndItem()
     # Assume old suite name
     return SuiteItem(text)
 
@@ -945,7 +974,7 @@ def _get_preserve_and_ignore(new_items, old_items, old_contains_suites_and_tests
                 (isinstance(new_item, SuiteItem) or old_contains_suites_and_tests):
                 preserve.append(old_item)
                 ignorable.append(new_item)
-        if old_item.isWait:
+        if old_item.isWait or isinstance(old_item, GroupStartItem) or isinstance(old_item, GroupEndItem):
             preserve.append(old_item)
     preserve = [new_item for new_item in preserve
         if not any([i.contains(new_item) and i != new_item for i in preserve])]
@@ -1502,7 +1531,7 @@ def main(args=None):
             for suits in suite_names:
                 names.extend(suits)
                 names.append(WaitItem())
-            suite_names = _group_by_wait(_preserve_order(names[:-1], ordering))
+            suite_names = _group_by_wait(_group_by_groups(_preserve_order(names[:-1], ordering)))
         if suite_names and suite_names != [[]]:
             for items in _create_execution_items(
                 suite_names, datasources, outs_dir,
