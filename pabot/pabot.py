@@ -491,9 +491,9 @@ def _group_by_groups(tokens):
     for token in tokens:
         if isinstance(token, GroupStartItem):
             group = GroupItem()
+            result.append(group)
             continue
         if isinstance(token, GroupEndItem):
-            result.append(group)
             group = None
             continue
         if group != None:
@@ -622,15 +622,15 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
             if (corrupted or
                 h != file_h or
                 file_hash != hash_of_file):
-                return _group_by_wait(_group_by_groups(_regenerate(file_h, h,
-                                        pabot_args,
-                                        outs_dir,
-                                        datasources,
-                                        options,
-                                        execution_item_lines)))
-        return _group_by_wait(_group_by_groups(execution_item_lines))
+                return _regenerate(file_h, h,
+                                    pabot_args,
+                                    outs_dir,
+                                    datasources,
+                                    options,
+                                    execution_item_lines)
+        return execution_item_lines
     except IOError:
-        return  [generate_suite_names_with_dryrun(outs_dir, datasources, options)]
+        return  generate_suite_names_with_dryrun(outs_dir, datasources, options)
 
 
 @total_ordering
@@ -1527,11 +1527,8 @@ def main(args=None):
                                         pabot_args)
         ordering = pabot_args.get('ordering')
         if ordering:
-            names = [] # type: List[ExecutionItem]
-            for suits in suite_names:
-                names.extend(suits)
-                names.append(WaitItem())
-            suite_names = _group_by_wait(_group_by_groups(_preserve_order(names[:-1], ordering)))
+            suite_names = _preserve_order(suite_names, ordering)
+        suite_names = _group_by_wait(_group_by_groups(suite_names))
         if suite_names and suite_names != [[]]:
             for items in _create_execution_items(
                 suite_names, datasources, outs_dir,
