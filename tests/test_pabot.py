@@ -581,7 +581,7 @@ class PabotTests(unittest.TestCase):
                                             datasources=self._datasources,
                                             options=self._options,
                                             pabot_args=self._pabot_args)
-        self.assertEqual([[]], suite_names)
+        self.assertEqual([], suite_names)
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
         self.assertEqual(pabotsuitenames, actual)
@@ -650,7 +650,7 @@ class PabotTests(unittest.TestCase):
             'Fixtures.Suite With Valueset Tags']], suite_names)
 
     def _assert_equal_names(self, names, output):
-        output_names = [[s.name.decode("utf-8") if PY2 else s.name for s in suites] for suites in output]
+        output_names = [[s.name.decode("utf-8") if PY2 else s.name for s in suites] for suites in pabot._group_by_wait(output)]
         self.assertEqual(names, output_names)
 
     def test_solve_suite_names_works_with_pabotsuitenames_file_with_wait_command_when_cli_change(self):

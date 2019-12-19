@@ -600,7 +600,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                                             options,
                                             pabot_args)
             store_suite_names(h, suite_names)
-            return [suite_names]
+            return suite_names
         with open(".pabotsuitenames", "r") as suitenamesfile:
             lines = [line.strip() for line in suitenamesfile.readlines()]
             corrupted = len(lines) < 5
