@@ -619,9 +619,9 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                                         not l.startswith('--test ') and
                                         l != '#WAIT' and l != '{' and l != '}' for l in lines[4:])
             execution_item_lines = _parse_groups([_parse_line(l) for l in lines[4:]])
-            if (False and (corrupted or
+            if (corrupted or
                 h != file_h or
-                file_hash != hash_of_file)):
+                file_hash != hash_of_file):
                 return _group_by_wait(_regenerate(file_h, h,
                                         pabot_args,
                                         outs_dir,
@@ -980,7 +980,7 @@ def _file_hash(lines):
     digest.update(lines[2].encode())
     hashes = 0
     for line in lines[4:]:
-        if line != '#WAIT':
+        if line not in ('#WAIT', '{', '}'):
             line = line.decode('utf-8') if PY2 else line
             hashes ^= int(hashlib.sha1(line.encode('utf-8')).hexdigest(), 16)
     digest.update(str(hashes).encode())
