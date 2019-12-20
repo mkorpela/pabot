@@ -958,6 +958,7 @@ def _fix_items(items): # type: (List[ExecutionItem]) -> List[ExecutionItem]
                     to_be_splitted[j] = []
                 to_be_splitted[j].append(items[i])
     _remove_double_waits(result)
+    _remove_empty_groups(result)
     if result and result[0].isWait:
         result = result[1:]
     if result and result[-1].isWait:
@@ -987,6 +988,14 @@ def _remove_double_waits(exists_in_old_and_new): # type: (List[ExecutionItem]) -
         if j.isWait and k == j:
             doubles.append(i)
     for i in reversed(doubles):
+        del exists_in_old_and_new[i]
+
+def _remove_empty_groups(exists_in_old_and_new): # type: (List[ExecutionItem]) -> None
+    removables = []
+    for i, (j,k) in enumerate(zip(exists_in_old_and_new, exists_in_old_and_new[1:])):
+        if isinstance(j, GroupStartItem) and isinstance(k, GroupEndItem):
+            removables.extend([i, i+1])
+    for i in reversed(removables):
         del exists_in_old_and_new[i]
 
 def _split_partially_to_tests(new_suites, old_suites): # type: (List[SuiteItem], List[ExecutionItem]) -> List[ExecutionItem]

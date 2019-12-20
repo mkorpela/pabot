@@ -211,10 +211,28 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(expected, actual)
 
     def _suites(self, list_of_names):
-        return [s(name) if name != "#WAIT" else pabot.WaitItem() for name in list_of_names]
+        return [self._suites_element(name) for name in list_of_names]
+
+    def _suites_element(self, name):
+        if name == "#WAIT":
+            return pabot.WaitItem()
+        if name == "{":
+            return pabot.GroupStartItem()
+        if name == "}":
+            return pabot.GroupEndItem()
+        return s(name)
 
     def _test_preserve_order(self, expected, new_suites, old_suites):
         self.assertEqual(self._suites(expected), pabot._preserve_order(self._suites(new_suites), self._suites(old_suites)))
+
+    def test_suite_ordering_with_group(self):
+        self._test_preserve_order(['s1', '{', 's2', 's3', '}', 's4'], ['s1', 's2', 's3', 's4'], ['s1', '{', 's2', 's3', '}'])
+
+    def test_suite_ordering_with_group_ignores_new_and_preserves_old_grouping(self):
+        self._test_preserve_order(['s1', '{', 's2', 's3', 's4', '}'], ['{', 's1', 's2', '}', 's3', 's4'], ['s1', '{', 's2', 's3', 's4', '}'])
+
+    def test_suite_ordering_group_is_removed_if_no_items(self):
+        self._test_preserve_order(['s1', 's4'], ['s1', 's4'], ['s1', '{', 's2', 's3', '}', 's4'])
 
     def test_suite_ordering_adds_new_suite(self):
         self._test_preserve_order(['newSuite'], ['newSuite'], [])
