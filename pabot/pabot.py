@@ -494,6 +494,8 @@ def _group_by_groups(tokens):
             result.append(group)
             continue
         if isinstance(token, GroupEndItem):
+            if group == None:
+                raise DataError("Ordering: Group end tag '}' encountered before start '{'")
             group = None
             continue
         if group != None:
