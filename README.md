@@ -174,11 +174,12 @@ After this come the suite names.
 
 With ```--ordering FILENAME``` you can have a list that controls order also. The syntax is same as .pabotsuitenames file syntax but does not contain 4 hash rows that are present in .pabotsuitenames. 
 
-There are three possibilities to influence the execution:
+There are four possibilities to influence the execution:
 
   * The order of suites can be changed.
   * If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row.
   * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
+  * You can group suites and tests together to same executor process by adding line `{` before the group and `}`after.
 
 ### Global variables
 
