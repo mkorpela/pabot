@@ -490,6 +490,8 @@ def _group_by_groups(tokens):
     group = None
     for token in tokens:
         if isinstance(token, GroupStartItem):
+            if group != None:
+                raise DataError("Ordering: Group can not contain a group. Encoutered '{'")
             group = GroupItem()
             result.append(group)
             continue
@@ -686,13 +688,17 @@ class GroupItem(ExecutionItem):
     def __init__(self):
         self.name = 'Group:'
         self._items = []
+        self._element_type = None
 
     def add(self, item):
         if item.isWait:
             raise DataError("[EXCEPTION] Ordering : Group can not contain #WAIT")
+        if self._element_type and self._element_type != item.type:
+            raise DataError("[EXCEPTION] Ordering : Group can contain only test or suite elements. Not bouth")
         if len(self._items) > 0:
             self.name += ', '
         self.name += item.name
+        self._element_type = item.type
         self._items.append(item)
 
     def add_options_for_executor(self, options):
