@@ -1341,7 +1341,7 @@ def _merge_one_run(outs_dir, options, tests_root_name, outputfile='output.xml'):
         global _ABNORMAL_EXIT_HAPPENED
         _ABNORMAL_EXIT_HAPPENED = True
     if PY2:
-        files = [f.decode('utf-8') if not is_unicode(f) else f for f in files]
+        files = [f.decode(SYSTEM_ENCODING) if not is_unicode(f) else f for f in files]
     merge(files, options, tests_root_name, invalid_xml_callback).save(output_path)
     return output_path
 
