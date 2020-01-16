@@ -1080,6 +1080,9 @@ def _with_modified_robot():
     RobotReader = None # type: Optional[object]
     TsvReader = None # type: Optional[object]
     old_read = None
+    if ROBOT_VERSION >= "3.2":
+        yield
+        return
     try:
         # RF 3.1
         from robot.parsing.robotreader import RobotReader, Utf8Reader  # type: ignore
