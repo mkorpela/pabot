@@ -80,8 +80,8 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   If used with --pabotlib option, will change the host listen address of the created remote server (see https://github.com/robotframework/PythonRemoteServer)
   If used without the --pabotlib option, will connect to already running instance of the PabotLib remote server in the given host. The remote server can be also started and executed separately from pabot instances:
   
-      python -m pabot.PabotLib <path_to_resourcefile> <host> <port>
-      python -m pabot.PabotLib resource.txt 192.168.1.123 8271
+      python -m pabot.pabotlib <path_to_resourcefile> <host> <port>
+      python -m pabot.pabotlib resource.txt 192.168.1.123 8271
   
   This enables sharing a resource with multiple Robot Framework instances.
 
