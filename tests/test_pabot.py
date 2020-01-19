@@ -334,7 +334,7 @@ class PabotTests(unittest.TestCase):
             '65a9d53314cba3caf6df9056585b2673c9f42e4b',
             *self._all_with_tests
             )
-        with open('.pabotsuitenames') as f:
+        with pabot._open_pabotsuitenames('r') as f:
             actual = f.readlines()
             if PY2:
                 actual = [l.decode("utf-8") for l in actual]
@@ -363,7 +363,7 @@ class PabotTests(unittest.TestCase):
             '65a9d53314cba3caf6df9056585b2673c9f42e4b',
             *self._all_with_tests
             )
-        with open('.pabotsuitenames') as f:
+        with pabot._open_pabotsuitenames('r') as f:
             actual = f.readlines()
             if PY2:
                 actual = [l.decode("utf-8") for l in actual]
