@@ -1036,7 +1036,7 @@ def store_suite_names(hashes, suite_names): # type: (Hashes, List[ExecutionItem]
     assert(all(isinstance(s, ExecutionItem) for s in suite_names))
     suite_lines = [s.line() for s in suite_names]
     _write("Storing .pabotsuitenames file")
-    with open(".pabotsuitenames", "w") as suitenamesfile:
+    with open(".pabotsuitenames", "w", encoding="utf-8") as suitenamesfile:
         suitenamesfile.write("datasources:"+hashes.dirs+'\n')
         suitenamesfile.write("commandlineoptions:"+hashes.cmd+'\n')
         suitenamesfile.write("suitesfrom:"+hashes.suitesfrom+'\n')
