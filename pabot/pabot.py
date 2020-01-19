@@ -593,6 +593,13 @@ def _suitesfrom_hash(pabot_args):
         return "no-suites-from-option"
 
 
+if PY2:
+    def _open_pabotsuitenames(mode):
+        return open(".pabotsuitenames", mode)
+else:
+    def _open_pabotsuitenames(mode):
+        return open(".pabotsuitenames", mode, encoding="utf-8")
+
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
     h = Hashes(dirs=get_hash_of_dirs(datasources),
                 cmd=get_hash_of_command(options, pabot_args),
@@ -605,7 +612,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                                             pabot_args)
             store_suite_names(h, suite_names)
             return suite_names
-        with open(".pabotsuitenames", "r", encoding="utf-8") as suitenamesfile:
+        with _open_pabotsuitenames("r") as suitenamesfile:
             lines = [line.strip() for line in suitenamesfile.readlines()]
             corrupted = len(lines) < 5
             file_h = None # type: Optional[Hashes]
@@ -1036,7 +1043,7 @@ def store_suite_names(hashes, suite_names): # type: (Hashes, List[ExecutionItem]
     assert(all(isinstance(s, ExecutionItem) for s in suite_names))
     suite_lines = [s.line() for s in suite_names]
     _write("Storing .pabotsuitenames file")
-    with open(".pabotsuitenames", "w", encoding="utf-8") as suitenamesfile:
+    with _open_pabotsuitenames("w") as suitenamesfile:
         suitenamesfile.write("datasources:"+hashes.dirs+'\n')
         suitenamesfile.write("commandlineoptions:"+hashes.cmd+'\n')
         suitenamesfile.write("suitesfrom:"+hashes.suitesfrom+'\n')
