@@ -301,7 +301,7 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id,
     options['log'] = 'NONE'
     options['report'] = 'NONE'
     options['xunit'] = 'NONE'
-    execution_item.add_options_for_executor(options)
+    execution_item.modify_options_for_executor(options)
     options['outputdir'] = outs_dir
     options['variable'] = options.get('variable', [])[:]
     options['variable'].append('CALLER_ID:%s' % caller_id)
@@ -667,7 +667,7 @@ class ExecutionItem(object):
         # type: () -> str
         return ""
 
-    def add_options_for_executor(self, options):
+    def modify_options_for_executor(self, options):
         options[self.type] = self.name
 
     def __eq__(self, other):
@@ -708,12 +708,12 @@ class GroupItem(ExecutionItem):
         self._element_type = item.type
         self._items.append(item)
 
-    def add_options_for_executor(self, options):
+    def modify_options_for_executor(self, options):
         for item in self._items:
             if item.type not in options:
                 options[item.type] = []
             opts = {}
-            item.add_options_for_executor(opts)
+            item.modify_options_for_executor(opts)
             options[item.type].append(opts[item.type])
 
 
@@ -766,11 +766,17 @@ class TestItem(ExecutionItem):
         return '--test '+self.name
 
     if ROBOT_VERSION >= '3.1':
-        def add_options_for_executor(self, options):
+        def modify_options_for_executor(self, options):
+            if 'rerunfailed' in options:
+                del options['rerunfailed']
             name = self.name
             for char in ['[', '?', '*']:
                 name = name.replace(char, '['+char+']')
             options[self.type] = name
+    else:
+        def modify_options_for_executor(self, options):
+            if 'rerunfailed' in options:
+                del options['rerunfailed']
 
     def difference(self, from_items):
         # type: (List[ExecutionItem]) -> List[ExecutionItem]
@@ -797,7 +803,7 @@ class DynamicTestItem(ExecutionItem):
     def line(self):
         return 'DYNAMICTEST %s :: %s' % (self.suite, self.name)
 
-    def add_options_for_executor(self, options):
+    def modify_options_for_executor(self, options):
         options['suite'] = self.suite
         variables = options.get('variable', [])[:]
         variables.append("DYNAMICTEST:"+self.name)
