@@ -282,11 +282,17 @@ class PabotTests(unittest.TestCase):
     def test_test_item_name_replaces_pattern_chars(self):
         item = t('Test [WITH] *funny* name?')
         opts = {}
-        item.add_options_for_executor(opts)
+        item.modify_options_for_executor(opts)
         if ROBOT_VERSION >= '3.1':
             self.assertEqual(opts['test'], 'Test [[]WITH] [*]funny[*] name[?]')
         else:
             self.assertEqual(opts['test'], 'Test [WITH] *funny* name?')
+
+    def test_test_item_removes_rerunfailed_option(self):
+        item = t('Some test')
+        opts = {'rerunfailed':[]}
+        item.modify_options_for_executor(opts)
+        self.assertTrue('rerunfailed' not in opts)
 
     def test_fix_items_splits_to_tests_when_suite_after_test_from_that_suite(self):
         expected_items = [t("s.t1"), t("s.t2")]
