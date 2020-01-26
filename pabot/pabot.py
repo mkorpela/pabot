@@ -1318,34 +1318,45 @@ def _copy_screenshots(options):
 
 
 def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root_name):
+    stats = {
+        'critical': {'total':0, 'passed':0, 'failed':0},
+        'all': {'total':0, 'passed':0, 'failed':0}
+    }
     if pabot_args['argumentfiles']:
         outputs = [] # type: List[str]
         for index, _ in pabot_args['argumentfiles']:
-            outputs += [_merge_one_run(os.path.join(outs_dir, index), options, tests_root_name,
-                                       outputfile=os.path.join('pabot_results', 'output%s.xml' % index))]
+            outputs += [_merge_one_run(os.path.join(outs_dir, index), options, tests_root_name, stats,
+                                    outputfile=os.path.join('pabot_results', 'output%s.xml' % index))]
             _copy_screenshots(options)
         if 'output' not in options:
             options['output'] = 'output.xml'
+        _write_stats(stats)
         return rebot(*outputs, **_options_for_rebot(options,
                                                     start_time_string, _now()))
     else:
-        return _report_results_for_one_run(outs_dir, options, start_time_string, tests_root_name)
+        return _report_results_for_one_run(outs_dir, options, start_time_string, tests_root_name, stats)
 
+def _write_stats(stats):
+    crit = stats['critical']
+    al = stats['all']
+    _write('%d critical tests, %d passed, %d failed' % (crit['total'], crit['passed'], crit['failed']))
+    _write('%d tests total, %d passed, %d failed' % (al['total'], al['passed'], al['failed']))
+    _write('===================================================')
 
-def _report_results_for_one_run(outs_dir, options, start_time_string, tests_root_name):
-    output_path = _merge_one_run(outs_dir, options, tests_root_name)
+def _report_results_for_one_run(outs_dir, options, start_time_string, tests_root_name, stats):
+    output_path = _merge_one_run(outs_dir, options, tests_root_name, stats)
     _copy_screenshots(options)
+    _write_stats(stats)
     if ('report' in options and options['report'] == "NONE" and
         'log' in options and options['log'] == "NONE"):
         options['output'] = output_path #REBOT will return error 252 if nothing is written
     else:
-        print('Output:  %s' % output_path)
+        _write('Output:  %s' % output_path)
         options['output'] = None  # Do not write output again with rebot
     return rebot(output_path, **_options_for_rebot(options,
                                                    start_time_string, _now()))
 
-
-def _merge_one_run(outs_dir, options, tests_root_name, outputfile='output.xml'):
+def _merge_one_run(outs_dir, options, tests_root_name, stats, outputfile='output.xml'):
     output_path = os.path.abspath(os.path.join(
         options.get('outputdir', '.'),
         options.get('output', outputfile)))
@@ -1358,9 +1369,19 @@ def _merge_one_run(outs_dir, options, tests_root_name, outputfile='output.xml'):
         _ABNORMAL_EXIT_HAPPENED = True
     if PY2:
         files = [f.decode(SYSTEM_ENCODING) if not is_unicode(f) else f for f in files]
-    merge(files, options, tests_root_name, invalid_xml_callback).save(output_path)
+    resu = merge(files, options, tests_root_name, invalid_xml_callback)
+    _update_stats(resu, stats)
+    resu.save(output_path)
     return output_path
 
+def _update_stats(result, stats):
+    s = result.statistics
+    stats['critical']['total'] += s.total.critical.total
+    stats['critical']['passed'] += s.total.critical.passed
+    stats['critical']['failed'] += s.total.critical.failed
+    stats['all']['total'] += s.total.all.total
+    stats['all']['passed'] += s.total.all.passed
+    stats['all']['failed'] += s.total.all.failed
 
 # This is from https://github.com/django/django/blob/master/django/utils/glob.py
 _magic_check = re.compile('([*?[])')
