@@ -16,7 +16,7 @@
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
 """A parallel executor for Robot Framework test cases.
-Version 0.99.
+Version 1.0.0
 
 Supports all Robot Framework command line options and also following
 options (these must be before normal RF options):
