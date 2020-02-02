@@ -186,15 +186,16 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id,
 # optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
 def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, caller_id):
     try:
-        #print("debug preprocess options="+str(options))
         rk = options['removekeywords']
         fk = options['flattenkeywords']
-        #print("debug preprocess rk="+str(rk)+"  fk="+str(fk))
-        if not rk and not fk: return  #  => no preprocessing needed if no removekeywords or flattenkeywords present
+        if not rk and not fk:
+            return  #  => no preprocessing needed if no removekeywords or flattenkeywords present
         rkargs = [] # type: List[str]
         fkargs =  [] # type: List[str]
-        for k in rk: rkargs+=['--removekeywords',k]
-        for k in fk: fkargs+=['--flattenkeywords',k]
+        for k in rk:
+            rkargs += ['--removekeywords', k]
+        for k in fk:
+            fkargs += ['--flattenkeywords', k]
         outputxmlfile = os.path.join(outs_dir, 'output.xml')
         oldsize = os.path.getsize(outputxmlfile)
         cmd = ['rebot', '--log', 'NONE', '--report', 'NONE', '--xunit', 'NONE', '--consolecolors', 'off', '--NoStatusRC']+rkargs+fkargs+['--output', outputxmlfile, outputxmlfile]
@@ -204,7 +205,8 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
         _try_execute_and_wait(cmd, outs_dir, 'preprocessing output.xml on ' + item_name, verbose,  pool_id, caller_id)
         newsize = os.path.getsize(outputxmlfile)
         perc = 100*newsize/oldsize
-        if verbose: _write("%s [main] [%s] Filesize reduced from %s to %s (%0.2f%%) for file %s" % (datetime.datetime.now(), pool_id, oldsize, newsize, perc, outputxmlfile))
+        if verbose:
+            _write("%s [main] [%s] Filesize reduced from %s to %s (%0.2f%%) for file %s" % (datetime.datetime.now(), pool_id, oldsize, newsize, perc, outputxmlfile))
     except:
         print(sys.exc_info())
 
