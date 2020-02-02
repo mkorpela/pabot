@@ -40,7 +40,7 @@ class _PabotLib(object):
     _TAGS_KEY = "tags"
 
     def __init__(self, resourcefile=None):
-        self._locks = {} # type: Dict[str, List[Union[str, int]]]
+        self._locks = {} # type: Dict[str, Tuple[str, int]]
         self._owner_to_values = {} # type: Dict[str, Dict[str, object]]
         self._parallel_values = {} # type: Dict[str, object]
         self._remote_libraries = {} # type: Dict[str, object]
@@ -72,13 +72,13 @@ class _PabotLib(object):
         if name in self._locks and caller_id != self._locks[name][0]:
             return False
         if name not in self._locks:
-            self._locks[name] = [caller_id, 0]
-        self._locks[name][1] += 1
+            self._locks[name] = (caller_id, 0)
+        self._locks[name] = (caller_id, self._locks[name][1] + 1)
         return True
 
     def release_lock(self, name, caller_id):
         assert self._locks[name][0] == caller_id
-        self._locks[name][1] -= 1
+        self._locks[name] = (caller_id, self._locks[name][1] - 1)
         if self._locks[name][1] == 0:
             del self._locks[name]
 
@@ -86,7 +86,7 @@ class _PabotLib(object):
         # type: (str) -> None
         for key in list(self._locks.keys()):
             if self._locks[key][0] == caller_id:
-                self._locks[key][1] -= 1
+                self._locks[key] = (caller_id, self._locks[key][1] - 1)
                 if self._locks[key][1] == 0:
                     del self._locks[key]
 
