@@ -11,7 +11,7 @@ setup(name='robotframework-pabot',
       version='1.0.1',
       description='Parallel test runner for Robot Framework',
       long_description='A parallel executor for Robot Framework tests.'
-                       'With Pabot you can split one execution into multiple and save test execution time.',
+                       ' With Pabot you can split one execution into multiple and save test execution time.',
       author=name,
       author_email=address,
       url='https://pabot.org',
