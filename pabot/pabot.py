@@ -172,7 +172,7 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id,
             with open(os.path.join(outs_dir, cmd[0]+'_stderr.out'), 'w') as stderr:
                 process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id)
     except:
-        print(sys.exc_info()[0])
+        _write(sys.exc_info()[0])
     if plib:
         _increase_completed(plib, my_index)
     # Thread-safe list append
@@ -695,7 +695,7 @@ class GroupItem(ExecutionItem):
     type = 'group'
 
     def __init__(self):
-        self.name = 'Group:'
+        self.name = 'Group_'
         self._items = []
         self._element_type = None
 
@@ -705,7 +705,7 @@ class GroupItem(ExecutionItem):
         if self._element_type and self._element_type != item.type:
             raise DataError("[EXCEPTION] Ordering : Group can contain only test or suite elements. Not bouth")
         if len(self._items) > 0:
-            self.name += ', '
+            self.name += '_'
         self.name += item.name
         self._element_type = item.type
         self._items.append(item)
