@@ -156,7 +156,7 @@ def execute_and_wait_with(item):
     try:
         datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in item.datasources]
 
-        outs_dir = os.path.join(item.outs_dir, item.argfile_index, item.execution_item.name)
+        outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
         os.makedirs(outs_dir)
 
         caller_id = uuid.uuid4().hex
