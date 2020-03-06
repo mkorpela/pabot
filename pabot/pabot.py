@@ -77,6 +77,7 @@ import datetime
 import multiprocessing
 import uuid
 import random
+import traceback
 from glob import glob
 from io import BytesIO, StringIO
 from functools import total_ordering
@@ -152,16 +153,19 @@ def execute_and_wait_with(item):
         # Keyboard interrupt has happened!
         return
     time.sleep(0)
-    datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in item.datasources]
+    try:
+        datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in item.datasources]
 
-    outs_dir = os.path.join(item.outs_dir, item.argfile_index, item.execution_item.name)
-    os.makedirs(outs_dir)
+        outs_dir = os.path.join(item.outs_dir, item.argfile_index, item.execution_item.name)
+        os.makedirs(outs_dir)
 
-    caller_id = uuid.uuid4().hex
-    cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index, item.last_level) + datasources
-    cmd = _mapOptionalQuote(cmd)
-    _try_execute_and_wait(cmd, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id, item.index)
-    outputxml_preprocessing(item.options, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id)
+        caller_id = uuid.uuid4().hex
+        cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index, item.last_level) + datasources
+        cmd = _mapOptionalQuote(cmd)
+        _try_execute_and_wait(cmd, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id, item.index)
+        outputxml_preprocessing(item.options, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id)
+    except:
+        _write(traceback.format_exc())
 
 def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id, my_index=-1):
     plib = None
@@ -172,7 +176,7 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id,
             with open(os.path.join(outs_dir, cmd[0]+'_stderr.out'), 'w') as stderr:
                 process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id)
     except:
-        _write(sys.exc_info()[0])
+        _write(traceback.format_exc())
     if plib:
         _increase_completed(plib, my_index)
     # Thread-safe list append

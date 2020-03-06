@@ -108,20 +108,20 @@ class PabotOrderingGroupTest(unittest.TestCase):
         ''',
         '''
         {
-        --test Suite1.The Somewhat Long Name Of The Test S1Test 01
-        --test Suite1.The Somewhat Long Name Of The Test S1Test 02
-        --test Suite1.The Somewhat Long Name Of The Test S1Test 03
-        --test Suite1.The Somewhat Long Name Of The Test S1Test 04
-        --test Suite1.The Somewhat Long Name Of The Test S1Test 05
-        --test Suite1.The Somewhat Long Name Of The Test S1Test 06
+        --test Test.The Somewhat Long Name Of The Test S1Test 01
+        --test Test.The Somewhat Long Name Of The Test S1Test 02
+        --test Test.The Somewhat Long Name Of The Test S1Test 03
+        --test Test.The Somewhat Long Name Of The Test S1Test 04
+        --test Test.The Somewhat Long Name Of The Test S1Test 05
+        --test Test.The Somewhat Long Name Of The Test S1Test 06
         }
         {
-        --test Suite1.The Somewhat Long Name Of The Test S1Test 07
-        --test Suite1.The Somewhat Long Name Of The Test S1Test 08
-        --test Suite1.The Somewhat Long Name Of The Test S1Test 09
-        --test Suite1.The Somewhat Long Name Of The Test S1Test 10
-        --test Suite1.The Somewhat Long Name Of The Test S1Test 11
-        --test Suite1.The Somewhat Long Name Of The Test S1Test 12
+        --test Test.The Somewhat Long Name Of The Test S1Test 07
+        --test Test.The Somewhat Long Name Of The Test S1Test 08
+        --test Test.The Somewhat Long Name Of The Test S1Test 09
+        --test Test.The Somewhat Long Name Of The Test S1Test 10
+        --test Test.The Somewhat Long Name Of The Test S1Test 11
+        --test Test.The Somewhat Long Name Of The Test S1Test 12
         }
         '''
         )
