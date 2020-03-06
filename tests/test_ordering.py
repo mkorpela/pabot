@@ -11,8 +11,26 @@ class PabotOrderingGroupTest(unittest.TestCase):
 
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def _run_tests_with(self, testfile, orderfile):
         robot_file = open('{}/test.robot'.format(self.tmpdir), 'w')
-        robot_file.write(textwrap.dedent(
+        robot_file.write(textwrap.dedent(testfile))
+        robot_file.close()
+        with open('{}/order.dat'.format(self.tmpdir), 'w') as f:
+            f.write(textwrap.dedent(orderfile))
+        process = subprocess.Popen(
+            [sys.executable, '-m' 'pabot.pabot', '--testlevelsplit','--ordering', '{}/order.dat'.format(self.tmpdir),
+             '{}/test.robot'.format(self.tmpdir)],
+            cwd=self.tmpdir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE)
+        return process.communicate()
+
+    def test_orders(self):
+        stdout, stderr = self._run_tests_with(
         '''
         *** Variables ***
         ${SCALAR}  Hello, globe!
@@ -26,37 +44,92 @@ class PabotOrderingGroupTest(unittest.TestCase):
 
         Third Test
             Should Be Equal  ${SCALAR}	Hello, globe!
-        '''))
-        robot_file.close()
-
-        with open('{}/order.dat'.format(self.tmpdir), 'w') as f:
-            f.write(textwrap.dedent(
-            '''
-            {
-            --test Test.First Test
-            --test Test.Second Test
-            }
-            --test Test.Third Test
-            '''))
-
-        process = subprocess.Popen(
-            [sys.executable, '-m' 'pabot.pabot', '--testlevelsplit','--ordering', '{}/order.dat'.format(self.tmpdir),
-             '{}/test.robot'.format(self.tmpdir)],
-            cwd=self.tmpdir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE)
-
-        self.stdout, self.stderr = process.communicate()
-
-    def test_stdout_should_display_passed_test(self):
+        ''',
+        '''
+        {
+        --test Test.First Test
+        --test Test.Second Test
+        }
+        --test Test.Third Test
+        '''
+        )
         if sys.version_info < (3, 0):
-            self.assertIn('PASSED', self.stdout, self.stderr)
-            self.assertNotIn('FAILED', self.stdout, self.stderr)
-            self.assertEqual(self.stdout.count('PASSED'), 2)
+            self.assertIn('PASSED', stdout, stderr)
+            self.assertNotIn('FAILED', stdout, stderr)
+            self.assertEqual(stdout.count('PASSED'), 2)
         else:
-            self.assertIn(b'PASSED', self.stdout, self.stderr)
-            self.assertNotIn(b'FAILED', self.stdout, self.stderr)
-            self.assertEqual(self.stdout.count(b'PASSED'), 2)
+            self.assertIn(b'PASSED', stdout, stderr)
+            self.assertNotIn(b'FAILED', stdout, stderr)
+            self.assertEqual(stdout.count(b'PASSED'), 2)
 
-    def tearDown(self):
-        shutil.rmtree(self.tmpdir)
+    def test_too_big_testname(self):
+        stdout, stderr = self._run_tests_with(
+        '''
+        *** Test Cases ***
+        Test Lorem ipsum dolor sit amet, consectetur adipiscing elit. Mauris eu velit nunc. Duis eget purus eget orci porta blandit sed ut tortor. Nunc vel nulla bibendum, auctor sem ac, molestie risus. Sed eu metus volutpat, hendrerit nibh in, auctor urna. Nunc a sodales.
+            Log    Test
+
+        ''',
+        '''
+        --test  Invalid
+        '''
+        )
+        if sys.version_info < (3, 0):
+            self.assertIn('PASSED', stdout, stderr)
+            self.assertNotIn('FAILED', stdout, stderr)
+            self.assertEqual(stdout.count('PASSED'), 1)
+        else:
+            self.assertIn(b'PASSED', stdout, stderr)
+            self.assertNotIn(b'FAILED', stdout, stderr)
+            self.assertEqual(stdout.count(b'PASSED'), 1)
+
+    def test_longnames_in_tests(self):
+        stdout, stderr = self._run_tests_with(
+        '''
+        *** Settings ***
+        Test Template    Test1
+        *** Test Cases ***
+        The Somewhat Long Name Of The Test S1Test 01    1
+        The Somewhat Long Name Of The Test S1Test 02    1
+        The Somewhat Long Name Of The Test S1Test 03    1
+        The Somewhat Long Name Of The Test S1Test 04    1
+        The Somewhat Long Name Of The Test S1Test 05    1
+        The Somewhat Long Name Of The Test S1Test 06    1
+        The Somewhat Long Name Of The Test S1Test 07    1
+        The Somewhat Long Name Of The Test S1Test 08    1
+        The Somewhat Long Name Of The Test S1Test 09    1
+        The Somewhat Long Name Of The Test S1Test 10    1
+        The Somewhat Long Name Of The Test S1Test 11    1
+        The Somewhat Long Name Of The Test S1Test 12    1
+        *** Keywords ***
+        Test1
+            [Arguments]  ${arg}
+            Log  Test
+        ''',
+        '''
+        {
+        --test Suite1.The Somewhat Long Name Of The Test S1Test 01
+        --test Suite1.The Somewhat Long Name Of The Test S1Test 02
+        --test Suite1.The Somewhat Long Name Of The Test S1Test 03
+        --test Suite1.The Somewhat Long Name Of The Test S1Test 04
+        --test Suite1.The Somewhat Long Name Of The Test S1Test 05
+        --test Suite1.The Somewhat Long Name Of The Test S1Test 06
+        }
+        {
+        --test Suite1.The Somewhat Long Name Of The Test S1Test 07
+        --test Suite1.The Somewhat Long Name Of The Test S1Test 08
+        --test Suite1.The Somewhat Long Name Of The Test S1Test 09
+        --test Suite1.The Somewhat Long Name Of The Test S1Test 10
+        --test Suite1.The Somewhat Long Name Of The Test S1Test 11
+        --test Suite1.The Somewhat Long Name Of The Test S1Test 12
+        }
+        '''
+        )
+        if sys.version_info < (3, 0):
+            self.assertIn('PASSED', stdout, stderr)
+            self.assertNotIn('FAILED', stdout, stderr)
+            self.assertEqual(stdout.count('PASSED'), 2)
+        else:
+            self.assertIn(b'PASSED', stdout, stderr)
+            self.assertNotIn(b'FAILED', stdout, stderr)
+            self.assertEqual(stdout.count(b'PASSED'), 2)
