@@ -29,10 +29,11 @@ setup(name='robotframework-pabot',
       ],
       entry_points = {'console_scripts': [
             'pabot=pabot.pabot:main',
-            'pabotcoordinator=pabot.coordinator:main',
+            'pabotcoordinator=pabot.coordinatorwrapper:main',
             'pabotworker=pabot.worker:main']},
       license='Apache License, Version 2.0',
       install_requires=[
             'robotframework',
-      'robotremoteserver>=1.1',
-      'typing;python_version<"3.5"'])
+            'Flask>=1.1.1',
+            'robotremoteserver>=1.1',
+            'typing;python_version<"3.5"'])
