@@ -29,8 +29,8 @@ setup(name='robotframework-pabot',
       ],
       entry_points = {'console_scripts': [
             'pabot=pabot.pabot:main',
-            'pabotserver=pabot.pabotserver:main',
-            'pabotminion=pabot.pabotminion:main']},
+            'pabotcoordinator=pabot.coordinator:main',
+            'pabotworker=pabot.worker:main']},
       license='Apache License, Version 2.0',
       install_requires=[
             'robotframework',
