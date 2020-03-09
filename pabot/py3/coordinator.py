@@ -1,28 +1,15 @@
-from flask import Flask, request
-import json
+import asyncio
+import websockets
 
-app = Flask(__name__)
-
-@app.route("/")
-def hello():
-    print(f"moi {1}")
-    return "Hello, World!"
-
-@app.route("/workers")
-def workers():
-    return {
-        'workers': [1,2,3]
-    }
-
-@app.route("/workers", methods=["POST"])
-def create_worker():
-    return {
-        'isitok': True
-    }
+async def echo(websocket, path):
+    async for message in websocket:
+        print(f'echoing message {message}')
+        await websocket.send(message)
 
 def main(args=None):
-    app.run(host='0.0.0.0', port='8000', debug=True)
-
+    start_server = websockets.serve(echo, "localhost", 8765)
+    asyncio.get_event_loop().run_until_complete(start_server)
+    asyncio.get_event_loop().run_forever()
 
 if __name__ == '__main__':
     main()

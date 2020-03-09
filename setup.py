@@ -34,6 +34,6 @@ setup(name='robotframework-pabot',
       license='Apache License, Version 2.0',
       install_requires=[
             'robotframework',
-            'Flask>=1.1.1',
+            'websockets>=8.1;python_version>="3.6"',
             'robotremoteserver>=1.1',
             'typing;python_version<"3.5"'])
