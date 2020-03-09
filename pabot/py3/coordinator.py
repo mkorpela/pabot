@@ -5,6 +5,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def hello():
+    print(f"moi {1}")
     return "Hello, World!"
 
 @app.route("/workers")
