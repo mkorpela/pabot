@@ -13,4 +13,3 @@ mv hiddenpy3 pabot/py3
 nosetests tests
 deactivate
 rm -rf .pabotenv
-
