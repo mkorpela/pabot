@@ -1,12 +1,17 @@
 import asyncio
 import websockets
+from typing import List
 from websockets.server import WebSocketServerProtocol
 
+workers:List[WebSocketServerProtocol] = []
+
 async def echo(websocket: WebSocketServerProtocol, path: str):
+    print(f"New connection {websocket} - {path}")
     message: object
     async for message in websocket:
-        print(f'echoing message {message}')
-        await websocket.send(message)
+        if message == 'Worker ready for work':
+            workers.append(websocket)
+        await websocket.send('close')
 
 def main(args=None):
     start_server = websockets.serve(echo, "localhost", 8765)
