@@ -1,17 +1,29 @@
 import asyncio
 import websockets
-from typing import List
+import json
+from typing import List, Dict, Set
 from websockets.server import WebSocketServerProtocol
 
-workers:List[WebSocketServerProtocol] = []
+workers:Set[WebSocketServerProtocol] = set()
 
 async def echo(websocket: WebSocketServerProtocol, path: str):
     print(f"New connection {websocket} - {path}")
     message: object
-    async for message in websocket:
-        if message == 'Worker ready for work':
-            workers.append(websocket)
-        await websocket.send('close')
+    try:
+        async for message in websocket:
+            msg:Dict[str, object] = json.loads(message)
+            if 'worker' in msg:
+                print(f"Received registeration from worker {msg['worker']}")
+                workers.add(websocket)
+                await websocket.send(json.dumps({'status':'work', 'workid':'id-3', 'cmd':'ls'}))
+            elif 'work' in msg and 'rc' in msg:
+                print(f"Received work results! {msg}")
+                await websocket.send(json.dumps({'status':'close'}))
+            elif 'work' in msg and 'log' in msg:
+                print(f"Received log '{msg['log']}'")
+    finally:
+        if websocket in workers:
+            workers.remove(websocket)
 
 def main(args=None):
     start_server = websockets.serve(echo, "localhost", 8765)
