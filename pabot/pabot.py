@@ -174,7 +174,7 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id,
     try:
         with open(os.path.join(outs_dir, cmd[0]+'_stdout.out'), 'w') as stdout:
             with open(os.path.join(outs_dir, cmd[0]+'_stderr.out'), 'w') as stderr:
-                process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id)
+                process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id, my_index)
     except:
         _write(traceback.format_exc())
     if plib:
@@ -182,9 +182,9 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id,
     # Thread-safe list append
     _ALL_ELAPSED.append(elapsed)
     if rc != 0:
-        _write_with_id(process, pool_id, _execution_failed_message(item_name, stdout, stderr, rc, verbose), Color.RED)
+        _write_with_id(process, pool_id, my_index, _execution_failed_message(item_name, stdout, stderr, rc, verbose), Color.RED)
     else:
-        _write_with_id(process, pool_id, _execution_passed_message(item_name, stdout, stderr, elapsed, verbose), Color.GREEN)
+        _write_with_id(process, pool_id, my_index, _execution_passed_message(item_name, stdout, stderr, elapsed, verbose), Color.GREEN)
 
 
 # optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
@@ -215,9 +215,9 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
         print(sys.exc_info())
 
 
-def _write_with_id(process, pool_id, message, color=None, timestamp=None):
+def _write_with_id(process, pool_id, item_index, message, color=None, timestamp=None):
     timestamp = timestamp or datetime.datetime.now()
-    _write("%s [PID:%s] [%s] %s" % (timestamp, process.pid, pool_id, message), color)
+    _write("%s [PID:%s] [%s] [ID:%s] %s" % (timestamp, process.pid, pool_id, item_index, message), color)
 
 
 def _make_id(): # type: () -> int
@@ -245,7 +245,7 @@ def _increase_completed(plib, my_index):
             plib.run_keyword('set_parallel_value_for_key',
             ['pabot_only_last_executing', 1], {})
 
-def _run(cmd, stderr, stdout, item_name, verbose, pool_id):
+def _run(cmd, stderr, stdout, item_name, verbose, pool_id, item_index):
     timestamp = datetime.datetime.now()
     # isinstance(cmd,list)==True
     cmd = ' '.join(cmd)
@@ -259,13 +259,13 @@ def _run(cmd, stderr, stdout, item_name, verbose, pool_id):
                                    stderr=stderr,
                                    stdout=stdout)
     if verbose:
-        _write_with_id(process, pool_id, 'EXECUTING PARALLEL %s with command:\n%s' % (item_name, cmd),timestamp=timestamp)
+        _write_with_id(process, pool_id, item_index, 'EXECUTING PARALLEL %s with command:\n%s' % (item_name, cmd),timestamp=timestamp)
     else:
-        _write_with_id(process, pool_id, 'EXECUTING %s' % item_name, timestamp=timestamp)
-    return process, _wait_for_return_code(process, item_name, pool_id)
+        _write_with_id(process, pool_id, item_index, 'EXECUTING %s' % item_name, timestamp=timestamp)
+    return process, _wait_for_return_code(process, item_name, pool_id, item_index)
 
 
-def _wait_for_return_code(process, item_name, pool_id):
+def _wait_for_return_code(process, item_name, pool_id, item_index):
     rc = None
     elapsed = 0
     ping_time = ping_interval = 150
@@ -276,7 +276,7 @@ def _wait_for_return_code(process, item_name, pool_id):
         if elapsed == ping_time:
             ping_interval += 50
             ping_time += ping_interval
-            _write_with_id(process, pool_id, 'still running %s after %s seconds'
+            _write_with_id(process, pool_id, item_index, 'still running %s after %s seconds'
                            % (item_name, elapsed / 10.0))
     return rc, elapsed / 10.0
 
