@@ -23,6 +23,8 @@ async def working():
             if instruction == messages.WORK:
                 print(f"Worker {MY_IDENTIFIER}: received work")
                 cmd = message[messages.COMMAND]
+                #FIXME:Actual command should be created here
+                #FIXME:output folder should be tmpdir created by this process
                 with subprocess.Popen(cmd,
                           stdout=subprocess.PIPE,
                           bufsize=1,
@@ -32,6 +34,7 @@ async def working():
                         line = line.rstrip()
                         await websocket.send(json.dumps({messages.LOG:line}))
                 rc = process.wait()
+                #FIXME:gzip output folder and send all data in binary format to coordinator in batches
                 with open('pabot_results/1/output.xml', 'r') as outputxml:
                     await websocket.send(json.dumps({messages.WORK_RESULT:rc,
                     messages.OUTPUT:outputxml.read()}))
