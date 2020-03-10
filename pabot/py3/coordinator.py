@@ -15,7 +15,10 @@ async def echo(websocket: WebSocketServerProtocol, path: str):
             if 'worker' in msg:
                 print(f"Received registeration from worker {msg['worker']}")
                 workers.add(websocket)
-                await websocket.send(json.dumps({'status':'work', 'workid':'id-3', 'cmd':'ls'}))
+                await websocket.send(json.dumps({
+                    'status':'work',
+                    'workid':'id-3',
+                    'cmd':'robot .'}))
             elif 'work' in msg and 'rc' in msg:
                 print(f"Received work results! {msg}")
                 await websocket.send(json.dumps({'status':'close'}))
