@@ -1,5 +1,8 @@
 
 REGISTER = 'register'
+CLIENT = 'client'
+WORKER = 'worker'
+REQUEST = 'request'
 CLOSE = 'close'
 WORK = 'work'
 INSTRUCTION = 'instruction'

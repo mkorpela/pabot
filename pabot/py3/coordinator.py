@@ -6,6 +6,8 @@ from websockets.server import WebSocketServerProtocol
 from . import messages
 
 workers:Set[WebSocketServerProtocol] = set()
+clients:Set[WebSocketServerProtocol] = set()
+work_to_client:Dict[WebSocketServerProtocol,WebSocketServerProtocol] = dict()
 
 async def coordinate(websocket: WebSocketServerProtocol, path: str):
     print(f"New connection {websocket} - {path}")
@@ -14,19 +16,31 @@ async def coordinate(websocket: WebSocketServerProtocol, path: str):
         async for message in websocket:
             msg:Dict[str, object] = json.loads(message)
             if messages.REGISTER in msg:
-                print(f"Received registeration from worker {msg[messages.REGISTER]}")
-                workers.add(websocket)
-                await websocket.send(json.dumps({
-                    messages.INSTRUCTION:messages.WORK,
-                    messages.COMMAND:'robot --suite Suite2 --variable CALLER_ID:a0373ef82a884605b7b625f4faff1d30 --variable PABOTLIBURI:127.0.0.1:8270 --variable PABOTEXECUTIONPOOLID:1 --variable PABOTISLASTEXECUTIONINPOOL:0 --variable PABOTQUEUEINDEX:1 --variable PABOTLASTLEVEL:Tmp.Suite2 --log NONE --report NONE --xunit NONE --outputdir ./pabot_results/1 --consolecolors off --consolemarkers off .'}))
+                if msg[messages.REGISTER] == messages.WORKER:
+                    print(f"Received registeration from worker {msg[messages.REGISTER]}")
+                    workers.add(websocket)
+                if msg[messages.REGISTER] == messages.CLIENT:
+                    print(f"Received registeration from client {msg[messages.REGISTER]}")
+                    clients.add(websocket)
+            if websocket in clients and messages.REQUEST in msg:
+                for w in workers:
+                    await w.send(json.dumps({
+                        messages.INSTRUCTION:messages.WORK,
+                        messages.COMMAND:msg[messages.REQUEST]
+                        }))
+                    work_to_client[w] = websocket
+                    continue
             elif messages.WORK_RESULT in msg:
-                print(f"Received work results! {msg}")
+                print(f"Received work results!")
+                await work_to_client[websocket].send(json.dumps(msg))
                 await websocket.send(json.dumps({messages.INSTRUCTION:messages.CLOSE}))
             elif messages.LOG in msg:
                 print(f"Received log '{msg[messages.LOG]}'")
     finally:
         if websocket in workers:
             workers.remove(websocket)
+        if websockets in clients:
+            clients.remove(websocket)
 
 def main(args=None):
     start_server = websockets.serve(coordinate, "localhost", 8765)

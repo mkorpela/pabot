@@ -6,22 +6,20 @@ from typing import Dict
 import websockets
 from . import messages
 
-MY_IDENTIFIER = str(uuid.uuid4())
-
 async def working():
     uri = "ws://localhost:8765"
     async with websockets.connect(uri) as websocket:
         # register worker
-        await websocket.send(json.dumps({messages.REGISTER:MY_IDENTIFIER}))
+        await websocket.send(json.dumps({messages.REGISTER:messages.WORKER}))
         while True:
             # wait for an instruction
             message:Dict[str, object] = json.loads(await websocket.recv())
             instruction = message[messages.INSTRUCTION]
             if instruction == messages.CLOSE:
-                print(f"Worker {MY_IDENTIFIER}: close signal from coordinator - closing")
+                print(f"Close signal from coordinator - closing")
                 return
             if instruction == messages.WORK:
-                print(f"Worker {MY_IDENTIFIER}: received work")
+                print(f"Received work")
                 cmd = message[messages.COMMAND]
                 #FIXME:Actual command should be created here
                 #FIXME:output folder should be tmpdir created by this process
