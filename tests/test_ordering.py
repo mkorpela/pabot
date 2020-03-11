@@ -62,6 +62,51 @@ class PabotOrderingGroupTest(unittest.TestCase):
             self.assertNotIn(b'FAILED', stdout, stderr)
             self.assertEqual(stdout.count(b'PASSED'), 2)
 
+    def test_two_orders(self):
+        stdout, stderr = self._run_tests_with(
+        '''
+        *** Variables ***
+        ${SCALAR}  Hello, globe!
+
+        *** Test Cases ***
+        First Test
+            Set Suite Variable	${SCALAR}	Hello, world!
+
+        Second Test
+            Should Be Equal  ${SCALAR}	Hello, world!
+
+        Second And Quarter
+            Should Be Equal  ${SCALAR}	Hello, globe!
+
+        Second And Half
+            Should Be Equal  ${SCALAR}	Hello, globe!
+
+        Third Test
+            Should Be Equal  ${SCALAR}	Hello, globe!
+        ''',
+        '''
+        {
+        --test Test.First Test
+        --test Test.Second Test
+        }
+        {
+        --test Test.Second And Quarter
+        --test Test.Second And Half
+        }
+        --test Test.Third Test
+        '''
+        )
+        if sys.version_info < (3, 0):
+            self.assertIn('PASSED', stdout, stderr)
+            self.assertNotIn('FAILED', stdout, stderr)
+            self.assertIn('5 critical tests, 5 passed, 0 failed', stdout, stderr)
+            self.assertEqual(stdout.count('PASSED'), 3)
+        else:
+            self.assertIn(b'PASSED', stdout, stderr)
+            self.assertNotIn(b'FAILED', stdout, stderr)
+            self.assertIn(b'5 critical tests, 5 passed, 0 failed', stdout, stderr)
+            self.assertEqual(stdout.count(b'PASSED'), 3)
+
     def test_too_big_testname(self):
         stdout, stderr = self._run_tests_with(
         '''

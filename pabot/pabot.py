@@ -307,6 +307,8 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id,
     options['log'] = 'NONE'
     options['report'] = 'NONE'
     options['xunit'] = 'NONE'
+    options['test'] = options.get('test', [])[:]
+    options['suite'] = options.get('suite', [])[:]
     execution_item.modify_options_for_executor(options)
     options['outputdir'] = outs_dir
     options['variable'] = options.get('variable', [])[:]
