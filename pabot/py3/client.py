@@ -10,7 +10,7 @@ async def make_order():
     async with websockets.connect(uri) as websocket:
         await websocket.send(json.dumps({messages.REGISTER:messages.CLIENT}))
         await websocket.send(json.dumps({
-                    messages.REQUEST:'robot --suite Suite2 --variable CALLER_ID:a0373ef82a884605b7b625f4faff1d30 --variable PABOTLIBURI:127.0.0.1:8270 --variable PABOTEXECUTIONPOOLID:1 --variable PABOTISLASTEXECUTIONINPOOL:0 --variable PABOTQUEUEINDEX:1 --variable PABOTLASTLEVEL:Tmp.Suite2 --log NONE --report NONE --xunit NONE --outputdir ./pabot_results/1 --consolecolors off --consolemarkers off .'}))
+                    messages.REQUEST:'robot --suite Suite2 --variable CALLER_ID:a0373ef82a884605b7b625f4faff1d30 --variable PABOTLIBURI:127.0.0.1:8270 --variable PABOTEXECUTIONPOOLID:1 --variable PABOTISLASTEXECUTIONINPOOL:0 --variable PABOTQUEUEINDEX:1 --variable PABOTLASTLEVEL:Tmp.Suite2 --log NONE --report NONE --xunit NONE --outputdir %OUTPUTDIR% --consolecolors off --consolemarkers off .'}))
         result = await websocket.recv()
         print(f"Received result {result}")
 

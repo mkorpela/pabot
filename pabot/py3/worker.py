@@ -4,6 +4,9 @@ import json
 import subprocess
 from typing import Dict
 import websockets
+import tempfile
+import shutil
+import os
 from . import messages
 
 async def working():
@@ -21,21 +24,21 @@ async def working():
             if instruction == messages.WORK:
                 print(f"Received work")
                 cmd = message[messages.COMMAND]
-                #FIXME:Actual command should be created here
-                #FIXME:output folder should be tmpdir created by this process
-                with subprocess.Popen(cmd,
-                          stdout=subprocess.PIPE,
-                          bufsize=1,
-                          universal_newlines=True,
-                          shell=True) as process:
-                    for line in process.stdout:
-                        line = line.rstrip()
-                        await websocket.send(json.dumps({messages.LOG:line}))
-                rc = process.wait()
-                #FIXME:gzip output folder and send all data in binary format to coordinator in batches
-                with open('pabot_results/1/output.xml', 'r') as outputxml:
-                    await websocket.send(json.dumps({messages.WORK_RESULT:rc,
-                    messages.OUTPUT:outputxml.read()}))
+                with tempfile.TemporaryDirectory() as dirpath:
+                    #FIXME:Actual command should be created here
+                    with subprocess.Popen(cmd.replace("%OUTPUTDIR%", dirpath),
+                            stdout=subprocess.PIPE,
+                            bufsize=1,
+                            universal_newlines=True,
+                            shell=True) as process:
+                        for line in process.stdout:
+                            line = line.rstrip()
+                            await websocket.send(json.dumps({messages.LOG:line}))
+                    rc = process.wait()
+                    #FIXME:gzip output folder and send all data in binary format to coordinator in batches
+                    with open(os.path.join(dirpath, 'output.xml'), 'r') as outputxml:
+                        await websocket.send(json.dumps({messages.WORK_RESULT:rc,
+                        messages.OUTPUT:outputxml.read()}))
 
 
 def main(args=None):
