@@ -8,6 +8,7 @@ import tempfile
 import shutil
 import os
 from . import messages
+import tarfile
 
 async def working():
     uri = "ws://localhost:8765"
@@ -36,6 +37,8 @@ async def working():
                             await websocket.send(json.dumps({messages.LOG:line}))
                     rc = process.wait()
                     #FIXME:gzip output folder and send all data in binary format to coordinator in batches
+                    with tarfile.open("TarName.tar.gz", "w:gz") as tar:
+                        tar.add(dirpath, arcname="TarName")
                     with open(os.path.join(dirpath, 'output.xml'), 'r') as outputxml:
                         await websocket.send(json.dumps({messages.WORK_RESULT:rc,
                         messages.OUTPUT:outputxml.read()}))
