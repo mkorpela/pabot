@@ -1,29 +1,32 @@
-import asyncio
 import uuid
 import json
 import subprocess
 from typing import Dict
-import websockets
+import socket
 import tempfile
 import shutil
 import os
 from . import messages
 import tarfile
 
-async def working():
-    uri = "ws://localhost:8765"
-    async with websockets.connect(uri) as websocket:
-        # register worker
-        await websocket.send(json.dumps({messages.REGISTER:messages.WORKER}))
-        while True:
-            # wait for an instruction
-            message:Dict[str, object] = json.loads(await websocket.recv())
+def working():
+    HOST, PORT = "localhost", 8765
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        sock.connect((HOST, PORT))
+        sock.send(bytes(json.dumps({messages.REGISTER:messages.WORKER}) + "\n", "utf-8"))
+        while 'connected':
+            data = sock.recv(1024)
+            if not data:
+                return
+            print(f"Data {data}")
+            message:Dict[str, object] = json.loads(str(data, "utf-8"))
             instruction = message[messages.INSTRUCTION]
             if instruction == messages.CLOSE:
-                print(f"Close signal from coordinator - closing")
+                print("Close signal from coordinator - closing")
                 return
             if instruction == messages.WORK:
-                print(f"Received work")
+                print("Received work")
                 cmd = message[messages.COMMAND]
                 with tempfile.TemporaryDirectory() as dirpath:
                     #FIXME:Actual command should be created here
@@ -34,18 +37,21 @@ async def working():
                             shell=True) as process:
                         for line in process.stdout:
                             line = line.rstrip()
-                            await websocket.send(json.dumps({messages.LOG:line}))
+                            sock.sendall(bytes(json.dumps({messages.LOG:line}) + "\n", "utf-8"))
                     rc = process.wait()
                     #FIXME:gzip output folder and send all data in binary format to coordinator in batches
                     with tarfile.open("TarName.tar.gz", "w:gz") as tar:
                         tar.add(dirpath, arcname="TarName")
                     with open(os.path.join(dirpath, 'output.xml'), 'r') as outputxml:
-                        await websocket.send(json.dumps({messages.WORK_RESULT:rc,
-                        messages.OUTPUT:outputxml.read()}))
+                        sock.sendall(bytes(json.dumps({messages.WORK_RESULT:rc,
+                        messages.OUTPUT:outputxml.read()}) + "\n", "utf8"))
+    finally:
+        sock.close()
+        print("Closed worker")
 
 
 def main(args=None):
-    asyncio.get_event_loop().run_until_complete(working())
+    working()
 
 if __name__ == '__main__':
     main()
