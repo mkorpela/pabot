@@ -14,13 +14,13 @@ def working():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         sock.connect((HOST, PORT))
-        sock.send(bytes(json.dumps({messages.REGISTER:messages.WORKER}) + "\n", "utf-8"))
+        messages.put(sock, json.dumps({messages.REGISTER:messages.WORKER}))
         while 'connected':
-            data = sock.recv(1024)
+            data = messages.get(sock)
             if not data:
                 return
             print(f"Data {data}")
-            message:Dict[str, object] = json.loads(str(data, "utf-8"))
+            message:Dict[str, object] = json.loads(data)
             instruction = message[messages.INSTRUCTION]
             if instruction == messages.CLOSE:
                 print("Close signal from coordinator - closing")
@@ -37,14 +37,14 @@ def working():
                             shell=True) as process:
                         for line in process.stdout:
                             line = line.rstrip()
-                            sock.sendall(bytes(json.dumps({messages.LOG:line}) + "\n", "utf-8"))
+                            messages.put(sock, json.dumps({messages.LOG:line}))
                     rc = process.wait()
                     #FIXME:gzip output folder and send all data in binary format to coordinator in batches
                     with tarfile.open("TarName.tar.gz", "w:gz") as tar:
                         tar.add(dirpath, arcname="TarName")
                     with open(os.path.join(dirpath, 'output.xml'), 'r') as outputxml:
-                        sock.sendall(bytes(json.dumps({messages.WORK_RESULT:rc,
-                        messages.OUTPUT:outputxml.read()}) + "\n", "utf8"))
+                        messages.put(sock, json.dumps({messages.WORK_RESULT:rc,
+                        messages.OUTPUT:outputxml.read()}))
     finally:
         sock.close()
         print("Closed worker")

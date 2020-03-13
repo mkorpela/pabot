@@ -11,21 +11,12 @@ class CoordinatorHandler(socketserver.BaseRequestHandler):
 
     def handle(self):
         try:
-            old_data = ''
             while 'connected':
-                if '\n' not in old_data:
-                    print("Waiting for data")
-                    data = self.request.recv(4048)
-                    if not data:
-                        return
-                    print(f"Data {data}")
-                    d, n = str(data, "utf-8").split('\n', 1)
-                else:
-                    print("Handling old data")
-                    d, n = old_data.split('\n', 1)
-                    old_data = ''
-                msg:Dict[str, object] = json.loads(old_data+d)
-                old_data = n
+                print("Waiting for data")
+                data = messages.get(self.request)
+                if not data:
+                    return
+                msg:Dict[str, object] = json.loads(data)
                 print(f"Message {msg}")
                 if messages.REGISTER in msg:
                     if msg[messages.REGISTER] == messages.WORKER:
@@ -38,7 +29,7 @@ class CoordinatorHandler(socketserver.BaseRequestHandler):
                     print("Request from client")
                     for w in workers:
                         print("Sending to worker")
-                        w.send(json.dumps({
+                        messages.put(w.request, json.dumps({
                             messages.INSTRUCTION:messages.WORK,
                             messages.COMMAND:msg[messages.REQUEST]
                             }))
@@ -46,9 +37,9 @@ class CoordinatorHandler(socketserver.BaseRequestHandler):
                         continue
                 elif messages.WORK_RESULT in msg:
                     print(f"Received work results!")
-                    work_to_client[self].send(json.dumps(msg))
+                    messages.put(work_to_client[self].request, json.dumps(msg))
                     print("Closing connection")
-                    self.send(json.dumps({messages.INSTRUCTION:messages.CLOSE}))
+                    messages.put(self.request, json.dumps({messages.INSTRUCTION:messages.CLOSE}))
                     return
                 elif messages.LOG in msg:
                     print(f"Received log '{msg[messages.LOG]}'")
@@ -58,10 +49,6 @@ class CoordinatorHandler(socketserver.BaseRequestHandler):
             if self in clients:
                 clients.remove(self)
             print("Closed connection")
-
-    def send(self, data:str):
-        self.request.sendall(bytes(data + "\n", "utf-8"))
-
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass

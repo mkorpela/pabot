@@ -11,13 +11,13 @@ def make_order():
     try:
         # Connect to server and send data
         sock.connect((HOST, PORT))
-        sock.sendall(bytes(json.dumps({messages.REGISTER:messages.CLIENT})+"\n", "utf-8"))
-        sock.sendall(bytes(json.dumps({
+        messages.put(sock, json.dumps({messages.REGISTER:messages.CLIENT}))
+        messages.put(sock, json.dumps({
                     messages.REQUEST:'robot --suite Suite2 --variable CALLER_ID:a0373ef82a884605b7b625f4faff1d30 --variable PABOTLIBURI:127.0.0.1:8270 --variable PABOTEXECUTIONPOOLID:1 --variable PABOTISLASTEXECUTIONINPOOL:0 --variable PABOTQUEUEINDEX:1 --variable PABOTLASTLEVEL:Tmp.Suite2 --log NONE --report NONE --xunit NONE --outputdir %OUTPUTDIR% --consolecolors off --consolemarkers off .'}
-                    )+ "\n", "utf-8"))
+                    ))
 
-        result = sock.recv(4048)
-        print(f"Received result {str(result, 'utf-8')}")
+        result = messages.get(sock)
+        print(f"Received result {result}")
     finally:
         sock.close()
 
