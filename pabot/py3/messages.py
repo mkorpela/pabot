@@ -25,12 +25,18 @@ def recvall(sock, length:int) -> bytes:
         data += more
     return data
 
-def get(sock):
-    lendata = recvall(sock, format.size)
-    if not lendata:
-        return ''
-    (length,) = format.unpack(lendata)
-    return str(recvall(sock, length), 'utf-8')
+def get(sock) -> str:
+    return str(get_bytes(sock), 'utf-8')
 
 def put(sock, message):
-    sock.send(format.pack(len(message)) + bytes(message, 'utf-8'))
+    put_bytes(sock, bytes(message, 'utf-8'))
+
+def put_bytes(sock, bytes_msg:bytes):
+    sock.send(format.pack(len(bytes_msg)) + bytes_msg)
+
+def get_bytes(sock) -> bytes:
+    lendata = recvall(sock, format.size)
+    if not lendata:
+        return b''
+    (length,) = format.unpack(lendata)
+    return recvall(sock, length)
