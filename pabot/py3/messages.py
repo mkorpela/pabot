@@ -1,6 +1,7 @@
 
 import struct
 import socket
+from typing import Tuple
 
 REGISTER = 'register'
 CLIENT = 'client'
@@ -28,7 +29,14 @@ def recvall(sock, length:int) -> bytes:
 def get(sock) -> str:
     return str(get_bytes(sock), 'utf-8')
 
-def put(sock, message):
+def get_message(sock) -> Tuple[int, str]:
+    bs = get_bytes(sock)
+    return bs[0], str(bs[1:], 'utf-8')
+
+def put_message(sock, msg_type:int, message:str):
+    put_bytes(sock, msg_type + bytes(message, 'utf-8'))
+
+def put(sock, message:str):
     put_bytes(sock, bytes(message, 'utf-8'))
 
 def put_bytes(sock, bytes_msg:bytes):
