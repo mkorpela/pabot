@@ -98,6 +98,7 @@ from robot.utils import ArgumentParser, SYSTEM_ENCODING, is_unicode, PY2
 import signal
 from . import pabotlib
 from .result_merger import merge
+from .clientwrapper import make_order
 
 try:
     import queue # type: ignore
@@ -172,19 +173,20 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id,
     if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
         plib = Remote(_PABOTLIBURI)
     try:
-        with open(os.path.join(outs_dir, cmd[0]+'_stdout.out'), 'w') as stdout:
-            with open(os.path.join(outs_dir, cmd[0]+'_stderr.out'), 'w') as stderr:
-                process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id, my_index)
+        make_order(' '.join(cmd))
+        #with open(os.path.join(outs_dir, cmd[0]+'_stdout.out'), 'w') as stdout:
+        #    with open(os.path.join(outs_dir, cmd[0]+'_stderr.out'), 'w') as stderr:
+        #        process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id, my_index)
     except:
         _write(traceback.format_exc())
     if plib:
         _increase_completed(plib, my_index)
     # Thread-safe list append
-    _ALL_ELAPSED.append(elapsed)
-    if rc != 0:
-        _write_with_id(process, pool_id, my_index, _execution_failed_message(item_name, stdout, stderr, rc, verbose), Color.RED)
-    else:
-        _write_with_id(process, pool_id, my_index, _execution_passed_message(item_name, stdout, stderr, elapsed, verbose), Color.GREEN)
+    #_ALL_ELAPSED.append(elapsed)
+    #if rc != 0:
+    #    _write_with_id(process, pool_id, my_index, _execution_failed_message(item_name, stdout, stderr, rc, verbose), Color.RED)
+    #else:
+    #    _write_with_id(process, pool_id, my_index, _execution_passed_message(item_name, stdout, stderr, elapsed, verbose), Color.GREEN)
 
 
 # optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors

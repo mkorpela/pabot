@@ -12,6 +12,7 @@ import tarfile
 def working():
     HOST, PORT = "localhost", 8765
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(None)
     try:
         sock.connect((HOST, PORT))
         messages.put_message(sock, messages.REGISTER_WORKER, '')
@@ -27,13 +28,8 @@ def working():
                 with tempfile.TemporaryDirectory() as dirpath:
                     #FIXME:Actual command should be created here
                     with subprocess.Popen(cmd.replace("%OUTPUTDIR%", dirpath),
-                            stdout=subprocess.PIPE,
-                            bufsize=1,
-                            universal_newlines=True,
                             shell=True) as process:
-                        for line in process.stdout:
-                            messages.put_message(sock, messages.LOG, line.rstrip())
-                    process.wait()
+                        process.wait()
                     with tarfile.open("TarName.tar.gz", "w:gz") as tar:
                         tar.add(dirpath, arcname="TarName")
                     with open("TarName.tar.gz", 'rb') as outputs:
