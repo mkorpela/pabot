@@ -3,17 +3,13 @@ import struct
 import socket
 from typing import Tuple
 
-REGISTER = 'register'
-CLIENT = 'client'
-WORKER = 'worker'
-REQUEST = 'request'
-CLOSE = 'close'
-WORK = 'work'
-INSTRUCTION = 'instruction'
-COMMAND = 'cmd'
-WORK_RESULT = 'rc'
-LOG = 'log'
-OUTPUT = 'output'
+CONNECTION_END = 0
+REGISTER_CLIENT = 1
+REQUEST_TO_RUN = 2
+REGISTER_WORKER = 3
+WORK = 4
+WORK_RESULT = 5
+LOG = 6
 
 format = struct.Struct('!I')  # for messages up to 2**32 - 1 in length
 
@@ -31,10 +27,12 @@ def get(sock) -> str:
 
 def get_message(sock) -> Tuple[int, str]:
     bs = get_bytes(sock)
-    return bs[0], str(bs[1:], 'utf-8')
+    if not bs:
+        return CONNECTION_END, ''
+    return int(bs[0]), str(bs[1:], 'utf-8')
 
 def put_message(sock, msg_type:int, message:str):
-    put_bytes(sock, msg_type + bytes(message, 'utf-8'))
+    put_bytes(sock, bytes([msg_type]) + bytes(message, 'utf-8'))
 
 def put(sock, message:str):
     put_bytes(sock, bytes(message, 'utf-8'))

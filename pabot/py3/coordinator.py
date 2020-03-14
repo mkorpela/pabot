@@ -12,37 +12,33 @@ class CoordinatorHandler(socketserver.BaseRequestHandler):
     def handle(self):
         try:
             while 'connected':
-                print("Waiting for data")
-                data = messages.get(self.request)
-                if not data:
+                raw_data = messages.get_bytes(self.request)
+                if not raw_data:
                     return
-                msg:Dict[str, object] = json.loads(data)
-                print(f"Message {msg}")
-                if messages.REGISTER in msg:
-                    if msg[messages.REGISTER] == messages.WORKER:
-                        print(f"Received registeration from worker {msg[messages.REGISTER]}")
-                        workers.add(self)
-                    if msg[messages.REGISTER] == messages.CLIENT:
-                        print(f"Received registeration from client {msg[messages.REGISTER]}")
-                        clients.add(self)
-                if self in clients and messages.REQUEST in msg:
+                msg_type = int(raw_data[0])
+                if msg_type == messages.CONNECTION_END:
+                    return
+                if messages.REGISTER_WORKER == msg_type:
+                    print(f"Received registeration from worker")
+                    workers.add(self)
+                if messages.REGISTER_CLIENT == msg_type:
+                    print(f"Received registeration from client")
+                    clients.add(self)
+                if self in clients and messages.REQUEST_TO_RUN == msg_type:
                     print("Request from client")
                     for w in workers:
                         print("Sending to worker")
-                        messages.put(w.request, json.dumps({
-                            messages.INSTRUCTION:messages.WORK,
-                            messages.COMMAND:msg[messages.REQUEST]
-                            }))
+                        messages.put_message(w.request, messages.WORK, str(raw_data[1:], 'utf-8'))
                         work_to_client[w] = self
                         continue
-                elif messages.WORK_RESULT in msg:
+                elif messages.WORK_RESULT == msg_type:
                     print(f"Received work results!")
-                    messages.put(work_to_client[self].request, json.dumps(msg))
+                    messages.put_bytes(work_to_client[self].request, raw_data)
                     print("Closing connection")
-                    messages.put(self.request, json.dumps({messages.INSTRUCTION:messages.CLOSE}))
+                    messages.put_message(self.request, messages.CONNECTION_END, '')
                     return
-                elif messages.LOG in msg:
-                    print(f"Received log '{msg[messages.LOG]}'")
+                elif messages.LOG == msg_type:
+                    print(f"Received log '{str(raw_data[1:], 'utf-8')}'")
         finally:
             if self in workers:
                 workers.remove(self)
