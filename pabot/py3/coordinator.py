@@ -52,7 +52,7 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
 
 def main(args=None):
-    HOST, PORT = "localhost", 8765
+    HOST, PORT = "0.0.0.0", 8765
     server = ThreadedTCPServer((HOST, PORT), CoordinatorHandler)
     server.timeout = None
     print(f"Starting Coordinator server at {HOST}:{PORT}")

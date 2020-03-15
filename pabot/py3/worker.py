@@ -6,11 +6,13 @@ import socket
 import tempfile
 import shutil
 import os
+import sys
 from . import messages
 import tarfile
 
-def working():
-    HOST, PORT = "localhost", 8765
+def working(hiveAddress:str):
+    HOST, PORT = hiveAddress.split(":")
+    PORT = int(PORT)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(None)
     try:
@@ -39,8 +41,8 @@ def working():
         print("Closed worker")
 
 
-def main(args=None):
-    working()
+def main():
+    working(sys.argv[1])
 
 if __name__ == '__main__':
-    main()
+    working(sys.argv[1])
