@@ -163,30 +163,45 @@ def execute_and_wait_with(item):
         caller_id = uuid.uuid4().hex
         cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index, item.last_level) + datasources
         cmd = _mapOptionalQuote(cmd)
-        _try_execute_and_wait(cmd, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id, item.index)
+        if item.hive:
+            _hived_execute(item.hive, cmd, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id, item.index)
+        else:
+            _try_execute_and_wait(cmd, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id, item.index)
         outputxml_preprocessing(item.options, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id)
     except:
         _write(traceback.format_exc())
+
+
+def _hived_execute(hive, cmd, outs_dir, item_name, verbose, pool_id, caller_id, my_index=-1):
+    plib = None
+    if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
+        plib = Remote(_PABOTLIBURI)
+    try:
+        make_order(hive, ' '.join(cmd))
+    except:
+        _write(traceback.format_exc())
+    if plib:
+        _increase_completed(plib, my_index)
+
 
 def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id, my_index=-1):
     plib = None
     if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
         plib = Remote(_PABOTLIBURI)
     try:
-        make_order(' '.join(cmd))
-        #with open(os.path.join(outs_dir, cmd[0]+'_stdout.out'), 'w') as stdout:
-        #    with open(os.path.join(outs_dir, cmd[0]+'_stderr.out'), 'w') as stderr:
-        #        process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id, my_index)
+        with open(os.path.join(outs_dir, cmd[0]+'_stdout.out'), 'w') as stdout:
+            with open(os.path.join(outs_dir, cmd[0]+'_stderr.out'), 'w') as stderr:
+                process, (rc, elapsed) = _run(cmd, stderr, stdout, item_name, verbose, pool_id, my_index)
     except:
         _write(traceback.format_exc())
     if plib:
         _increase_completed(plib, my_index)
     # Thread-safe list append
-    #_ALL_ELAPSED.append(elapsed)
-    #if rc != 0:
-    #    _write_with_id(process, pool_id, my_index, _execution_failed_message(item_name, stdout, stderr, rc, verbose), Color.RED)
-    #else:
-    #    _write_with_id(process, pool_id, my_index, _execution_passed_message(item_name, stdout, stderr, elapsed, verbose), Color.GREEN)
+    _ALL_ELAPSED.append(elapsed)
+    if rc != 0:
+        _write_with_id(process, pool_id, my_index, _execution_failed_message(item_name, stdout, stderr, rc, verbose), Color.RED)
+    else:
+        _write_with_id(process, pool_id, my_index, _execution_passed_message(item_name, stdout, stderr, elapsed, verbose), Color.GREEN)
 
 
 # optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
@@ -701,6 +716,23 @@ class ExecutionItem(object):
 
     def __repr__(self):
         return "<" + self.type + ":" + self.name + ">"
+
+
+class HivedItem(ExecutionItem):
+
+    type = 'hived'
+
+    def __init__(self, item, hive):
+        self._item = item
+        self._hive = hive
+
+    def modify_options_for_executor(self, options):
+        _write("HIVING I AM")
+        self._item.modify_options_for_executor(options)
+
+    @property
+    def name(self):
+        return self._item.name
 
 
 class GroupItem(ExecutionItem):
@@ -1496,17 +1528,18 @@ def _get_suite_root_name(suite_names):
 
 class QueueItem(object):
 
-    def __init__(self, datasources, outs_dir, options, execution_item, command, verbose, argfile):
+    def __init__(self, datasources, outs_dir, options, execution_item, command, verbose, argfile, hive=None):
         self.datasources = datasources
         self.outs_dir = outs_dir.encode('utf-8') if PY2 and is_unicode(outs_dir) else outs_dir
         self.options = options
-        self.execution_item = execution_item
+        self.execution_item = execution_item if not hive else HivedItem(execution_item, hive)
         self.command = command
         self.verbose = verbose
         self.argfile_index = argfile[0]
         self.argfile = argfile[1]
         self.index = -1
         self.last_level = None
+        self.hive = hive
 
 
 def _create_execution_items(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args):
@@ -1519,7 +1552,7 @@ def _create_execution_items(suite_names, datasources, outs_dir, options, opts_fo
             "suitesfrom" not in pabot_args:
             random.shuffle(suite_group)
         items = [QueueItem(datasources, outs_dir, opts_for_run, suite,
-            pabot_args['command'], pabot_args['verbose'], argfile)
+            pabot_args['command'], pabot_args['verbose'], argfile, pabot_args.get('hive'))
             for suite in suite_group
             for argfile in pabot_args['argumentfiles'] or [("", None)]]
         _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(items)
