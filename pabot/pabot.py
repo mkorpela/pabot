@@ -408,7 +408,8 @@ def _parse_args(args):
                   'pabotlibport': 8270,
                   'processes': _processes_count(),
                   'argumentfiles': []}
-    while args and (args[0] in ['--' + param for param in ['command',
+    while args and (args[0] in ['--' + param for param in ['hive',
+                                                           'command',
                                                            'processes',
                                                            'verbose',
                                                            'resourcefile',
@@ -420,6 +421,10 @@ def _parse_args(args):
                                                            'suitesfrom',
                                                            'help']] or
                         ARGSMATCHER.match(args[0])):
+        if args[0] == '--hive':
+            pabot_args['hive'] = args[1]
+            args = args[2:]
+            continue
         if args[0] == '--command':
             end_index = args.index('--end-command')
             pabot_args['command'] = args[1:end_index]
