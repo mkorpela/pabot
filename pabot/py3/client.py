@@ -4,8 +4,9 @@ import json
 from . import messages
 
 
-def make_order(order:str):
-    HOST, PORT = "localhost", 8765
+def make_order(hive:str, order:str):
+    HOST, PORT = hive.split(":")
+    PORT = int(PORT)
     # Create a socket (SOCK_STREAM means a TCP socket)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(None)
