@@ -177,7 +177,7 @@ def _hived_execute(hive, cmd, outs_dir, item_name, verbose, pool_id, caller_id, 
     if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
         plib = Remote(_PABOTLIBURI)
     try:
-        make_order(hive, ' '.join(cmd))
+        make_order(hive, ' '.join(cmd), outs_dir)
     except:
         _write(traceback.format_exc())
     if plib:
@@ -327,7 +327,7 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id,
     options['test'] = options.get('test', [])[:]
     options['suite'] = options.get('suite', [])[:]
     execution_item.modify_options_for_executor(options)
-    options['outputdir'] = outs_dir
+    options['outputdir'] = '%OUTPUTDIR%' if execution_item.type == 'hived' else outs_dir
     options['variable'] = options.get('variable', [])[:]
     options['variable'].append('CALLER_ID:%s' % caller_id)
     pabotLibURIVar = 'PABOTLIBURI:%s' % _PABOTLIBURI
@@ -727,7 +727,6 @@ class HivedItem(ExecutionItem):
         self._hive = hive
 
     def modify_options_for_executor(self, options):
-        _write("HIVING I AM")
         self._item.modify_options_for_executor(options)
 
     @property

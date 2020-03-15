@@ -31,7 +31,7 @@ def working():
                             shell=True) as process:
                         process.wait()
                     with tarfile.open("TarName.tar.gz", "w:gz") as tar:
-                        tar.add(dirpath, arcname="TarName")
+                        tar.add(dirpath, arcname='.')
                     with open("TarName.tar.gz", 'rb') as outputs:
                         messages.put_bytes(sock, bytes([messages.WORK_RESULT]) + outputs.read())
     finally:
