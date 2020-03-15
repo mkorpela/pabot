@@ -13,36 +13,34 @@ class CoordinatorHandler(socketserver.BaseRequestHandler):
     def handle(self):
         try:
             while 'connected':
-                raw_data = messages.get_bytes(self.request)
-                if not raw_data:
+                msg = messages.get_message(self.request)
+                if msg.type == messages.CONNECTION_END:
                     return
-                msg_type = int(raw_data[0])
-                if msg_type == messages.CONNECTION_END:
-                    return
-                if messages.REGISTER_WORKER == msg_type:
+                if messages.REGISTER_WORKER == msg.type:
                     print(f"Received registeration from worker")
                     workers.put(self)
-                if messages.REGISTER_CLIENT == msg_type:
+                if messages.REGISTER_CLIENT == msg.type:
                     print(f"Received registeration from client")
                     clients.add(self)
-                if self in clients and messages.REQUEST_TO_RUN == msg_type:
+                if self in clients and messages.REQUEST_TO_RUN == msg.type:
                     print("Request from client")
                     w = workers.get()
                     print("Sending to worker")
-                    messages.put_message(w.request, messages.WORK, str(raw_data[1:], 'utf-8'))
+                    messages.put_message(w.request, messages.WORK, msg.data)
                     work_to_client[w] = self
                     continue
-                elif messages.WORK_RESULT == msg_type:
+                elif messages.WORK_RESULT == msg.type:
                     print(f"Received work results!")
                     #FIXME: Forward this direclty instead of unwrapping and wrapping
-                    messages.put_bytes(work_to_client[self].request, raw_data)
+                    msg.forward_to(work_to_client[self].request)
                     del work_to_client[self]
                     workers.put(self)
                     #print("Closing connection")
                     #messages.put_message(self.request, messages.CONNECTION_END, '')
                     #return
-                elif messages.LOG == msg_type:
-                    print(f"Received log '{str(raw_data[1:], 'utf-8')}'")
+                elif messages.LOG == msg.type:
+                    print(f"Received log '{msg.data}'")
+                msg.flush()
         finally:
             if self in clients:
                 clients.remove(self)
