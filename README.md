@@ -1,8 +1,14 @@
 # Pabot
 
-[![Build Status](https://travis-ci.org/mkorpela/pabot.svg?branch=master)](https://travis-ci.org/mkorpela/pabot)
-[![Downloads](http://pepy.tech/badge/robotframework-pabot)](http://pepy.tech/project/robotframework-pabot)
+[Русская версия](README_ru.md)
+[中文版](README_zh.md)
+
 [![Version](https://img.shields.io/pypi/v/robotframework-pabot.svg)](https://pypi.python.org/pypi/robotframework-pabot)
+[![Downloads](http://pepy.tech/badge/robotframework-pabot)](http://pepy.tech/project/robotframework-pabot)
+[![Build Status](https://travis-ci.org/mkorpela/pabot.svg?branch=master)](https://travis-ci.org/mkorpela/pabot)
+[![Build status](https://ci.appveyor.com/api/projects/status/5g52rkflbtfw2anb/branch/master?svg=true)](https://ci.appveyor.com/project/mkorpela/pabot/branch/master)
+[![Coverage](https://coveralls.io/repos/mkorpela/pabot/badge.svg)](https://coveralls.io/r/mkorpela/pabot)
+
 
 <img src="https://raw.githubusercontent.com/mkorpela/pabot/master/pabot.png" width="100">
 
@@ -24,8 +30,14 @@ OR clone this repository and run:
 
 ## Things you should know
 
-   - Pabot will split test execution from suite files and not from individual test level.
+   - Pabot will split test execution from suite files by default. For test level split use ```--testlevelsplit``` flag.
    - In general case you can't count on tests that haven't designed to be executed parallely to work out of the box when executing parallely. For example if the tests manipulate or use the same data, you might get yourself in trouble (one test suite logs in to the system while another logs the same session out etc.). PabotLib can help you solve these problems of concurrency. Also see [TRICKS](./TRICKS.md) for helpful tips.
+
+## Contact
+
+Join [Pabot Slack channel](https://robotframework.slack.com/messages/C7HKR2L6L) in Robot Framework slack.
+[Get invite to Robot Framework slack](https://robotframework-slack-invite.herokuapp.com/).
+
 
 ## Contributing to the project
 
@@ -36,13 +48,26 @@ There are several ways you can help in improving this tool:
 
 ## Command-line options
 
-Supports all Robot Framework command line options and also following options (these must be before normal RF options):
+    pabot [--verbose|--testlevelsplit|--command .. --end-command|
+           --processes num|--pabotlib|--pabotlibhost host|--pabotlibport port|
+           --resourcefile file|--argumentfile[num] file|--suitesfrom file] 
+          [robot options] [path ...]
+
+Supports all [Robot Framework command line options](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options) and also following options (these must be before RF options):
 
 --verbose     
   more output from the parallel execution
 
+--testlevelsplit          
+  Split execution on test level instead of default suite level.
+  If .pabotsuitenames contains both tests and suites then this
+  will only affect new suites and split only them.
+  Leaving this flag out when both suites and tests in
+  .pabotsuitenames file will also only affect new suites and
+  add them as suite files.
+
 --command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command    
-  RF script for situations where pybot is not used directly
+  RF script for situations where robot is not used directly
 
 --processes   [NUMBER OF PROCESSES]          
   How many parallel executors to use (default max of 2 and cpu count)
@@ -55,8 +80,8 @@ Supports all Robot Framework command line options and also following options (th
   If used with --pabotlib option, will change the host listen address of the created remote server (see https://github.com/robotframework/PythonRemoteServer)
   If used without the --pabotlib option, will connect to already running instance of the PabotLib remote server in the given host. The remote server can be also started and executed separately from pabot instances:
   
-      python -m pabot.PabotLib <path_to_resourcefile> <host> <port>
-      python -m pabot.PabotLib resource.txt 192.168.1.123 8271
+      python -m pabot.pabotlib <path_to_resourcefile> <host> <port>
+      python -m pabot.pabotlib resource.txt 192.168.1.123 8271
   
   This enables sharing a resource with multiple Robot Framework instances.
 
@@ -91,7 +116,7 @@ Example usages:
 pabot.PabotLib provides keywords that will help communication and data sharing between the executor processes.
 These can be helpful when you must ensure that only one of the processes uses some piece of data or operates on some part of the system under test at a time.
 
-Docs are located at https://cdn.rawgit.com/mkorpela/pabot/master/PabotLib.html
+PabotLib Docs are located at https://pabot.org/PabotLib.html.
 
 ### PabotLib example:
 
@@ -143,20 +168,25 @@ pabot call
 .pabotsuitenames file contains the list of suites that will be executed.
 File is created during pabot execution if not already there.
 The file is a cache that pabot uses when re-executing same tests to speed up processing. 
-This file can be partially manually edited.
+This file can be partially manually edited but easier option is to use ```--ordering FILENAME```.
 First 4 rows contain information that should not be edited - pabot will edit these when something changes.
 After this come the suite names. 
 
-There are three possibilities to influence the execution:
+With ```--ordering FILENAME``` you can have a list that controls order also. The syntax is same as .pabotsuitenames file syntax but does not contain 4 hash rows that are present in .pabotsuitenames. 
+
+There are four possibilities to influence the execution:
 
   * The order of suites can be changed.
   * If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row.
   * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
+  * You can group suites and tests together to same executor process by adding line `{` before the group and `}`after.
 
 ### Global variables
 
 Pabot will insert following global variables to Robot Framework namespace. These are here to enable PabotLib functionality and for custom listeners etc. to get some information on the overall execution of pabot.
 
+      PABOTQUEUEINDEX - this contains a unique index number for the execution. Indexes start from 0.
       PABOTLIBURI - this contains the URI for the running PabotLib server
       PABOTEXECUTIONPOOLID - this contains the pool id (an integer) for the current Robot Framework executor. This is helpful for example when visualizing the execution flow from your own listener.
+      CALLER_ID - a universally unique identifier for this execution.
  

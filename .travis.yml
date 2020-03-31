@@ -1,9 +1,10 @@
 language: python
-
+sudo: required
+dist: xenial
 python:
   - "2.7"
-  - "3.4"
   - "3.6"
+  - "3.7"
   # command to install dependencies
 install:
   - "pip install nose-cov"
@@ -12,6 +13,6 @@ install:
   - "pip install ."
   # command to run tests
 script:
-  - nosetests --with-cov --cov=pabot --cov-report term-missing
+  - nosetests --with-cov --with-tissue --cov=pabot --cov-report term-missing
 after_success:
   - coveralls

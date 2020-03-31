@@ -17,10 +17,13 @@
 #  that was licensed under Apache License Version 2.0
 from __future__ import absolute_import, print_function
 
+import os, re
+
+from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
+from robot.errors import DataError
 from robot.conf import RebotSettings
 from robot.result.executionresult import CombinedResult
-import re
 
 try:
     from robot.result import TestSuite
@@ -38,23 +41,31 @@ class ResultMerger(SuiteVisitor):
         self.current = None
         self._skip_until = None
         self._tests_root_name = tests_root_name
+        self._prefix = ""
 
     def merge(self, merged):
         try:
+            self._set_prefix(merged.source)
             merged.suite.visit(self)
             if self.errors!=merged.errors: self.errors.add(merged.errors)
         except:
             print('Error while merging result %s' % merged.source)
             raise
 
+    def _set_prefix(self, source):
+        self._prefix = prefix(source)
+
     def start_suite(self, suite):
         if self._skip_until and self._skip_until != suite:
             return
         if not self.current:
             self.current = self._find_root(suite)
-            assert self.current
+            assert(self.current)
+            if self.current is not suite:
+                for keyword in suite.keywords:
+                    self.current.keywords.append(keyword)
         else:
-            next = self._find(self.current.suites, suite.name)
+            next = self._find(self.current.suites, suite)
             if next is None:
                 self.current.suites.append(suite)
                 suite.parent = self.current
@@ -71,9 +82,11 @@ class ResultMerger(SuiteVisitor):
                              (self.root.name, suite.name))
         return self.root
 
-    def _find(self, items, name):
+    def _find(self, items, suite):
+        name = suite.name
+        source = suite.source
         for item in items:
-            if item.name == name:
+            if item.name == name and item.source == source:
                 return item
         return None
 
@@ -83,8 +96,31 @@ class ResultMerger(SuiteVisitor):
         if self._skip_until == suite:
             self._skip_until = None
             return
+        self.merge_missing_tests(suite)
         self.merge_time(suite)
+        self.clean_pabotlib_waiting_keywords(self.current)
         self.current = self.current.parent
+
+    if ROBOT_VERSION <= '3.0':
+
+        def clean_pabotlib_waiting_keywords(self, suite):
+            pass
+
+    else:
+
+        def clean_pabotlib_waiting_keywords(self, suite):
+            for index, keyword in reversed(list(enumerate(suite.keywords))):
+                if (keyword.libname == "pabot.PabotLib" and
+                    keyword.kwname.startswith("Run") and
+                    len(keyword.keywords) == 0):
+                    suite.keywords.pop(index)
+
+    def merge_missing_tests(self, suite):
+        cur = self.current
+        for test in suite.tests:
+            if not any(t.longname == test.longname for t in cur.tests):
+                test.parent = cur
+                cur.tests.append(test)
 
     def merge_time(self, suite):
         cur = self.current
@@ -99,9 +135,8 @@ class ResultMerger(SuiteVisitor):
             suites_names = parent.longname.split('.')
             if self._tests_root_name:
                 suites_names[0] = self._tests_root_name
-            prefix = '.'.join(suites_names)
             msg.message = re.sub(r'"([^"]+\.png)"',
-                                 r'"%s-\1"' % prefix, msg.message)
+                                 r'"%s-\1"' % self._prefix, msg.message)
 
 
 class ResultsCombiner(CombinedResult):
@@ -112,19 +147,31 @@ class ResultsCombiner(CombinedResult):
         self.errors.add(other.errors)
 
 
-def group_by_root(results, critical_tags, non_critical_tags):
+def prefix(source):
+    try:
+        return os.path.split(os.path.dirname(source))[1]
+    except:
+        return ""
+
+def group_by_root(results, critical_tags, non_critical_tags, invalid_xml_callback):
     groups = {}
     for src in results:
-        res = ExecutionResult(src)
+        try:
+            res = ExecutionResult(src)
+        except DataError as err:
+            print(err.message)
+            print("Skipping '%s' from final result" % src)
+            invalid_xml_callback()
+            continue
         res.suite.set_criticality(critical_tags, non_critical_tags)
         groups[res.suite.name] = groups.get(res.suite.name, []) + [res]
     return groups
 
 
-def merge_groups(results, critical_tags, non_critical_tags, tests_root_name):
+def merge_groups(results, critical_tags, non_critical_tags, tests_root_name, invalid_xml_callback):
     merged = []
     for group in group_by_root(results, critical_tags,
-                               non_critical_tags).values():
+                               non_critical_tags, invalid_xml_callback).values():
         base = group[0]
         merger = ResultMerger(base, tests_root_name)
         for out in group:
@@ -133,12 +180,17 @@ def merge_groups(results, critical_tags, non_critical_tags, tests_root_name):
     return merged
 
 
-def merge(result_files, rebot_options, tests_root_name):
-    assert len(result_files) > 0
+def merge(result_files, rebot_options, tests_root_name, invalid_xml_callback=None):
+    assert(len(result_files) > 0)
+    if invalid_xml_callback is None:
+        invalid_xml_callback = lambda:0
     settings = RebotSettings(rebot_options)
     merged = merge_groups(result_files, settings.critical_tags,
-                          settings.non_critical_tags, tests_root_name)
+                          settings.non_critical_tags, tests_root_name,
+                          invalid_xml_callback)
     if len(merged) == 1:
+        if not merged[0].suite.doc:
+            merged[0].suite.doc = '[https://pabot.org/?ref=log|Pabot] result from %d executions.' % len(result_files)
         return merged[0]
     else:
         return ResultsCombiner(merged)

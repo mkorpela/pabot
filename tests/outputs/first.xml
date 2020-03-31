@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generated="20190424 19:10:05.521" generator="Robot 3.0 (Python 2.7.10 on darwin)">
+<suite source="/Users/mkorpela/workspace/pabot/tmp" id="s1" name="Tmp">
+<suite source="/Users/mkorpela/workspace/pabot/tmp/tests.robot" id="s1-s1" name="Tests">
+<test id="s1-s1-t1" name="First">
+<kw name="Log" library="BuiltIn">
+<doc>Logs the given message with the given level.</doc>
+<arguments>
+<arg>this is first</arg>
+</arguments>
+<msg timestamp="20190424 19:10:05.549" level="INFO">this is first</msg>
+<status status="PASS" endtime="20190424 19:10:05.549" starttime="20190424 19:10:05.549"></status>
+</kw>
+<kw name="Sleep" library="BuiltIn">
+<doc>Pauses the test executed for the given time.</doc>
+<arguments>
+<arg>1 second</arg>
+</arguments>
+<msg timestamp="20190424 19:10:06.552" level="INFO">Slept 1 second</msg>
+<status status="PASS" endtime="20190424 19:10:06.552" starttime="20190424 19:10:05.550"></status>
+</kw>
+<kw name="Log" library="BuiltIn">
+<doc>Logs the given message with the given level.</doc>
+<arguments>
+<arg>yeah</arg>
+</arguments>
+<msg timestamp="20190424 19:10:06.553" level="INFO">yeah</msg>
+<status status="PASS" endtime="20190424 19:10:06.553" starttime="20190424 19:10:06.553"></status>
+</kw>
+<status status="PASS" endtime="20190424 19:10:06.554" critical="yes" starttime="20190424 19:10:05.548"></status>
+</test>
+<status status="PASS" endtime="20190424 19:10:06.554" starttime="20190424 19:10:05.547"></status>
+</suite>
+<status status="PASS" endtime="20190424 19:10:06.556" starttime="20190424 19:10:05.523"></status>
+</suite>
+<statistics>
+<total>
+<stat fail="0" pass="1">Critical Tests</stat>
+<stat fail="0" pass="1">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat fail="0" id="s1" name="Tmp" pass="1">Tmp</stat>
+<stat fail="0" id="s1-s1" name="Tests" pass="1">Tmp.Tests</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>

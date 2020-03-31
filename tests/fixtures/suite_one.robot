@@ -1,13 +1,17 @@
 *** Settings ***
 Library  pabot.PabotLib
+Library  pabot.SharedLibrary  DateTime
+Library  pabot.SharedLibrary  Easter  WITH NAME  Foo
 Suite Setup    run_only_once  setup123
 
 *** Test Cases ***
 1.1 Test Case One
   [Tags]  mytag
   Log  testing
-  Sleep  16 seconds
+  Sleep  6 seconds
+  ${time}=  pabot.SharedLibrary.Get Current Date  UTC  increment=02:30:00
   Log  this is long running
+  Run Keyword And Expect Error  None shall pass!  Foo.None Shall Pass   something
 
 1.2 Test Case Two
   acquire_lock  MyLock
