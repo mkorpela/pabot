@@ -159,6 +159,8 @@ class PabotLib(_PabotLib):
         self.ROBOT_LIBRARY_LISTENER = self
         self._position = [] # type: List[str]
         self._row_index = 0
+        self._pollingSeconds_SetupTeardown = 0.3
+        self._pollingSeconds = 0.1
 
     def _start(self, name, attributes):
         self._position.append(attributes["longname"])
@@ -217,6 +219,18 @@ class PabotLib(_PabotLib):
             logger.debug('PabotLib URI %r' % uri)
             self.__remotelib = Remote(uri) if uri else None
         return self.__remotelib
+
+    def set_polling_seconds(self, secs):
+        """
+        Determine the amount of seconds to wait between checking for free locks. Default: 0.1  (100ms)
+        """
+        self._pollingSeconds = secs
+
+    def set_polling_seconds_setupteardown(self, secs):
+        """
+        Determine the amount of seconds to wait between checking for free locks during setup and teardown. Default: 0.3  (300ms)
+        """
+        self._pollingSeconds_SetupTeardown = secs
 
     def run_setup_only_once(self, keyword, *args):
         """
@@ -281,7 +295,7 @@ class PabotLib(_PabotLib):
         if self._remotelib:
             while self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE) < queue_index:
                 logger.trace(self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE))
-                time.sleep(0.3)
+                time.sleep(self._pollingSeconds_SetupTeardown)
         logger.trace("Teardown conditions met. Executing keyword.")
         BuiltIn().run_keyword(keyword, *args)
 
@@ -297,7 +311,7 @@ class PabotLib(_PabotLib):
         queue_index = int(BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) or 0)
         if queue_index > 0 and self._remotelib:
             while self.get_parallel_value_for_key('pabot_only_last_executing') != 1:
-                time.sleep(0.3)
+                time.sleep(self._pollingSeconds_SetupTeardownp)
         BuiltIn().run_keyword(keyword)
 
     def set_parallel_value_for_key(self, key, value):
@@ -335,7 +349,7 @@ class PabotLib(_PabotLib):
             try:
                 while not self._remotelib.run_keyword('acquire_lock',
                                                       [name, self._my_id], {}):
-                    time.sleep(0.1)
+                    time.sleep(self._pollingSeconds)
                     logger.debug('waiting for lock to release')
                 return True
             except RuntimeError:
@@ -377,7 +391,7 @@ class PabotLib(_PabotLib):
                     if self._setname:
                         logger.info('Value set "%s" acquired' % self._setname)
                         return self._setname
-                    time.sleep(0.1)
+                    time.sleep(self._pollingSeconds)
                     logger.debug('waiting for a value set')
             except RuntimeError:
                 logger.error('No connection - is pabot called with --pabotlib option?')
