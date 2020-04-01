@@ -161,6 +161,7 @@ class PabotLib(_PabotLib):
         self._row_index = 0
         self._pollingSeconds_SetupTeardown = 0.3
         self._pollingSeconds = 0.1
+        self._polling_logging = True
 
     def _start(self, name, attributes):
         self._position.append(attributes["longname"])
@@ -232,6 +233,12 @@ class PabotLib(_PabotLib):
         """
         self._pollingSeconds_SetupTeardown = secs
 
+    def set_polling_logging(self, enable):
+        """
+        Enable or disable logging inside of polling. Logging inside of polling can be disabled (enable=False) to reduce log file size.
+        """
+        self._polling_logging = bool(enable)
+
     def run_setup_only_once(self, keyword, *args):
         """
         Runs a keyword only once at the first possible moment when
@@ -294,7 +301,7 @@ class PabotLib(_PabotLib):
         logger.trace("Queue index (%d)" % queue_index)
         if self._remotelib:
             while self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE) < queue_index:
-                logger.trace(self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE))
+                if self._polling_logging: logger.trace(self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE))
                 time.sleep(self._pollingSeconds_SetupTeardown)
         logger.trace("Teardown conditions met. Executing keyword.")
         BuiltIn().run_keyword(keyword, *args)
@@ -350,7 +357,7 @@ class PabotLib(_PabotLib):
                 while not self._remotelib.run_keyword('acquire_lock',
                                                       [name, self._my_id], {}):
                     time.sleep(self._pollingSeconds)
-                    logger.debug('waiting for lock to release')
+                    if self._polling_logging: logger.debug('waiting for lock to release')
                 return True
             except RuntimeError:
                 logger.error('No connection - is pabot called with --pabotlib option?')
@@ -392,7 +399,7 @@ class PabotLib(_PabotLib):
                         logger.info('Value set "%s" acquired' % self._setname)
                         return self._setname
                     time.sleep(self._pollingSeconds)
-                    logger.debug('waiting for a value set')
+                    if self._polling_logging: logger.debug('waiting for a value set')
             except RuntimeError:
                 logger.error('No connection - is pabot called with --pabotlib option?')
                 self.__remotelib = None
