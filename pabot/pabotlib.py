@@ -149,6 +149,9 @@ class PabotLib(_PabotLib):
     __version__ = 0.67
     ROBOT_LIBRARY_SCOPE = 'GLOBAL'
     ROBOT_LISTENER_API_VERSION = 2
+    _pollingSeconds_SetupTeardown = 0.3
+    _pollingSeconds = 0.1
+    _polling_logging = True
 
     def __init__(self):
         _PabotLib.__init__(self)
@@ -159,9 +162,6 @@ class PabotLib(_PabotLib):
         self.ROBOT_LIBRARY_LISTENER = self
         self._position = [] # type: List[str]
         self._row_index = 0
-        self._pollingSeconds_SetupTeardown = 0.3
-        self._pollingSeconds = 0.1
-        self._polling_logging = True
 
     def _start(self, name, attributes):
         self._position.append(attributes["longname"])
