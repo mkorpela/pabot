@@ -225,19 +225,20 @@ class PabotLib(_PabotLib):
         """
         Determine the amount of seconds to wait between checking for free locks. Default: 0.1  (100ms)
         """
-        self._pollingSeconds = secs
+        PabotLib._pollingSeconds = secs
 
     def set_polling_seconds_setupteardown(self, secs):
         """
         Determine the amount of seconds to wait between checking for free locks during setup and teardown. Default: 0.3  (300ms)
         """
-        self._pollingSeconds_SetupTeardown = secs
+        PabotLib._pollingSeconds_SetupTeardown = secs
 
     def set_polling_logging(self, enable):
         """
         Enable or disable logging inside of polling. Logging inside of polling can be disabled (enable=False) to reduce log file size.
         """
-        self._polling_logging = bool(enable)
+        if isinstance(enable,str): enable = (enable.lower()=='true')
+        PabotLib._polling_logging = bool(enable)
 
     def run_setup_only_once(self, keyword, *args):
         """
@@ -301,8 +302,8 @@ class PabotLib(_PabotLib):
         logger.trace("Queue index (%d)" % queue_index)
         if self._remotelib:
             while self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE) < queue_index:
-                if self._polling_logging: logger.trace(self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE))
-                time.sleep(self._pollingSeconds_SetupTeardown)
+                if PabotLib._polling_logging: logger.trace(self.get_parallel_value_for_key(PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE))
+                time.sleep(PabotLib._pollingSeconds_SetupTeardown)
         logger.trace("Teardown conditions met. Executing keyword.")
         BuiltIn().run_keyword(keyword, *args)
 
@@ -318,7 +319,7 @@ class PabotLib(_PabotLib):
         queue_index = int(BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) or 0)
         if queue_index > 0 and self._remotelib:
             while self.get_parallel_value_for_key('pabot_only_last_executing') != 1:
-                time.sleep(self._pollingSeconds_SetupTeardownp)
+                time.sleep(PabotLib._pollingSeconds_SetupTeardownp)
         BuiltIn().run_keyword(keyword)
 
     def set_parallel_value_for_key(self, key, value):
@@ -356,8 +357,8 @@ class PabotLib(_PabotLib):
             try:
                 while not self._remotelib.run_keyword('acquire_lock',
                                                       [name, self._my_id], {}):
-                    time.sleep(self._pollingSeconds)
-                    if self._polling_logging: logger.debug('waiting for lock to release')
+                    time.sleep(PabotLib._pollingSeconds)
+                    if PabotLib._polling_logging: logger.debug('waiting for lock to release')
                 return True
             except RuntimeError:
                 logger.error('No connection - is pabot called with --pabotlib option?')
@@ -398,8 +399,8 @@ class PabotLib(_PabotLib):
                     if self._setname:
                         logger.info('Value set "%s" acquired' % self._setname)
                         return self._setname
-                    time.sleep(self._pollingSeconds)
-                    if self._polling_logging: logger.debug('waiting for a value set')
+                    time.sleep(PabotLib._pollingSeconds)
+                    if PabotLib._polling_logging: logger.debug('waiting for a value set')
             except RuntimeError:
                 logger.error('No connection - is pabot called with --pabotlib option?')
                 self.__remotelib = None
