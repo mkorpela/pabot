@@ -1347,6 +1347,31 @@ def _output_dir(options, cleanup=True):
     return outpath
 
 
+def _copy_output_artifacts(options, file_extensions=None, include_subfolders=False):
+    if file_extensions is None:
+        file_extensions = ["png"]
+
+    pabot_outputdir = _output_dir(options, cleanup=False)
+    outputdir = options.get('outputdir', '.')
+    for location, dir_names, file_names in os.walk(pabot_outputdir):
+        for file_name in file_names:
+            file_ext = file_name.split(".")[-1]
+            if file_ext in file_extensions:
+                rel_path = os.path.relpath(location, pabot_outputdir)
+                prefix = rel_path.split(os.sep)[0]  # folders named "process-id"
+                dst_folder_path = outputdir
+                # if it is a file from sub-folders of "location"
+                if os.sep in rel_path:
+                    if not include_subfolders:
+                        continue
+                    # create destination sub-folder
+                    subfolder_path = rel_path[rel_path.index(os.sep)+1:]
+                    dst_folder_path = os.path.join(outputdir, subfolder_path)
+                    os.makedirs(dst_folder_path, exist_ok=True)
+                dst_file_name = '-'.join([prefix, file_name])
+                shutil.copyfile(os.path.join(location, file_name),
+                                os.path.join(dst_folder_path, dst_file_name))
+
 def _copy_screenshots(options):
     pabot_outputdir = _output_dir(options, cleanup=False)
     outputdir = options.get('outputdir', '.')
@@ -1373,6 +1398,8 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
         for index, _ in pabot_args['argumentfiles']:
             outputs += [_merge_one_run(os.path.join(outs_dir, index), options, tests_root_name, stats,
                                     outputfile=os.path.join('pabot_results', 'output%s.xml' % index))]
+            # TODO: use pabot options here
+            #_copy_output_artifacts(options, ["png", "mkv"], True)
             _copy_screenshots(options)
         if 'output' not in options:
             options['output'] = 'output.xml'
@@ -1391,6 +1418,8 @@ def _write_stats(stats):
 
 def _report_results_for_one_run(outs_dir, options, start_time_string, tests_root_name, stats):
     output_path = _merge_one_run(outs_dir, options, tests_root_name, stats)
+    # TODO: use pabot options here
+    #_copy_output_artifacts(options, ["png", "mkv"], True)
     _copy_screenshots(options)
     _write_stats(stats)
     if ('report' in options and options['report'] == "NONE" and
