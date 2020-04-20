@@ -840,5 +840,55 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(pabot._get_suite_root_name(t([["Bar", "Foo.Zoo"], ["Foo.Boo"]])), "")
         self.assertEqual(pabot._get_suite_root_name(t([[]])), "")
 
+    def test_copy_output_artifacts_direct_screenshots_only(self):
+        _opts = {'outputdir': 'outputs/outputs_with_artifacts/out_dir'}
+        pabot._copy_output_artifacts(options=_opts)
+        files_should_be_copied = \
+        [
+            '0-fake_screenshot_root.png',
+            '1-fake_screenshot_root.png'
+        ]
+
+        for f in files_should_be_copied:
+            file_path = os.path.join(_opts['outputdir'], f)
+            self.assertTrue(os.path.isfile(file_path), 'file not copied: {}'.format(f))
+            os.remove(file_path)  # clean up
+
+        files_should_not_be_copied = \
+        [
+            'screenshots/0-fake_screenshot_subfolder_1.png',
+            'screenshots/0-fake_screenshot_subfolder_2.png'
+            'screenshots/1-fake_screenshot_subfolder_1.png',
+            'screenshots/2-fake_screenshot_subfolder_2.png',
+            'other_artifacts/0-some_artifact.foo',
+            'other_artifacts/0-another_artifact.bar',
+            'other_artifacts/1-some_artifact.foo',
+            'other_artifacts/1-another_artifact.bar'
+        ]
+        for f in files_should_not_be_copied:
+            self.assertFalse(os.path.isfile(os.path.join(_opts['outputdir'], f)),
+                             'file copied wrongly: {}'.format(f))
+
+    def test_copy_output_artifacts_include_subfolders(self):
+        _opts = {'outputdir': 'outputs/outputs_with_artifacts/out_dir'}
+        pabot._copy_output_artifacts(options=_opts, file_extensions=['png', 'foo', 'bar'], include_subfolders=True)
+        files_should_be_copied = \
+        [
+            '0-fake_screenshot_root.png',
+            '1-fake_screenshot_root.png',
+            'screenshots/0-fake_screenshot_subfolder_1.png',
+            'screenshots/0-fake_screenshot_subfolder_2.png',
+            'screenshots/1-fake_screenshot_subfolder_1.png',
+            'screenshots/1-fake_screenshot_subfolder_2.png',
+            'other_artifacts/0-some_artifact.foo',
+            'other_artifacts/0-another_artifact.bar',
+            'other_artifacts/1-some_artifact.foo',
+            'other_artifacts/1-another_artifact.bar'
+        ]
+        for f in files_should_be_copied:
+            file_path = os.path.join(_opts['outputdir'], f)
+            self.assertTrue(os.path.isfile(file_path), 'file not copied: {}'.format(f))
+            os.remove(file_path)  # clean up
+
 if __name__ == '__main__':
     unittest.main()

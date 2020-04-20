@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 3.1.2 (Python 3.7.3 on win32)" generated="20200420 11:28:48.182" rpa="false">
+<suite id="s1" name="Tests" source="D:\Git-Home\testautomation\lib\rf-eggplant-library\self_tests\tests">
+<suite id="s1-s1" name="Pabot Test 2" source="D:\Git-Home\testautomation\lib\rf-eggplant-library\self_tests\tests\pabot_test_2.robot">
+<test id="s1-s1-t1" name="Test one">
+<kw name="Set Eggdrive Connection" library="EggplantLib">
+<doc>Defines connection to running instance of eggPlant in the eggDrive mode
+(XML RPC Server).</doc>
+<arguments>
+<arg>port=5401</arg>
+</arguments>
+<status status="PASS" starttime="20200420 11:28:48.268" endtime="20200420 11:28:48.268"></status>
+</kw>
+<kw name="Open Session" library="EggplantLib">
+<doc>Opens a session with the specified eggPlant Suite.
+Has to be called before test cases execution.</doc>
+<status status="PASS" starttime="20200420 11:28:48.269" endtime="20200420 11:28:48.308"></status>
+</kw>
+<kw name="Connect My SUT" library="common">
+<kw name="Connect Sut" library="EggplantLib">
+<doc>Opens a VNC or RDP connection with a SUT / makes it the active connection
+The specified connection_string is used.</doc>
+<arguments>
+<arg>(serverID: "localhost", portNum: "10179", password: "Astra2019", Type: "VNC Automatic", Visible: "Yes")</arg>
+</arguments>
+<msg timestamp="20200420 11:28:48.309" level="INFO">Send command to eggPlant server: 'connect (serverID: "localhost", portNum: "10179", password: "Astra2019", Type: "VNC Automatic", Visible: "Yes")'</msg>
+<msg timestamp="20200420 11:28:48.341" level="INFO">Execution duration: 0.001999974251</msg>
+<msg timestamp="20200420 11:28:48.341" level="INFO">Command output:</msg>
+<msg timestamp="20200420 11:28:48.341" level="INFO">20.04.20, 11:28:48	connect		localhost:10179
+</msg>
+<msg timestamp="20200420 11:28:48.341" level="INFO">Return value: D:/Git-Home/testautomation/lib/rf-eggplant-library/self_tests/tests/out/pabot_results/1/Screenshots/Screenshot - 2020-04-20__11_28_12.png</msg>
+<status status="PASS" starttime="20200420 11:28:48.309" endtime="20200420 11:28:48.341"></status>
+</kw>
+<status status="PASS" starttime="20200420 11:28:48.309" endtime="20200420 11:28:48.341"></status>
+</kw>
+<kw name="Screenshot" library="EggplantLib">
+<doc>Captures a SUT screen image, saves it into the specified file and logs in the Robot test log.
+Be default the full screen is captured, otherwise according to the specified rectangle.</doc>
+<msg timestamp="20200420 11:28:48.804" level="INFO" html="yes">Screenshot [Full screen] &lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="Screenshots\Screenshot - 2020-04-20__11_28_48.png"&gt;&lt;img src="Screenshots\Screenshot - 2020-04-20__11_28_48.png" height="350px"&gt;&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;</msg>
+<status status="PASS" starttime="20200420 11:28:48.342" endtime="20200420 11:28:48.804"></status>
+</kw>
+<kw name="Start Movie" library="EggplantLib">
+<doc>Starts video recording into the specified file and returns the absolute path to it.</doc>
+<msg timestamp="20200420 11:28:48.805" level="INFO">Send command to eggPlant server: 'StartMovie "D:\Git-Home\testautomation\lib\rf-eggplant-library\self_tests\tests\out\pabot_results\1\Movies\movie - 2020-04-20__11_28_48.mkv"'</msg>
+<msg timestamp="20200420 11:28:48.835" level="INFO">Execution duration: 0.004999995232</msg>
+<msg timestamp="20200420 11:28:48.835" level="INFO">Command output:</msg>
+<msg timestamp="20200420 11:28:48.835" level="INFO">20.04.20, 11:28:48	startmovie		D:/Git-Home/testautomation/lib/rf-eggplant-library/self_tests/tests/out/pabot_results/1/Movies/movie - 2020-04-20__11_28_48.mkv
+</msg>
+<msg timestamp="20200420 11:28:48.835" level="INFO">Return value: D:/Git-Home/testautomation/lib/rf-eggplant-library/self_tests/tests/out/pabot_results/1/Screenshots/Screenshot - 2020-04-20__11_28_48.png</msg>
+<msg timestamp="20200420 11:28:48.835" level="INFO" html="yes">Start video recording into: &lt;a href="Movies\movie - 2020-04-20__11_28_48.mkv"&gt;Movies\movie - 2020-04-20__11_28_48.mkv&lt;/a&gt;</msg>
+<status status="PASS" starttime="20200420 11:28:48.804" endtime="20200420 11:28:48.835"></status>
+</kw>
+<kw name="Stop Movie" library="EggplantLib">
+<msg timestamp="20200420 11:28:48.835" level="INFO">Stop video recording</msg>
+<msg timestamp="20200420 11:28:48.835" level="INFO">Send command to eggPlant server: 'StopMovie'</msg>
+<msg timestamp="20200420 11:28:49.453" level="INFO">Execution duration: 0.605000019073</msg>
+<msg timestamp="20200420 11:28:49.453" level="INFO">Command output:</msg>
+<msg timestamp="20200420 11:28:49.453" level="INFO"></msg>
+<msg timestamp="20200420 11:28:49.453" level="INFO">Return value: D:/Git-Home/testautomation/lib/rf-eggplant-library/self_tests/tests/out/pabot_results/1/Screenshots/Screenshot - 2020-04-20__11_28_48.png</msg>
+<status status="PASS" starttime="20200420 11:28:48.835" endtime="20200420 11:28:49.454"></status>
+</kw>
+<kw name="Close Session" library="EggplantLib" type="teardown">
+<doc>Closes the session with the specified eggPlant Suite.
+Has to be called after test cases execution before opening a new session with the same eggPlant Suite.
+If the requested session is not open, a RobotFramework warning is thrown.</doc>
+<status status="PASS" starttime="20200420 11:28:49.454" endtime="20200420 11:28:49.482"></status>
+</kw>
+<status status="PASS" starttime="20200420 11:28:48.267" endtime="20200420 11:28:49.482" critical="yes"></status>
+</test>
+<test id="s1-s1-t2" name="Test two">
+<kw name="Set Eggdrive Connection" library="EggplantLib">
+<doc>Defines connection to running instance of eggPlant in the eggDrive mode
+(XML RPC Server).</doc>
+<arguments>
+<arg>port=5401</arg>
+</arguments>
+<status status="PASS" starttime="20200420 11:28:49.483" endtime="20200420 11:28:49.483"></status>
+</kw>
+<kw name="Open Session" library="EggplantLib">
+<doc>Opens a session with the specified eggPlant Suite.
+Has to be called before test cases execution.</doc>
+<status status="PASS" starttime="20200420 11:28:49.483" endtime="20200420 11:28:49.530"></status>
+</kw>
+<kw name="Connect My SUT" library="common">
+<kw name="Connect Sut" library="EggplantLib">
+<doc>Opens a VNC or RDP connection with a SUT / makes it the active connection
+The specified connection_string is used.</doc>
+<arguments>
+<arg>(serverID: "localhost", portNum: "10179", password: "Astra2019", Type: "VNC Automatic", Visible: "Yes")</arg>
+</arguments>
+<msg timestamp="20200420 11:28:49.531" level="INFO">Send command to eggPlant server: 'connect (serverID: "localhost", portNum: "10179", password: "Astra2019", Type: "VNC Automatic", Visible: "Yes")'</msg>
+<msg timestamp="20200420 11:28:49.561" level="INFO">Execution duration: 0.000999927521</msg>
+<msg timestamp="20200420 11:28:49.561" level="INFO">Command output:</msg>
+<msg timestamp="20200420 11:28:49.561" level="INFO">20.04.20, 11:28:49	connect		localhost:10179
+</msg>
+<msg timestamp="20200420 11:28:49.561" level="INFO">Return value: D:/Git-Home/testautomation/lib/rf-eggplant-library/self_tests/tests/out/pabot_results/1/Screenshots/Screenshot - 2020-04-20__11_28_48.png</msg>
+<status status="PASS" starttime="20200420 11:28:49.531" endtime="20200420 11:28:49.561"></status>
+</kw>
+<status status="PASS" starttime="20200420 11:28:49.530" endtime="20200420 11:28:49.561"></status>
+</kw>
+<kw name="Screenshot" library="EggplantLib">
+<doc>Captures a SUT screen image, saves it into the specified file and logs in the Robot test log.
+Be default the full screen is captured, otherwise according to the specified rectangle.</doc>
+<msg timestamp="20200420 11:28:50.045" level="INFO" html="yes">Screenshot [Full screen] &lt;td&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td colspan="3"&gt;&lt;a href="Screenshots\Screenshot - 2020-04-20__11_28_49.png"&gt;&lt;img src="Screenshots\Screenshot - 2020-04-20__11_28_49.png" height="350px"&gt;&lt;/a&gt;&lt;/td&gt;&lt;/tr&gt;</msg>
+<status status="PASS" starttime="20200420 11:28:49.561" endtime="20200420 11:28:50.046"></status>
+</kw>
+<kw name="Start Movie" library="EggplantLib">
+<doc>Starts video recording into the specified file and returns the absolute path to it.</doc>
+<msg timestamp="20200420 11:28:50.047" level="INFO">Send command to eggPlant server: 'StartMovie "D:\Git-Home\testautomation\lib\rf-eggplant-library\self_tests\tests\out\pabot_results\1\Movies\movie - 2020-04-20__11_28_50.mkv"'</msg>
+<msg timestamp="20200420 11:28:50.077" level="INFO">Execution duration: 0.003000020981</msg>
+<msg timestamp="20200420 11:28:50.077" level="INFO">Command output:</msg>
+<msg timestamp="20200420 11:28:50.077" level="INFO">20.04.20, 11:28:50	startmovie		D:/Git-Home/testautomation/lib/rf-eggplant-library/self_tests/tests/out/pabot_results/1/Movies/movie - 2020-04-20__11_28_50.mkv
+</msg>
+<msg timestamp="20200420 11:28:50.077" level="INFO">Return value: D:/Git-Home/testautomation/lib/rf-eggplant-library/self_tests/tests/out/pabot_results/1/Screenshots/Screenshot - 2020-04-20__11_28_49.png</msg>
+<msg timestamp="20200420 11:28:50.077" level="INFO" html="yes">Start video recording into: &lt;a href="Movies\movie - 2020-04-20__11_28_50.mkv"&gt;Movies\movie - 2020-04-20__11_28_50.mkv&lt;/a&gt;</msg>
+<status status="PASS" starttime="20200420 11:28:50.046" endtime="20200420 11:28:50.077"></status>
+</kw>
+<kw name="Stop Movie" library="EggplantLib">
+<msg timestamp="20200420 11:28:50.077" level="INFO">Stop video recording</msg>
+<msg timestamp="20200420 11:28:50.077" level="INFO">Send command to eggPlant server: 'StopMovie'</msg>
+<msg timestamp="20200420 11:28:50.695" level="INFO">Execution duration: 0.605000019073</msg>
+<msg timestamp="20200420 11:28:50.695" level="INFO">Command output:</msg>
+<msg timestamp="20200420 11:28:50.695" level="INFO"></msg>
+<msg timestamp="20200420 11:28:50.695" level="INFO">Return value: D:/Git-Home/testautomation/lib/rf-eggplant-library/self_tests/tests/out/pabot_results/1/Screenshots/Screenshot - 2020-04-20__11_28_49.png</msg>
+<status status="PASS" starttime="20200420 11:28:50.077" endtime="20200420 11:28:50.695"></status>
+</kw>
+<kw name="Close Session" library="EggplantLib" type="teardown">
+<doc>Closes the session with the specified eggPlant Suite.
+Has to be called after test cases execution before opening a new session with the same eggPlant Suite.
+If the requested session is not open, a RobotFramework warning is thrown.</doc>
+<status status="PASS" starttime="20200420 11:28:50.696" endtime="20200420 11:28:50.713"></status>
+</kw>
+<status status="PASS" starttime="20200420 11:28:49.482" endtime="20200420 11:28:50.713" critical="yes"></status>
+</test>
+<status status="PASS" starttime="20200420 11:28:48.211" endtime="20200420 11:28:50.721"></status>
+</suite>
+<status status="PASS" starttime="20200420 11:28:48.184" endtime="20200420 11:28:50.723"></status>
+</suite>
+<statistics>
+<total>
+<stat pass="2" fail="0">Critical Tests</stat>
+<stat pass="2" fail="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat pass="2" fail="0" id="s1" name="Tests">Tests</stat>
+<stat pass="2" fail="0" id="s1-s1" name="Pabot Test 2">Tests.Pabot Test 2</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>
