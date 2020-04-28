@@ -50,6 +50,7 @@ There are several ways you can help in improving this tool:
 
     pabot [--verbose|--testlevelsplit|--command .. --end-command|
            --processes num|--pabotlib|--pabotlibhost host|--pabotlibport port|
+           --artifacts extensions|--artifactsinsubfolders|
            --resourcefile file|--argumentfile[num] file|--suitesfrom file] 
           [robot options] [path ...]
 
@@ -91,6 +92,19 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
 
 --resourcefile   [FILEPATH]          
   Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with pabotlib option. Resource file syntax is same as Windows ini files. Where a section is a shared set of variables.
+  
+--artifacts [FILE EXTENSIONS]   
+  List of file extensions (comma separated).    
+  Defines which files (screenshots, videos etc.) from separate reporting directories would be copied and included in a final report.   
+  Possible links to copied files in RF log would be updated (only relative paths supported).   
+  The default value is `png`.    
+  Examples:
+
+     --artifacts png,mp4,txt
+
+--artifactsinsubfolders   
+  Enables copying artifacts located not only directly in the RF output dir, but also in it's sub-folders.
+  The default value is `False`.
 
 --argumentfile[INTEGER]   [FILEPATH]          
   Run same suites with multiple [argumentfile](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files) options.
@@ -107,9 +121,10 @@ Example usages:
      pabot test_directory
      pabot --exclude FOO directory_to_tests
      pabot --command java -jar robotframework.jar --end-command --include SMOKE tests
-     pabot --processes 10 tests
+     pabot --processes 10 tests     
      pabot --pabotlibhost 192.168.1.123 --pabotlibport 8271 --processes 10 tests
      pabot --pabotlib --pabotlibhost 192.168.1.111 --pabotlibport 8272 --processes 10 tests
+     pabot --artifacts png,mp4,txt --artifactsinsubfolders directory_to_tests
 
 ### PabotLib
 
