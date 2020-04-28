@@ -433,6 +433,8 @@ def _parse_args(args):
                   'pabotlibhost': '127.0.0.1',
                   'pabotlibport': 8270,
                   'processes': _processes_count(),
+                  'artifacts': ['png'],
+                  'artifactsinsubfolders': False,
                   'argumentfiles': []}
     while args and (args[0] in ['--' + param for param in ['hive',
                                                            'command',
@@ -445,6 +447,8 @@ def _parse_args(args):
                                                            'pabotlibport',
                                                            'ordering',
                                                            'suitesfrom',
+                                                           'artifacts',
+                                                           'artifactsinsubfolders',
                                                            'help']] or
                         ARGSMATCHER.match(args[0])):
         if args[0] == '--hive':
@@ -491,6 +495,14 @@ def _parse_args(args):
         if args[0] == '--suitesfrom':
             pabot_args['suitesfrom'] = args[1]
             args = args[2:]
+            continue
+        if args[0] == '--artifacts':
+            pabot_args['artifacts'] = args[1].split(',')
+            args = args[2:]
+            continue
+        if args[0] == '--artifactsinsubfolders':
+            pabot_args['artifactsinsubfolders'] = True
+            args = args[1:]
             continue
         match = ARGSMATCHER.match(args[0])
         if match:
@@ -1337,8 +1349,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
     if pabot_args['argumentfiles']:
         outputs = [] # type: List[str]
         for index, _ in pabot_args['argumentfiles']:
-            # TODO: use pabot options here
-            _copy_output_artifacts(options)
+            _copy_output_artifacts(options, pabot_args['artifacts'], pabot_args['artifactsinsubfolders'])
             outputs += [_merge_one_run(os.path.join(outs_dir, index), options, tests_root_name, stats,
                                     outputfile=os.path.join('pabot_results', 'output%s.xml' % index))]
         if 'output' not in options:
@@ -1347,7 +1358,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
         return rebot(*outputs, **_options_for_rebot(options,
                                                     start_time_string, _now()))
     else:
-        return _report_results_for_one_run(outs_dir, options, start_time_string, tests_root_name, stats)
+        return _report_results_for_one_run(outs_dir, pabot_args, options, start_time_string, tests_root_name, stats)
 
 def _write_stats(stats):
     crit = stats['critical']
@@ -1356,9 +1367,8 @@ def _write_stats(stats):
     _write('%d tests total, %d passed, %d failed' % (al['total'], al['passed'], al['failed']))
     _write('===================================================')
 
-def _report_results_for_one_run(outs_dir, options, start_time_string, tests_root_name, stats):
-    # TODO: use pabot options here
-    _copy_output_artifacts(options)
+def _report_results_for_one_run(outs_dir, pabot_args, options, start_time_string, tests_root_name, stats):
+    _copy_output_artifacts(options, pabot_args['artifacts'], pabot_args['artifactsinsubfolders'])
     output_path = _merge_one_run(outs_dir, options, tests_root_name, stats)
     _write_stats(stats)
     if ('report' in options and options['report'] == "NONE" and
