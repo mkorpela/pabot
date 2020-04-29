@@ -33,6 +33,6 @@ setup(name='robotframework-pabot',
             'pabotworker=pabot.workerwrapper:main']},
       license='Apache License, Version 2.0',
       install_requires=[
-            'robotframework',
+            'robotframework==3.1.2',
             'robotremoteserver>=1.1',
             'typing;python_version<"3.5"'])
