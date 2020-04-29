@@ -89,8 +89,10 @@ from contextlib import contextmanager
 from robot import run, rebot
 from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
+from robot.conf import RobotSettings
 from robot.errors import Information, DataError
 from robot.result.visitor import ResultVisitor
+from robot.running import TestSuiteBuilder
 from robot.libraries.Remote import Remote
 from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
@@ -124,6 +126,7 @@ _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # doe
 _BAD_CHARS_SET = set(_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE)
 _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
 _ABNORMAL_EXIT_HAPPENED = False
+_DRY_RUN = False
 
 _COMPLETED_LOCK = threading.Lock()
 _NOT_COMPLETED_INDEXES = [] # type: List[int]
@@ -147,7 +150,7 @@ def _mapOptionalQuote(cmdargs):
 
 
 def execute_and_wait_with(item):
-    global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
+    global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED, _DRY_RUN
     is_last = _NUMBER_OF_ITEMS_TO_BE_EXECUTED == 1
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED -= 1
     if CTRL_C_PRESSED:
@@ -156,18 +159,26 @@ def execute_and_wait_with(item):
     time.sleep(0)
     try:
         datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in item.datasources]
+        caller_id = uuid.uuid4().hex
 
-        outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
+        if _DRY_RUN:
+            item_names = [child_item.name for child_item in item.execution_item.suites]
+            item_names = " ".join(item_names)
+            outs_dir = os.path.join(item.outs_dir, item.argfile_index, caller_id)
+        else:
+            item_names = item.execution_item.name
+            outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
+
         os.makedirs(outs_dir)
 
-        caller_id = uuid.uuid4().hex
         cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index, item.last_level) + datasources
         cmd = _mapOptionalQuote(cmd)
         if item.hive:
-            _hived_execute(item.hive, cmd, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id, item.index)
+            _hived_execute(item.hive, cmd, outs_dir, item_names, item.verbose, _make_id(), caller_id, item.index)
         else:
-            _try_execute_and_wait(cmd, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id, item.index)
-        outputxml_preprocessing(item.options, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id)
+            _try_execute_and_wait(cmd, outs_dir, item_names, item.verbose, _make_id(), caller_id, item.index)
+        if not _DRY_RUN:
+            outputxml_preprocessing(item.options, outs_dir, item_names, item.verbose, _make_id(), caller_id)
     except:
         _write(traceback.format_exc())
 
@@ -671,7 +682,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                                     execution_item_lines)
         return execution_item_lines
     except IOError:
-        return  generate_suite_names_with_dryrun(outs_dir, datasources, options)
+        return generate_suite_names_with_builder(outs_dir, datasources, options)
 
 
 @total_ordering
@@ -917,6 +928,17 @@ class IncludeItem(ExecutionItem):
         return [self.name]
 
 
+class SuiteItems:
+
+    type = "suite"
+
+    def __init__(self, suites):
+        self.suites = suites
+
+    def modify_options_for_executor(self, options):
+        options['suite'] = [suite.name for suite in self.suites]
+
+
 def _parse_line(text):
     if text.startswith('--suite '):
         return SuiteItem(text[8:])
@@ -961,12 +983,12 @@ def _regenerate(
         and os.path.isfile(pabot_args['suitesfrom']):
         suites = _suites_from_outputxml(pabot_args['suitesfrom'])
         if file_h is None or file_h.dirs != h.dirs:
-            all_suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
+            all_suites = generate_suite_names_with_builder(outs_dir, datasources, options)
         else:
             all_suites = [suite for suite in lines if suite]
         suites = _preserve_order(all_suites, suites)
     else:
-        suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
+        suites = generate_suite_names_with_builder(outs_dir, datasources, options)
         if pabot_args.get('testlevelsplit'):
             tests = [] # type: List[TestItem]
             for s in suites:
@@ -1110,7 +1132,7 @@ def generate_suite_names(outs_dir, datasources, options, pabot_args): # type: (o
     if 'suitesfrom' in pabot_args and os.path.isfile(pabot_args['suitesfrom']):
         suites = _suites_from_outputxml(pabot_args['suitesfrom'])
     else:
-        suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
+        suites = generate_suite_names_with_builder(outs_dir, datasources, options)
     if pabot_args.get('testlevelsplit'):
         tests = [] # type: List[ExecutionItem]
         for s in suites:
@@ -1118,12 +1140,19 @@ def generate_suite_names(outs_dir, datasources, options, pabot_args): # type: (o
         return tests
     return list(suites)
 
-def generate_suite_names_with_dryrun(outs_dir, datasources, options):
+def generate_suite_names_with_builder(outs_dir, datasources, options):
     opts = _options_for_dryrun(options, outs_dir)
-    with _with_modified_robot():
-        run(*datasources, **opts)
-    output = os.path.join(outs_dir, opts['output'])
-    suite_names = get_suite_names(output)
+    try:
+        settings = RobotSettings(opts)
+        builder = TestSuiteBuilder(settings['SuiteNames'], extension=settings.extension, rpa=settings.rpa)
+        suite = builder.build(*datasources)
+        settings.rpa = builder.rpa
+        suite.configure(**settings.suite_config)
+    except DataError as e:
+        _write("[STDERR] " + e.message, Color.RED)
+        return []
+    all_suites = get_all_suites_from_main_suite(suite.suites) if suite.suites else [suite]
+    suite_names = [SuiteItem(suite.longname, tests=[test.longname for test in suite.tests], suites=suite.suites) for suite in all_suites]
     if not suite_names and not options.get('runemptysuite', False):
         stdout_value = opts['stdout'].getvalue()
         if stdout_value:
@@ -1132,6 +1161,15 @@ def generate_suite_names_with_dryrun(outs_dir, datasources, options):
         if stderr_value:
             _write("[STDERR] from suite search:\n"+stderr_value+"[STDERR] end", Color.RED)
     return list(sorted(set(suite_names)))
+
+def get_all_suites_from_main_suite(suites):
+    all_suites = []
+    for suite in suites:
+        if suite.suites:
+            all_suites.extend(get_all_suites_from_main_suite(suite.suites))
+        else:
+            all_suites.append(suite)
+    return all_suites
 
 
 @contextmanager
@@ -1542,7 +1580,24 @@ class QueueItem(object):
 
 
 def _create_execution_items(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args):
-    global _NUMBER_OF_ITEMS_TO_BE_EXECUTED, _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES
+    global _DRY_RUN, _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES
+    _DRY_RUN = options.get('dryrun') if ROBOT_VERSION >= '2.8' else options.get('runmode') == 'DryRun'
+    if _DRY_RUN:
+        all_items = _create_execution_items_for_dry_run(suite_names, datasources, outs_dir, opts_for_run, pabot_args)
+    else:
+        all_items = _create_execution_items_for_run(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args)
+    with _COMPLETED_LOCK:
+        index = 0
+        for item_group in all_items:
+            for item in item_group:
+                _NOT_COMPLETED_INDEXES.append(index)
+                item.index = index
+                index += 1
+    _construct_last_levels(all_items)
+    return all_items
+
+def _create_execution_items_for_run(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args):
+    global _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     all_items = []
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
     for suite_group in suite_names:
@@ -1556,15 +1611,33 @@ def _create_execution_items(suite_names, datasources, outs_dir, options, opts_fo
             for argfile in pabot_args['argumentfiles'] or [("", None)]]
         _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(items)
         all_items.append(items)
-    with _COMPLETED_LOCK:
-        index = 0
-        for item_group in all_items:
-            for item in item_group:
-                _NOT_COMPLETED_INDEXES.append(index)
-                item.index = index
-                index += 1
-    _construct_last_levels(all_items)
     return all_items
+
+def _create_execution_items_for_dry_run(suite_names, datasources, outs_dir, opts_for_run, pabot_args):
+    global _NUMBER_OF_ITEMS_TO_BE_EXECUTED
+    all_items = []
+    _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
+    processes_count = pabot_args.get('processes') or _processes_count()
+    for suite_group in suite_names:
+        items = [QueueItem(datasources, outs_dir, opts_for_run, suite,
+                           pabot_args['command'], pabot_args['verbose'], argfile, pabot_args.get('hive'))
+                 for suite in suite_group
+                 for argfile in pabot_args['argumentfiles'] or [("", None)]]
+        chunk_size = round(len(items) / processes_count) if len(items) > processes_count else len(items)
+        chunked_items = list(_chunk_items(items, chunk_size))
+        _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(chunked_items)
+        all_items.append(chunked_items)
+    return all_items
+
+def _chunk_items(items, chunk_size):
+    for i in range(0, len(items), chunk_size):
+        chunked_items = items[i:i + chunk_size]
+        base_item = chunked_items[0]
+        if base_item:
+            execution_items = SuiteItems([item.execution_item for item in chunked_items])
+            chunked_item = QueueItem(base_item.datasources, base_item.outs_dir, base_item.options, execution_items,
+                                     base_item.command, base_item.verbose, [base_item.argfile_index, base_item.argfile])
+            yield chunked_item
 
 def _find_ending_level(name, group):
     n = name.split(".")
@@ -1582,10 +1655,18 @@ def _construct_last_levels(all_items):
     names = []
     for items in all_items:
         for item in items:
-            names.append(item.execution_item.name)
+            if isinstance(item.execution_item, SuiteItems):
+                for suite in item.execution_item.suites:
+                    names.append(suite.name)
+            else:
+                names.append(item.execution_item.name)
     for items in all_items:
         for item in items:
-            item.last_level = _find_ending_level(item.execution_item.name, names[item.index+1:])
+            if isinstance(item.execution_item, SuiteItems):
+                for suite in item.execution_item.suites:
+                    item.last_level = _find_ending_level(suite.name, names[item.index + 1:])
+            else:
+                item.last_level = _find_ending_level(item.execution_item.name, names[item.index+1:])
 
 def _initialize_queue_index():
     global _PABOTLIBURI
