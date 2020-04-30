@@ -35,13 +35,22 @@ from robot.model import SuiteVisitor
 
 class ResultMerger(SuiteVisitor):
 
-    def __init__(self, result, tests_root_name):
+    def __init__(self, result, tests_root_name, out_dir):
         self.root = result.suite
         self.errors = result.errors
         self.current = None
         self._skip_until = None
         self._tests_root_name = tests_root_name
         self._prefix = ""
+        self._out_dir = out_dir
+
+        # read original file names of copied screenshots and other artifacts
+        self._copied_artifacts = []
+        copied_artifacts_file = os.path.join(self._out_dir, "copied.artifacts")
+        if os.path.isfile(copied_artifacts_file):
+            with open(copied_artifacts_file, 'r', encoding="utf8") as f:
+                self._copied_artifacts = f.readlines()
+            self._copied_artifacts = [line.rstrip("\n") for line in self._copied_artifacts]
 
     def merge(self, merged):
         try:
@@ -128,15 +137,27 @@ class ResultMerger(SuiteVisitor):
         cur.starttime = min([cur.starttime, suite.starttime])
 
     def visit_message(self, msg):
-        if msg.html and re.search(r'src="([^"]+\.png)"', msg.message):
-            parent = msg.parent
-            while not isinstance(parent, TestSuite):
-                parent = parent.parent
-            suites_names = parent.longname.split('.')
-            if self._tests_root_name:
-                suites_names[0] = self._tests_root_name
-            msg.message = re.sub(r'"([^"]+\.png)"',
-                                 r'"%s-\1"' % self._prefix, msg.message)
+        # don't edit links if nothing was copied
+        if not self._copied_artifacts:
+            return
+
+        # https://regex101.com/r/sBwbgN/5
+        regexp_template = r'(src|href)="(.*?[\\\/]+)?({})"'
+        if msg.html:
+            for artifact in self._copied_artifacts:
+                regexp = regexp_template.format(re.escape(artifact))
+                if re.search(regexp, msg.message):
+                    parent = msg.parent
+                    while not isinstance(parent, TestSuite):
+                        parent = parent.parent
+                    suites_names = parent.longname.split('.')
+                    if self._tests_root_name:
+                        suites_names[0] = self._tests_root_name
+                    msg.message = re.sub(regexp,
+                                         r'\g<1>="\g<2>%s-\g<3>"' % self._prefix, msg.message)
+                    # group 1 - "src" / "href"
+                    # group 2 - possible path before file name
+                    # group 3 - file name
 
 
 class ResultsCombiner(CombinedResult):
@@ -168,12 +189,12 @@ def group_by_root(results, critical_tags, non_critical_tags, invalid_xml_callbac
     return groups
 
 
-def merge_groups(results, critical_tags, non_critical_tags, tests_root_name, invalid_xml_callback):
+def merge_groups(results, critical_tags, non_critical_tags, tests_root_name, invalid_xml_callback, out_dir=None):
     merged = []
     for group in group_by_root(results, critical_tags,
                                non_critical_tags, invalid_xml_callback).values():
         base = group[0]
-        merger = ResultMerger(base, tests_root_name)
+        merger = ResultMerger(base, tests_root_name, out_dir)
         for out in group:
             merger.merge(out)
         merged.append(base)
@@ -187,7 +208,7 @@ def merge(result_files, rebot_options, tests_root_name, invalid_xml_callback=Non
     settings = RebotSettings(rebot_options)
     merged = merge_groups(result_files, settings.critical_tags,
                           settings.non_critical_tags, tests_root_name,
-                          invalid_xml_callback)
+                          invalid_xml_callback, settings.output_directory)
     if len(merged) == 1:
         if not merged[0].suite.doc:
             merged[0].suite.doc = '[https://pabot.org/?ref=log|Pabot] result from %d executions.' % len(result_files)
