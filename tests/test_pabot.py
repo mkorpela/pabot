@@ -897,7 +897,8 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(pabot._get_suite_root_name(t([[]])), "")
 
     def test_copy_output_artifacts_direct_screenshots_only(self):
-        _opts = {'outputdir': 'outputs/outputs_with_artifacts/out_dir'}
+        out_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'outputs/outputs_with_artifacts/out_dir')
+        _opts = {'outputdir': out_dir}
         pabot._copy_output_artifacts(options=_opts)
         files_should_be_copied = \
         [
@@ -926,7 +927,8 @@ class PabotTests(unittest.TestCase):
                              'file copied wrongly: {}'.format(f))
 
     def test_copy_output_artifacts_include_subfolders(self):
-        _opts = {'outputdir': 'outputs/outputs_with_artifacts/out_dir'}
+        out_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'outputs/outputs_with_artifacts/out_dir')
+        _opts = {'outputdir': out_dir}
         pabot._copy_output_artifacts(options=_opts, file_extensions=['png', 'foo', 'bar'], include_subfolders=True)
         files_should_be_copied = \
         [
