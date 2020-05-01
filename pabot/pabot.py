@@ -1140,6 +1140,7 @@ def _with_modified_robot():
     TsvReader = None # type: Optional[object]
     old_read = None
     if ROBOT_VERSION >= "3.2":
+        # TODO: Add optimizations for RF 3.2
         yield
         return
     try:
