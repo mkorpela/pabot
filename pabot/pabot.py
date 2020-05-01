@@ -1144,7 +1144,7 @@ def generate_suite_names_with_builder(outs_dir, datasources, options):
     opts = _options_for_dryrun(options, outs_dir)
     try:
         settings = RobotSettings(opts)
-        builder = TestSuiteBuilder(settings['SuiteNames'], extension=settings.extension, rpa=settings.rpa)
+        builder = TestSuiteBuilder(settings['SuiteNames'], settings.extension, rpa=settings.rpa)
         suite = builder.build(*datasources)
         settings.rpa = builder.rpa
         suite.configure(**settings.suite_config)

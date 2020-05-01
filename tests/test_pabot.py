@@ -52,18 +52,6 @@ class PabotTests(unittest.TestCase):
         ]
         self._all_with_tests = ['--test '+_t for _t in self._all_tests]
 
-    def test_dryrun_optimisation_works(self):
-        outs_dir = "."
-        opts = pabot._options_for_dryrun({}, outs_dir)
-        with pabot._with_modified_robot():
-            pabot.run("tests/recursion.robot", **opts)
-        output = os.path.join(outs_dir, opts['output'])
-        data = ""
-        with open(output, "r") as f:
-            data = f.read()
-        self.assertTrue("No Operation" in data, data)
-        self.assertFalse("Recursive" in data, data)
-
     def test_parse_args(self):
         options, datasources, pabot_args, options_for_subprocesses = pabot._parse_args(
             ['--command', 'my_own_command.sh', '--end-command',
