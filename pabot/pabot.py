@@ -1311,7 +1311,8 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
                     # create destination sub-folder
                     subfolder_path = rel_path[rel_path.index(os.sep)+1:]
                     dst_folder_path = os.path.join(outputdir, subfolder_path)
-                    os.makedirs(dst_folder_path, exist_ok=True)
+                    if not os.path.isdir(dst_folder_path):
+                        os.makedirs(dst_folder_path)
                 dst_file_name = '-'.join([prefix, file_name])
                 shutil.copyfile(os.path.join(location, file_name),
                                 os.path.join(dst_folder_path, dst_file_name))
