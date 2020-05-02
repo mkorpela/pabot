@@ -39,6 +39,13 @@ OR clone this repository and run:
 
 ## Параметры командной строки
 
+    pabot [--verbose|--testlevelsplit|--command .. --end-command|
+           --processes num|--pabotlib|--pabotlibhost host|--pabotlibport port|
+           --artifacts extensions|--artifactsinsubfolders|
+           --resourcefile file|--argumentfile[num] file|--suitesfrom file] 
+          [robot options] [path ...]
+
+
 Поддерживает все параметры командной строки Robot Framework, а также следующие параметры (они должны быть перед обычными параметрами RF):
 
 --verbose     
