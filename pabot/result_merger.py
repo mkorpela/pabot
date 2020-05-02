@@ -35,7 +35,7 @@ from robot.model import SuiteVisitor
 
 class ResultMerger(SuiteVisitor):
 
-    def __init__(self, result, tests_root_name, out_dir):
+    def __init__(self, result, tests_root_name, out_dir, copied_artifacts):
         self.root = result.suite
         self.errors = result.errors
         self.current = None
@@ -43,14 +43,7 @@ class ResultMerger(SuiteVisitor):
         self._tests_root_name = tests_root_name
         self._prefix = ""
         self._out_dir = out_dir
-
-        # read original file names of copied screenshots and other artifacts
-        self._copied_artifacts = []
-        copied_artifacts_file = os.path.join(self._out_dir, "copied.artifacts")
-        if os.path.isfile(copied_artifacts_file):
-            with open(copied_artifacts_file, 'r', encoding="utf8") as f:
-                self._copied_artifacts = f.readlines()
-            self._copied_artifacts = [line.rstrip("\n") for line in self._copied_artifacts]
+        self._copied_artifacts = copied_artifacts
 
     def merge(self, merged):
         try:
