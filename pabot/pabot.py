@@ -578,10 +578,13 @@ def hash_directory(digest, path):
             if os.path.isfile(file_path) and \
                 any(file_path.endswith(p) for p in _ROBOT_EXTENSIONS):
                 # DO NOT ALLOW CHANGE TO FILE LOCATION
-                digest.update(_digest(os.path.normpath(root)))
+                digest.update(_digest(_norm_path(root)))
                 # DO THESE IN TWO PHASES BECAUSE SEPARATOR DIFFERS IN DIFFERENT OS
                 digest.update(_digest(name))
                 get_hash_of_file(file_path, digest)
+
+def _norm_path(path):
+    return "/".join(os.path.split(os.path.normpath(path)))
 
 def _digest(text):
     text = text.decode('utf-8') if PY2 and not is_unicode(text)  else text
