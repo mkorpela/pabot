@@ -1142,15 +1142,11 @@ def generate_suite_names(outs_dir, datasources, options, pabot_args): # type: (o
 
 def generate_suite_names_with_builder(outs_dir, datasources, options):
     opts = _options_for_dryrun(options, outs_dir)
-    try:
-        settings = RobotSettings(opts)
-        builder = TestSuiteBuilder(settings['SuiteNames'], settings.extension, rpa=settings.rpa)
-        suite = builder.build(*datasources)
-        settings.rpa = builder.rpa
-        suite.configure(**settings.suite_config)
-    except DataError as e:
-        _write("[STDERR] " + e.message, Color.RED)
-        return []
+    settings = RobotSettings(opts)
+    builder = TestSuiteBuilder(settings['SuiteNames'], settings.extension, rpa=settings.rpa)
+    suite = builder.build(*datasources)
+    settings.rpa = builder.rpa
+    suite.configure(**settings.suite_config)
     all_suites = get_all_suites_from_main_suite(suite.suites) if suite.suites else [suite]
     suite_names = [SuiteItem(suite.longname, tests=[test.longname for test in suite.tests], suites=suite.suites) for suite in all_suites]
     if not suite_names and not options.get('runemptysuite', False):
