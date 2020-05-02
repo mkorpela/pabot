@@ -584,7 +584,7 @@ def hash_directory(digest, path):
                 get_hash_of_file(file_path, digest)
 
 def _norm_path(path):
-    return "/".join(os.path.split(os.path.normpath(path)))
+    return "/".join(os.path.normpath(path).split(os.path.sep))
 
 def _digest(text):
     text = text.decode('utf-8') if PY2 and not is_unicode(text)  else text
