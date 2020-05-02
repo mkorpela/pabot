@@ -578,7 +578,7 @@ def hash_directory(digest, path):
             if os.path.isfile(file_path) and \
                 any(file_path.endswith(p) for p in _ROBOT_EXTENSIONS):
                 # DO NOT ALLOW CHANGE TO FILE LOCATION
-                digest.update(_digest(root))
+                digest.update(_digest(os.path.normpath(root)))
                 # DO THESE IN TWO PHASES BECAUSE SEPARATOR DIFFERS IN DIFFERENT OS
                 digest.update(_digest(name))
                 get_hash_of_file(file_path, digest)
