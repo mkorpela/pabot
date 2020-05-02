@@ -9,6 +9,7 @@ import random
 import codecs
 from pabot import pabot
 from robot.utils import PY2
+from robot.errors import DataError
 from robot import __version__ as ROBOT_VERSION
 
 s = pabot.SuiteItem
@@ -588,12 +589,14 @@ class PabotTests(unittest.TestCase):
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames)
         self._options["loglevel"] = "INVALID123"
-        original = pabot._regenerate
-        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
-                                            datasources=self._datasources,
-                                            options=self._options,
-                                            pabot_args=self._pabot_args)
-        self.assertEqual([], suite_names)
+        try:
+            pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                    datasources=self._datasources,
+                                    options=self._options,
+                                    pabot_args=self._pabot_args)
+            self.fail("Should have thrown DataError")
+        except DataError:
+            pass
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
         self.assertEqual(pabotsuitenames, actual)
