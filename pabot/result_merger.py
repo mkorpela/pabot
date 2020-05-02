@@ -183,26 +183,27 @@ def group_by_root(results, critical_tags, non_critical_tags, invalid_xml_callbac
     return groups
 
 
-def merge_groups(results, critical_tags, non_critical_tags, tests_root_name, invalid_xml_callback, out_dir=None):
+def merge_groups(results, critical_tags, non_critical_tags, tests_root_name, invalid_xml_callback, out_dir, copied_artifacts):
     merged = []
     for group in group_by_root(results, critical_tags,
                                non_critical_tags, invalid_xml_callback).values():
         base = group[0]
-        merger = ResultMerger(base, tests_root_name, out_dir)
+        merger = ResultMerger(base, tests_root_name, out_dir, copied_artifacts)
         for out in group:
             merger.merge(out)
         merged.append(base)
     return merged
 
 
-def merge(result_files, rebot_options, tests_root_name, invalid_xml_callback=None):
+def merge(result_files, rebot_options, tests_root_name, copied_artifacts, invalid_xml_callback=None):
     assert(len(result_files) > 0)
     if invalid_xml_callback is None:
         invalid_xml_callback = lambda:0
     settings = RebotSettings(rebot_options)
     merged = merge_groups(result_files, settings.critical_tags,
                           settings.non_critical_tags, tests_root_name,
-                          invalid_xml_callback, settings.output_directory)
+                          invalid_xml_callback, settings.output_directory,
+                          copied_artifacts)
     if len(merged) == 1:
         if not merged[0].suite.doc:
             merged[0].suite.doc = '[https://pabot.org/?ref=log|Pabot] result from %d executions.' % len(result_files)

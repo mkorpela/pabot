@@ -1327,8 +1327,9 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
     if pabot_args['argumentfiles']:
         outputs = [] # type: List[str]
         for index, _ in pabot_args['argumentfiles']:
-            _copy_output_artifacts(options, pabot_args['artifacts'], pabot_args['artifactsinsubfolders'])
+            copied_artifacts = _copy_output_artifacts(options, pabot_args['artifacts'], pabot_args['artifactsinsubfolders'])
             outputs += [_merge_one_run(os.path.join(outs_dir, index), options, tests_root_name, stats,
+                                    copied_artifacts,
                                     outputfile=os.path.join('pabot_results', 'output%s.xml' % index))]
         if 'output' not in options:
             options['output'] = 'output.xml'
@@ -1346,8 +1347,8 @@ def _write_stats(stats):
     _write('===================================================')
 
 def _report_results_for_one_run(outs_dir, pabot_args, options, start_time_string, tests_root_name, stats):
-    _copy_output_artifacts(options, pabot_args['artifacts'], pabot_args['artifactsinsubfolders'])
-    output_path = _merge_one_run(outs_dir, options, tests_root_name, stats)
+    copied_artifacts = _copy_output_artifacts(options, pabot_args['artifacts'], pabot_args['artifactsinsubfolders'])
+    output_path = _merge_one_run(outs_dir, options, tests_root_name, stats, copied_artifacts)
     _write_stats(stats)
     if ('report' in options and options['report'] == "NONE" and
         'log' in options and options['log'] == "NONE"):
@@ -1358,7 +1359,7 @@ def _report_results_for_one_run(outs_dir, pabot_args, options, start_time_string
     return rebot(output_path, **_options_for_rebot(options,
                                                    start_time_string, _now()))
 
-def _merge_one_run(outs_dir, options, tests_root_name, stats, outputfile='output.xml'):
+def _merge_one_run(outs_dir, options, tests_root_name, stats, copied_artifacts, outputfile='output.xml'):
     output_path = os.path.abspath(os.path.join(
         options.get('outputdir', '.'),
         options.get('output', outputfile)))
@@ -1371,7 +1372,7 @@ def _merge_one_run(outs_dir, options, tests_root_name, stats, outputfile='output
         _ABNORMAL_EXIT_HAPPENED = True
     if PY2:
         files = [f.decode(SYSTEM_ENCODING) if not is_unicode(f) else f for f in files]
-    resu = merge(files, options, tests_root_name, invalid_xml_callback)
+    resu = merge(files, options, tests_root_name, copied_artifacts, invalid_xml_callback)
     _update_stats(resu, stats)
     resu.save(output_path)
     return output_path

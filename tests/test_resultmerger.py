@@ -27,7 +27,7 @@ class ResultMergerTests(unittest.TestCase):
             'tests/outputs/first.xml',
             'tests/outputs/second.xml',
             'tests/outputs/third.xml'
-        ], {}, "root")
+        ], {}, "root", [])
         visitor = ResultStats()
         result.visit(visitor)
         self.assertEqual(
@@ -35,19 +35,19 @@ class ResultMergerTests(unittest.TestCase):
             visitor.suites
         )
         self.assertEqual(
-            ['Tmp.Tests.First', 'Tmp.Tests.Second', 'Tmp.Tests.Third'], 
+            ['Tmp.Tests.First', 'Tmp.Tests.Second', 'Tmp.Tests.Third'],
             visitor.tests)
 
     def test_suite_level_run_merge(self):
         result = result_merger.merge([
             'tests/outputs/tests.xml',
             'tests/outputs/tests2.xml'
-        ], {}, "root")
+        ], {}, "root", [])
         visitor = ResultStats()
         result.visit(visitor)
         self.assertEqual(
-            ['Tmp.Tests.First', 'Tmp.Tests.Second', 'Tmp.Tests.Third', 
-            'Tmp.Tests2.First 2', 'Tmp.Tests2.Second 2', 'Tmp.Tests2.Third 2'], 
+            ['Tmp.Tests.First', 'Tmp.Tests.Second', 'Tmp.Tests.Third',
+            'Tmp.Tests2.First 2', 'Tmp.Tests2.Second 2', 'Tmp.Tests2.Third 2'],
             visitor.tests)
         self.assertEqual(
             ['Tmp.Tests', 'Tmp.Tests2', 'Tmp'],
