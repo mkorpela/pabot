@@ -588,9 +588,7 @@ def _norm_path(path):
 
 def _digest(text):
     text = text.decode('utf-8') if PY2 and not is_unicode(text)  else text
-    result = hashlib.sha1(text.encode('utf-8')).digest()
-    print("%s => %s" % (repr(text), repr(result)))
-    return result
+    return hashlib.sha1(text.encode('utf-8')).digest()
 
 def get_hash_of_file(filename, digest):
     if not os.path.isfile(filename):
