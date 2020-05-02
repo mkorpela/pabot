@@ -1297,7 +1297,7 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
     pabot_outputdir = _output_dir(options, cleanup=False)
     outputdir = options.get('outputdir', '.')
     copied_artifacts = []
-    for location, dir_names, file_names in os.walk(pabot_outputdir):
+    for location, _, file_names in os.walk(pabot_outputdir):
         for file_name in file_names:
             file_ext = file_name.split(".")[-1]
             if file_ext in file_extensions:
