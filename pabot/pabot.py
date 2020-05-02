@@ -1293,12 +1293,9 @@ def _output_dir(options, cleanup=True):
 
 
 def _copy_output_artifacts(options, file_extensions=None, include_subfolders=False):
-    if file_extensions is None:
-        file_extensions = ["png"]
-
+    file_extensions = file_extensions or ["png"]
     pabot_outputdir = _output_dir(options, cleanup=False)
     outputdir = options.get('outputdir', '.')
-
     copied_artifacts = []
     for location, dir_names, file_names in os.walk(pabot_outputdir):
         for file_name in file_names:
@@ -1319,26 +1316,7 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
                 shutil.copyfile(os.path.join(location, file_name),
                                 os.path.join(dst_folder_path, dst_file_name))
                 copied_artifacts.append(file_name)
-
-    # save names of coped files for updating links in output.xml
-    copied_artifacts_file = os.path.join(outputdir, "copied.artifacts")
-    with open(copied_artifacts_file, 'w+', encoding="utf8") as f:
-        f.write("\n".join(copied_artifacts))
-
-def _copy_screenshots(options):
-    pabot_outputdir = _output_dir(options, cleanup=False)
-    outputdir = options.get('outputdir', '.')
-    for location, dir_names, file_names in os.walk(pabot_outputdir):
-        for file_name in file_names:
-            # We want ALL screenshots copied, not just selenium ones!
-            if file_name.endswith(".png"):
-                prefix = os.path.relpath(location, pabot_outputdir)
-                # But not .png files in any sub-folders of "location"
-                if os.sep in prefix:
-                    continue
-                dst_file_name = '-'.join([prefix, file_name])
-                shutil.copyfile(os.path.join(location, file_name),
-                                os.path.join(outputdir, dst_file_name))
+    return copied_artifacts
 
 
 def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root_name):
