@@ -78,6 +78,18 @@ OR clone this repository and run:
 --resourcefile   [FILEPATH]          
   Индикатор для файла, который может содержать общие переменные для распределения ресурсов. Это нужно использовать вместе с опцией pabotlib. Синтаксис файла ресурсов такой же, как и у файлов Windows ini. Где раздел является общим набором переменных.
 
+--artifacts [FILE EXTENSIONS]   
+  Список из разрешений файлов через запятую.    
+  Файлы с такими разрешениями (скриншоты, видео и т.д. )будут скопированы из отдельных выходных папок в итоговую выходную директорию.
+  Если в RF логах есть ссылки на эти файлы, то пут будут скорректирован (поддерживаются только относительные пути).   
+  Значение по умолчанию - `png`.    
+  Пример:
+
+     --artifacts png,mp4,txt
+
+--artifactsinsubfolders   
+  Будут скопированы файлы не только из корня выходной директории, но из ее подпапок.
+
 --argumentfile[INTEGER]   [FILEPATH]          
   Запустите одни и те же наборы с несколькими параметрами [аргумент-файл] (http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files).
   For example:
@@ -96,6 +108,7 @@ Example usages:
      pabot --processes 10 tests
      pabot --pabotlibhost 192.168.1.123 --pabotlibport 8271 --processes 10 tests
      pabot --pabotlib --pabotlibhost 192.168.1.111 --pabotlibport 8272 --processes 10 tests
+     pabot --artifacts png,mp4,txt --artifactsinsubfolders directory_to_tests
 
 ### PabotLib
 
