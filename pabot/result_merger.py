@@ -43,7 +43,12 @@ class ResultMerger(SuiteVisitor):
         self._tests_root_name = tests_root_name
         self._prefix = ""
         self._out_dir = out_dir
-        self._copied_artifacts = copied_artifacts
+
+        self._patterns = []
+        regexp_template = r'(src|href)="(.*?[\\\/]+)?({})"'  # https://regex101.com/r/sBwbgN/5
+        for artifact in copied_artifacts:
+            pattern = regexp_template.format(re.escape(artifact))
+            self._patterns.append(re.compile(pattern))
 
     def merge(self, merged):
         try:
@@ -130,28 +135,29 @@ class ResultMerger(SuiteVisitor):
         cur.starttime = min([cur.starttime, suite.starttime])
 
     def visit_message(self, msg):
-        # don't edit links if nothing was copied
-        if not self._copied_artifacts:
+        if not msg.html:  # no html -> no link -> no update needed
+            return
+        if not self._copied_artifacts:  # don't update links if nothing was copied
+            return
+        if not "src=" or "href=" in msg.message:  # quick check before we start search with complex regex
             return
 
-        # https://regex101.com/r/sBwbgN/5
-        regexp_template = r'(src|href)="(.*?[\\\/]+)?({})"'
-        if msg.html:
-            # FIXME: Regex must be constructed only once not per msg visit
-            for artifact in self._copied_artifacts:
-                regexp = regexp_template.format(re.escape(artifact))
-                if re.search(regexp, msg.message):
-                    parent = msg.parent
-                    while not isinstance(parent, TestSuite):
-                        parent = parent.parent
-                    suites_names = parent.longname.split('.')
-                    if self._tests_root_name:
-                        suites_names[0] = self._tests_root_name
-                    msg.message = re.sub(regexp,
-                                         r'\g<1>="\g<2>%s-\g<3>"' % self._prefix, msg.message)
-                    # group 1 - "src" / "href"
-                    # group 2 - possible path before file name
-                    # group 3 - file name
+        # FIXME: Regex must be constructed only once not per msg visit
+        for pattern in self._patterns:
+            match = re.search(pattern, msg.message)
+            if match:
+                parent = msg.parent
+                while not isinstance(parent, TestSuite):
+                    parent = parent.parent
+                suites_names = parent.longname.split('.')
+                if self._tests_root_name:
+                    suites_names[0] = self._tests_root_name
+                msg.message = msg.message[:match.start(3)] + self._prefix + "-" + msg.message[match.start(3):]
+                #msg.message = re.sub(pattern,
+                #                     r'\g<1>="\g<2>%s-\g<3>"' % self._prefix, msg.message)
+                # group 1 - "src" / "href"
+                # group 2 - possible path before file name
+                # group 3 - file name
 
 
 class ResultsCombiner(CombinedResult):
