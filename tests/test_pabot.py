@@ -9,6 +9,7 @@ import random
 import codecs
 from pabot import pabot
 from robot.utils import PY2
+from robot.errors import DataError
 from robot import __version__ as ROBOT_VERSION
 
 s = pabot.SuiteItem
@@ -59,18 +60,6 @@ class PabotTests(unittest.TestCase):
             'Fixtures.Test Copy Artifacts.Suite 2.Links to other file in subfolder'
         ]
         self._all_with_tests = ['--test '+_t for _t in self._all_tests]
-
-    def test_dryrun_optimisation_works(self):
-        outs_dir = "."
-        opts = pabot._options_for_dryrun({}, outs_dir)
-        with pabot._with_modified_robot():
-            pabot.run("tests/recursion.robot", **opts)
-        output = os.path.join(outs_dir, opts['output'])
-        data = ""
-        with open(output, "r") as f:
-            data = f.read()
-        self.assertTrue("No Operation" in data, data)
-        self.assertFalse("Recursive" in data, data)
 
     def test_parse_args(self):
         options, datasources, pabot_args, options_for_subprocesses = pabot._parse_args(
@@ -634,12 +623,14 @@ class PabotTests(unittest.TestCase):
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames)
         self._options["loglevel"] = "INVALID123"
-        original = pabot._regenerate
-        suite_names = pabot.solve_suite_names(outs_dir=self._outs_dir,
-                                            datasources=self._datasources,
-                                            options=self._options,
-                                            pabot_args=self._pabot_args)
-        self.assertEqual([], suite_names)
+        try:
+            pabot.solve_suite_names(outs_dir=self._outs_dir,
+                                    datasources=self._datasources,
+                                    options=self._options,
+                                    pabot_args=self._pabot_args)
+            self.fail("Should have thrown DataError")
+        except DataError:
+            pass
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
         self.assertEqual(pabotsuitenames, actual)

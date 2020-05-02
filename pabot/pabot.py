@@ -16,7 +16,7 @@
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
 """A parallel executor for Robot Framework test cases.
-Version 1.2.1
+Version 1.3.0
 
 Supports all Robot Framework command line options and also following
 options (these must be before normal RF options):
@@ -89,8 +89,10 @@ from contextlib import contextmanager
 from robot import run, rebot
 from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
+from robot.conf import RobotSettings
 from robot.errors import Information, DataError
 from robot.result.visitor import ResultVisitor
+from robot.running import TestSuiteBuilder
 from robot.libraries.Remote import Remote
 from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
@@ -124,6 +126,7 @@ _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # doe
 _BAD_CHARS_SET = set(_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE)
 _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
 _ABNORMAL_EXIT_HAPPENED = False
+_DRY_RUN = False
 
 _COMPLETED_LOCK = threading.Lock()
 _NOT_COMPLETED_INDEXES = [] # type: List[int]
@@ -147,7 +150,7 @@ def _mapOptionalQuote(cmdargs):
 
 
 def execute_and_wait_with(item):
-    global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
+    global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED, _DRY_RUN
     is_last = _NUMBER_OF_ITEMS_TO_BE_EXECUTED == 1
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED -= 1
     if CTRL_C_PRESSED:
@@ -156,18 +159,26 @@ def execute_and_wait_with(item):
     time.sleep(0)
     try:
         datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in item.datasources]
+        caller_id = uuid.uuid4().hex
 
-        outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
+        if _DRY_RUN:
+            item_names = [child_item.name for child_item in item.execution_item.suites]
+            item_names = " ".join(item_names)
+            outs_dir = os.path.join(item.outs_dir, item.argfile_index, caller_id)
+        else:
+            item_names = item.execution_item.name
+            outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
+
         os.makedirs(outs_dir)
 
-        caller_id = uuid.uuid4().hex
         cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index, item.last_level) + datasources
         cmd = _mapOptionalQuote(cmd)
         if item.hive:
-            _hived_execute(item.hive, cmd, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id, item.index)
+            _hived_execute(item.hive, cmd, outs_dir, item_names, item.verbose, _make_id(), caller_id, item.index)
         else:
-            _try_execute_and_wait(cmd, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id, item.index)
-        outputxml_preprocessing(item.options, outs_dir, item.execution_item.name, item.verbose, _make_id(), caller_id)
+            _try_execute_and_wait(cmd, outs_dir, item_names, item.verbose, _make_id(), caller_id, item.index)
+        if not _DRY_RUN:
+            outputxml_preprocessing(item.options, outs_dir, item_names, item.verbose, _make_id(), caller_id)
     except:
         _write(traceback.format_exc())
 
@@ -558,7 +569,7 @@ def _delete_none_keys(d):
 
 def hash_directory(digest, path):
     if os.path.isfile(path):
-        digest.update(_digest(path))
+        digest.update(_digest(_norm_path(path)))
         get_hash_of_file(path, digest)
         return
     for root, _, files in os.walk(path):
@@ -567,10 +578,13 @@ def hash_directory(digest, path):
             if os.path.isfile(file_path) and \
                 any(file_path.endswith(p) for p in _ROBOT_EXTENSIONS):
                 # DO NOT ALLOW CHANGE TO FILE LOCATION
-                digest.update(_digest(root))
+                digest.update(_digest(_norm_path(root)))
                 # DO THESE IN TWO PHASES BECAUSE SEPARATOR DIFFERS IN DIFFERENT OS
                 digest.update(_digest(name))
                 get_hash_of_file(file_path, digest)
+
+def _norm_path(path):
+    return "/".join(os.path.normpath(path).split(os.path.sep))
 
 def _digest(text):
     text = text.decode('utf-8') if PY2 and not is_unicode(text)  else text
@@ -683,7 +697,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                                     execution_item_lines)
         return execution_item_lines
     except IOError:
-        return  generate_suite_names_with_dryrun(outs_dir, datasources, options)
+        return generate_suite_names_with_builder(outs_dir, datasources, options)
 
 
 @total_ordering
@@ -929,6 +943,17 @@ class IncludeItem(ExecutionItem):
         return [self.name]
 
 
+class SuiteItems:
+
+    type = "suite"
+
+    def __init__(self, suites):
+        self.suites = suites
+
+    def modify_options_for_executor(self, options):
+        options['suite'] = [suite.name for suite in self.suites]
+
+
 def _parse_line(text):
     if text.startswith('--suite '):
         return SuiteItem(text[8:])
@@ -973,12 +998,12 @@ def _regenerate(
         and os.path.isfile(pabot_args['suitesfrom']):
         suites = _suites_from_outputxml(pabot_args['suitesfrom'])
         if file_h is None or file_h.dirs != h.dirs:
-            all_suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
+            all_suites = generate_suite_names_with_builder(outs_dir, datasources, options)
         else:
             all_suites = [suite for suite in lines if suite]
         suites = _preserve_order(all_suites, suites)
     else:
-        suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
+        suites = generate_suite_names_with_builder(outs_dir, datasources, options)
         if pabot_args.get('testlevelsplit'):
             tests = [] # type: List[TestItem]
             for s in suites:
@@ -1122,7 +1147,7 @@ def generate_suite_names(outs_dir, datasources, options, pabot_args): # type: (o
     if 'suitesfrom' in pabot_args and os.path.isfile(pabot_args['suitesfrom']):
         suites = _suites_from_outputxml(pabot_args['suitesfrom'])
     else:
-        suites = generate_suite_names_with_dryrun(outs_dir, datasources, options)
+        suites = generate_suite_names_with_builder(outs_dir, datasources, options)
     if pabot_args.get('testlevelsplit'):
         tests = [] # type: List[ExecutionItem]
         for s in suites:
@@ -1130,12 +1155,15 @@ def generate_suite_names(outs_dir, datasources, options, pabot_args): # type: (o
         return tests
     return list(suites)
 
-def generate_suite_names_with_dryrun(outs_dir, datasources, options):
+def generate_suite_names_with_builder(outs_dir, datasources, options):
     opts = _options_for_dryrun(options, outs_dir)
-    with _with_modified_robot():
-        run(*datasources, **opts)
-    output = os.path.join(outs_dir, opts['output'])
-    suite_names = get_suite_names(output)
+    settings = RobotSettings(opts)
+    builder = TestSuiteBuilder(settings['SuiteNames'], settings.extension, rpa=settings.rpa)
+    suite = builder.build(*datasources)
+    settings.rpa = builder.rpa
+    suite.configure(**settings.suite_config)
+    all_suites = get_all_suites_from_main_suite(suite.suites) if suite.suites else [suite]
+    suite_names = [SuiteItem(suite.longname, tests=[test.longname for test in suite.tests], suites=suite.suites) for suite in all_suites]
     if not suite_names and not options.get('runemptysuite', False):
         stdout_value = opts['stdout'].getvalue()
         if stdout_value:
@@ -1145,106 +1173,14 @@ def generate_suite_names_with_dryrun(outs_dir, datasources, options):
             _write("[STDERR] from suite search:\n"+stderr_value+"[STDERR] end", Color.RED)
     return list(sorted(set(suite_names)))
 
-
-@contextmanager
-def _with_modified_robot():
-    RobotReader = None # type: Optional[object]
-    TsvReader = None # type: Optional[object]
-    old_read = None
-    if ROBOT_VERSION >= "3.2":
-        yield
-        return
-    try:
-        # RF 3.1
-        from robot.parsing.robotreader import RobotReader, Utf8Reader  # type: ignore
-
-        # RF 3.1.2
-        if "_process_row" not in dir(RobotReader):
-            def new_read(self, file, populator, path=None):
-                path = path or getattr(file, 'name', '<file-like object>')
-                process = False
-                first = True
-                for lineno, line in enumerate(Utf8Reader(file).readlines(), start=1):
-                    cells = self.split_row(line.rstrip())
-                    cells = list(self._check_deprecations(cells, path, lineno))
-                    if cells and cells[0].strip().startswith('*') and \
-                            populator.start_table([c.replace('*', '').strip()
-                                                for c in cells]):
-                        process = True
-                    elif process:
-                        if cells[0].strip() != '' or \
-                                (len(cells) > 1 and
-                                    ('[' in cells[1] or (first and '...' in cells[1]))):
-                            populator.add(cells)
-                            first = True
-                        elif first and not (len(cells) == 1 and cells[0].strip() == ''):
-                            populator.add(['', 'No Operation'])
-                            first = False
-                return populator.eof()
-
+def get_all_suites_from_main_suite(suites):
+    all_suites = []
+    for suite in suites:
+        if suite.suites:
+            all_suites.extend(get_all_suites_from_main_suite(suite.suites))
         else:
-            def new_read(self, file, populator, path=None):
-                path = path or getattr(file, 'name', '<file-like object>')
-                process = False
-                first = True
-                for row in Utf8Reader(file).readlines():
-                    row = self._process_row(row)
-                    cells = [self._process_cell(cell, path) for cell in self.split_row(row)]
-                    self._deprecate_empty_data_cells_in_tsv_format(cells, path)
-                    if cells and cells[0].strip().startswith('*') and \
-                            populator.start_table([c.replace('*', '') for c in cells]):
-                        process = True
-                    elif process:
-                        if cells[0].strip() != '' or \
-                                (len(cells) > 1 and
-                                    ('[' in cells[1] or (first and '...' in cells[1]))):
-                            populator.add(cells)
-                            first = True
-                        elif first:
-                            populator.add(['', 'No Operation'])
-                            first = False
-                return populator.eof()
-
-        old_read = RobotReader.read  # type: ignore
-        RobotReader.read = new_read  # type: ignore
-    except ImportError:
-        # RF 3.0
-        from robot.parsing.tsvreader import TsvReader, Utf8Reader  # type: ignore
-
-        def new_read2(self, tsvfile, populator):
-            process = False
-            first = True
-            for row in Utf8Reader(tsvfile).readlines():
-                row = self._process_row(row)
-                cells = [self._process_cell(cell)
-                         for cell in self.split_row(row)]
-                if cells and cells[0].strip().startswith('*') and \
-                        populator.start_table([c.replace('*', '')
-                                               for c in cells]):
-                    process = True
-                elif process:
-                    if cells[0].strip() != '' or \
-                            (len(cells) > 1 and
-                                 ('[' in cells[1] or (first and '...' in cells[1]))):
-                        populator.add(cells)
-                        first = True
-                    elif first:
-                        populator.add(['', 'No Operation'])
-                        first = False
-            populator.eof()
-
-        old_read = TsvReader.read  # type: ignore
-        TsvReader.read = new_read2  # type: ignore
-    except:
-        pass
-
-    try:
-        yield
-    finally:
-        if RobotReader:
-            RobotReader.read = old_read  # type: ignore
-        if TsvReader:
-            TsvReader.read = old_read  # type: ignore
+            all_suites.append(suite)
+    return all_suites
 
 
 class SuiteNotPassingsAndTimes(ResultVisitor):
@@ -1360,14 +1296,11 @@ def _output_dir(options, cleanup=True):
 
 
 def _copy_output_artifacts(options, file_extensions=None, include_subfolders=False):
-    if file_extensions is None:
-        file_extensions = ["png"]
-
+    file_extensions = file_extensions or ["png"]
     pabot_outputdir = _output_dir(options, cleanup=False)
     outputdir = options.get('outputdir', '.')
-
     copied_artifacts = []
-    for location, dir_names, file_names in os.walk(pabot_outputdir):
+    for location, _, file_names in os.walk(pabot_outputdir):
         for file_name in file_names:
             file_ext = file_name.split(".")[-1]
             if file_ext in file_extensions:
@@ -1381,31 +1314,13 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
                     # create destination sub-folder
                     subfolder_path = rel_path[rel_path.index(os.sep)+1:]
                     dst_folder_path = os.path.join(outputdir, subfolder_path)
-                    os.makedirs(dst_folder_path, exist_ok=True)
+                    if not os.path.isdir(dst_folder_path):
+                        os.makedirs(dst_folder_path)
                 dst_file_name = '-'.join([prefix, file_name])
                 shutil.copyfile(os.path.join(location, file_name),
                                 os.path.join(dst_folder_path, dst_file_name))
                 copied_artifacts.append(file_name)
-
-    # save names of coped files for updating links in output.xml
-    copied_artifacts_file = os.path.join(outputdir, "copied.artifacts")
-    with open(copied_artifacts_file, 'w+', encoding="utf8") as f:
-        f.write("\n".join(copied_artifacts))
-
-def _copy_screenshots(options):
-    pabot_outputdir = _output_dir(options, cleanup=False)
-    outputdir = options.get('outputdir', '.')
-    for location, dir_names, file_names in os.walk(pabot_outputdir):
-        for file_name in file_names:
-            # We want ALL screenshots copied, not just selenium ones!
-            if file_name.endswith(".png"):
-                prefix = os.path.relpath(location, pabot_outputdir)
-                # But not .png files in any sub-folders of "location"
-                if os.sep in prefix:
-                    continue
-                dst_file_name = '-'.join([prefix, file_name])
-                shutil.copyfile(os.path.join(location, file_name),
-                                os.path.join(outputdir, dst_file_name))
+    return copied_artifacts
 
 
 def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root_name):
@@ -1416,8 +1331,9 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
     if pabot_args['argumentfiles']:
         outputs = [] # type: List[str]
         for index, _ in pabot_args['argumentfiles']:
-            _copy_output_artifacts(options, pabot_args['artifacts'], pabot_args['artifactsinsubfolders'])
+            copied_artifacts = _copy_output_artifacts(options, pabot_args['artifacts'], pabot_args['artifactsinsubfolders'])
             outputs += [_merge_one_run(os.path.join(outs_dir, index), options, tests_root_name, stats,
+                                    copied_artifacts,
                                     outputfile=os.path.join('pabot_results', 'output%s.xml' % index))]
         if 'output' not in options:
             options['output'] = 'output.xml'
@@ -1435,8 +1351,8 @@ def _write_stats(stats):
     _write('===================================================')
 
 def _report_results_for_one_run(outs_dir, pabot_args, options, start_time_string, tests_root_name, stats):
-    _copy_output_artifacts(options, pabot_args['artifacts'], pabot_args['artifactsinsubfolders'])
-    output_path = _merge_one_run(outs_dir, options, tests_root_name, stats)
+    copied_artifacts = _copy_output_artifacts(options, pabot_args['artifacts'], pabot_args['artifactsinsubfolders'])
+    output_path = _merge_one_run(outs_dir, options, tests_root_name, stats, copied_artifacts)
     _write_stats(stats)
     if ('report' in options and options['report'] == "NONE" and
         'log' in options and options['log'] == "NONE"):
@@ -1447,7 +1363,7 @@ def _report_results_for_one_run(outs_dir, pabot_args, options, start_time_string
     return rebot(output_path, **_options_for_rebot(options,
                                                    start_time_string, _now()))
 
-def _merge_one_run(outs_dir, options, tests_root_name, stats, outputfile='output.xml'):
+def _merge_one_run(outs_dir, options, tests_root_name, stats, copied_artifacts, outputfile='output.xml'):
     output_path = os.path.abspath(os.path.join(
         options.get('outputdir', '.'),
         options.get('output', outputfile)))
@@ -1460,7 +1376,7 @@ def _merge_one_run(outs_dir, options, tests_root_name, stats, outputfile='output
         _ABNORMAL_EXIT_HAPPENED = True
     if PY2:
         files = [f.decode(SYSTEM_ENCODING) if not is_unicode(f) else f for f in files]
-    resu = merge(files, options, tests_root_name, invalid_xml_callback)
+    resu = merge(files, options, tests_root_name, copied_artifacts, invalid_xml_callback)
     _update_stats(resu, stats)
     resu.save(output_path)
     return output_path
@@ -1587,7 +1503,24 @@ class QueueItem(object):
 
 
 def _create_execution_items(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args):
-    global _NUMBER_OF_ITEMS_TO_BE_EXECUTED, _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES
+    global _DRY_RUN, _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES
+    _DRY_RUN = options.get('dryrun') if ROBOT_VERSION >= '2.8' else options.get('runmode') == 'DryRun'
+    if _DRY_RUN:
+        all_items = _create_execution_items_for_dry_run(suite_names, datasources, outs_dir, opts_for_run, pabot_args)
+    else:
+        all_items = _create_execution_items_for_run(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args)
+    with _COMPLETED_LOCK:
+        index = 0
+        for item_group in all_items:
+            for item in item_group:
+                _NOT_COMPLETED_INDEXES.append(index)
+                item.index = index
+                index += 1
+    _construct_last_levels(all_items)
+    return all_items
+
+def _create_execution_items_for_run(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args):
+    global _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     all_items = []
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
     for suite_group in suite_names:
@@ -1601,15 +1534,33 @@ def _create_execution_items(suite_names, datasources, outs_dir, options, opts_fo
             for argfile in pabot_args['argumentfiles'] or [("", None)]]
         _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(items)
         all_items.append(items)
-    with _COMPLETED_LOCK:
-        index = 0
-        for item_group in all_items:
-            for item in item_group:
-                _NOT_COMPLETED_INDEXES.append(index)
-                item.index = index
-                index += 1
-    _construct_last_levels(all_items)
     return all_items
+
+def _create_execution_items_for_dry_run(suite_names, datasources, outs_dir, opts_for_run, pabot_args):
+    global _NUMBER_OF_ITEMS_TO_BE_EXECUTED
+    all_items = []
+    _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
+    processes_count = pabot_args.get('processes') or _processes_count()
+    for suite_group in suite_names:
+        items = [QueueItem(datasources, outs_dir, opts_for_run, suite,
+                           pabot_args['command'], pabot_args['verbose'], argfile, pabot_args.get('hive'))
+                 for suite in suite_group
+                 for argfile in pabot_args['argumentfiles'] or [("", None)]]
+        chunk_size = round(len(items) / processes_count) if len(items) > processes_count else len(items)
+        chunked_items = list(_chunk_items(items, chunk_size))
+        _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(chunked_items)
+        all_items.append(chunked_items)
+    return all_items
+
+def _chunk_items(items, chunk_size):
+    for i in range(0, len(items), chunk_size):
+        chunked_items = items[i:i + chunk_size]
+        base_item = chunked_items[0]
+        if base_item:
+            execution_items = SuiteItems([item.execution_item for item in chunked_items])
+            chunked_item = QueueItem(base_item.datasources, base_item.outs_dir, base_item.options, execution_items,
+                                     base_item.command, base_item.verbose, [base_item.argfile_index, base_item.argfile])
+            yield chunked_item
 
 def _find_ending_level(name, group):
     n = name.split(".")
@@ -1627,10 +1578,18 @@ def _construct_last_levels(all_items):
     names = []
     for items in all_items:
         for item in items:
-            names.append(item.execution_item.name)
+            if isinstance(item.execution_item, SuiteItems):
+                for suite in item.execution_item.suites:
+                    names.append(suite.name)
+            else:
+                names.append(item.execution_item.name)
     for items in all_items:
         for item in items:
-            item.last_level = _find_ending_level(item.execution_item.name, names[item.index+1:])
+            if isinstance(item.execution_item, SuiteItems):
+                for suite in item.execution_item.suites:
+                    item.last_level = _find_ending_level(suite.name, names[item.index + 1:])
+            else:
+                item.last_level = _find_ending_level(item.execution_item.name, names[item.index+1:])
 
 def _initialize_queue_index():
     global _PABOTLIBURI
@@ -1673,6 +1632,8 @@ def main(args=None):
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options,
                                         pabot_args)
+        if pabot_args['verbose']:
+            _write('Suite names resolved in %s seconds' % str(time.time()-start_time))
         ordering = pabot_args.get('ordering')
         if ordering:
             suite_names = _preserve_order(suite_names, ordering)

@@ -103,8 +103,7 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
      --artifacts png,mp4,txt
 
 --artifactsinsubfolders   
-  Enables copying artifacts located not only directly in the RF output dir, but also in it's sub-folders.
-  The default value is `False`.
+  Copy artifacts located not only directly in the RF output dir, but also in it's sub-folders.
 
 --argumentfile[INTEGER]   [FILEPATH]          
   Run same suites with multiple [argumentfile](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files) options.
