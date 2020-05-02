@@ -137,12 +137,11 @@ class ResultMerger(SuiteVisitor):
     def visit_message(self, msg):
         if not msg.html:  # no html -> no link -> no update needed
             return
-        if not self._copied_artifacts:  # don't update links if nothing was copied
+        if not self._patterns:  # don't update links if no artifacts were copied
             return
-        if not "src=" or "href=" in msg.message:  # quick check before we start search with complex regex
+        if not ("src=" in msg.message or "href=" in msg.message):  # quick check before start search with complex regex
             return
 
-        # FIXME: Regex must be constructed only once not per msg visit
         for pattern in self._patterns:
             match = re.search(pattern, msg.message)
             if match:
@@ -153,11 +152,7 @@ class ResultMerger(SuiteVisitor):
                 if self._tests_root_name:
                     suites_names[0] = self._tests_root_name
                 msg.message = msg.message[:match.start(3)] + self._prefix + "-" + msg.message[match.start(3):]
-                #msg.message = re.sub(pattern,
-                #                     r'\g<1>="\g<2>%s-\g<3>"' % self._prefix, msg.message)
-                # group 1 - "src" / "href"
-                # group 2 - possible path before file name
-                # group 3 - file name
+                # group 3 of regexp is the file name
 
 
 class ResultsCombiner(CombinedResult):
