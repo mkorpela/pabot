@@ -144,6 +144,7 @@ class ResultMerger(SuiteVisitor):
         # https://regex101.com/r/sBwbgN/5
         regexp_template = r'(src|href)="(.*?[\\\/]+)?({})"'
         if msg.html:
+            # FIXME: Regex must be constructed only once not per msg visit
             for artifact in self._copied_artifacts:
                 regexp = regexp_template.format(re.escape(artifact))
                 if re.search(regexp, msg.message):
