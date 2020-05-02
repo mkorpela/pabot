@@ -1608,6 +1608,8 @@ def main(args=None):
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options,
                                         pabot_args)
+        if pabot_args['verbose']:
+            _write('Suite names resolved in ' + str(time.time()-start_time))
         ordering = pabot_args.get('ordering')
         if ordering:
             suite_names = _preserve_order(suite_names, ordering)
