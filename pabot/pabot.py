@@ -569,7 +569,7 @@ def _delete_none_keys(d):
 
 def hash_directory(digest, path):
     if os.path.isfile(path):
-        digest.update(_digest(path))
+        digest.update(_digest(_norm_path(path)))
         get_hash_of_file(path, digest)
         return
     for root, _, files in os.walk(path):
