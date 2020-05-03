@@ -45,6 +45,7 @@ class _PabotLib(object):
         self._parallel_values = {} # type: Dict[str, object]
         self._remote_libraries = {} # type: Dict[str, object]
         self._values = self._parse_values(resourcefile)
+        self._added_suites = [] # type: List[Tuple[str, List[str]]]
 
     def _parse_values(self, resourcefile):
         vals = {} # type: Dict[str, Dict[str, any]]
@@ -135,6 +136,14 @@ class _PabotLib(object):
         port = server.server_port
         self._remote_libraries[name] = (port, server, server_thread)
         return port
+
+    def add_suite_to_execution_queue(self, suitename, variables):
+        self._added_suites.append([suitename, variables or []])
+
+    def get_added_suites(self):
+        added_suites = self._added_suites
+        self._added_suites = []
+        return added_suites
 
     def stop_remote_libraries(self):
         for name in self._remote_libraries:
@@ -339,6 +348,9 @@ class PabotLib(_PabotLib):
                 self.__remotelib = None
                 raise
         return getattr(_PabotLib, keyword)(self, *args)
+
+    def add_suite_to_execution_queue(self, suitename, variables=None):
+        self._run_with_lib('add_suite_to_execution_queue', suitename, variables)
 
     def get_parallel_value_for_key(self, key):
         """

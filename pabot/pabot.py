@@ -866,6 +866,19 @@ class TestItem(ExecutionItem):
         return []
 
 
+class DynamicSuiteItem(SuiteItem):
+    type = 'dynamicsuite'
+
+    def __init__(self, name, variables):
+        SuiteItem.__init__(self, name)
+        self._variables = variables
+
+    def modify_options_for_executor(self, options):
+        variables = options.get('variable', [])[:]
+        variables.extend(self._variables)
+        options['variable'] = variables
+
+
 class DynamicTestItem(ExecutionItem):
 
     type = 'dynamictest'
@@ -1544,6 +1557,7 @@ def _create_execution_items_for_run(suite_names, datasources, outs_dir, options,
         all_items.append(items)
     return all_items
 
+
 def _create_execution_items_for_dry_run(suite_names, datasources, outs_dir, opts_for_run, pabot_args):
     global _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     all_items = []
@@ -1614,6 +1628,20 @@ def _initialize_queue_index():
     raise RuntimeError('Can not connect to PabotLib at %s' % _PABOTLIBURI)
 
 
+def _add_dynamically_created_execution_items(execution_items, datasources, outs_dir, opts_for_run, pabot_args):
+    if not _pabotlib_in_use():
+        return
+    plib = Remote(_PABOTLIBURI)
+    new_suites = plib.run_keyword('get_added_suites', [], {})
+    if len(new_suites) == 0:
+        return
+    suite_group = [DynamicSuiteItem(s, v) for s,v in new_suites]
+    items = [QueueItem(datasources, outs_dir, opts_for_run, suite,
+                pabot_args['command'], pabot_args['verbose'], ("", None), pabot_args.get('hive'))
+                for suite in suite_group]
+    execution_items.insert(0, items)
+
+
 def main(args=None):
     global _PABOTLIBPROCESS
     args = args or sys.argv[1:]
@@ -1646,18 +1674,21 @@ def main(args=None):
         if ordering:
             suite_names = _preserve_order(suite_names, ordering)
         suite_names = _group_by_wait(_group_by_groups(suite_names))
-        if suite_names and suite_names != [[]]:
-            for items in _create_execution_items(
-                    suite_names, datasources, outs_dir,
-                    options, opts_for_run, pabot_args):
-                _parallel_execute(items, pabot_args['processes'])
-            result_code = _report_results(outs_dir, pabot_args, options,
-                                    start_time_string, _get_suite_root_name(suite_names))
-            sys.exit(result_code if not _ABNORMAL_EXIT_HAPPENED else 252)
-        else:
+        if not suite_names or suite_names == [[]]:
             _write('No tests to execute')
             if not options.get('runemptysuite', False):
                 sys.exit(252)
+        execution_items = _create_execution_items(
+            suite_names, datasources, outs_dir,
+            options, opts_for_run, pabot_args)
+        while execution_items:
+            items = execution_items.pop(0)
+            _parallel_execute(items, pabot_args['processes'])
+            _add_dynamically_created_execution_items(execution_items,
+                datasources, outs_dir, opts_for_run, pabot_args)
+        result_code = _report_results(outs_dir, pabot_args, options,
+                                start_time_string, _get_suite_root_name(suite_names))
+        sys.exit(result_code if not _ABNORMAL_EXIT_HAPPENED else 252)
     except Information as i:
         print(__doc__)
         print(i.message)
