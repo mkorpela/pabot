@@ -213,9 +213,9 @@ class PabotLibTests(unittest.TestCase):
     def test_reacquire_valueset(self):
         lib = pabotlib.PabotLib()
         lib._values = lib._parse_values(resourcefile=os.path.join("tests", "resourcefile.dat"))
-        vals1 = lib.acquire_value_set()
+        lib.acquire_value_set()
         try:
-            vals2 = lib.acquire_value_set()
+            lib.acquire_value_set()
             self.fail("Should have thrown an exception")
         except ValueError:
             pass
