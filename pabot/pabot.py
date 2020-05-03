@@ -392,31 +392,6 @@ def _options_to_cli_arguments(opts): # type: (dict) -> List[str]
     return res
 
 
-class GatherSuiteNames(ResultVisitor):
-    def __init__(self):
-        self.result = [] # type: List[SuiteItem]
-
-    def end_suite(self, suite):
-        if len(suite.tests):
-            tests = [t.longname for t in suite.tests if 'pabot:dynamictest' not in t.tags]
-            dynamictests = [t.longname for t in suite.tests if 'pabot:dynamictest' in t.tags]
-            self.result.append(SuiteItem(suite.longname, tests=tests, dynamictests=dynamictests))
-
-
-def get_suite_names(output_file):
-    if not os.path.isfile(output_file):
-        print("get_suite_names: output_file='%s' does not exist" % output_file)
-        return []
-    try:
-        e = ExecutionResult(output_file)
-        gatherer = GatherSuiteNames()
-        e.visit(gatherer)
-        return gatherer.result
-    except:
-        print("Exception in get_suite_names!")
-        return []
-
-
 def _processes_count():
     try:
         return max(multiprocessing.cpu_count(), 2)
