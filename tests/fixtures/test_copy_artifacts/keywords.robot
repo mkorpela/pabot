@@ -2,11 +2,11 @@
 Library  OperatingSystem
 
 *** Variables ***
-${Screenshot in root}  fake_screenshot_root.png
-${Screenshot in subfolder 1}  screenshots${/}fake_screenshot_subfolder_1.png
-${Screenshot in subfolder 2}  screenshots${/}fake_screenshot_subfolder_2.png
-${Artifact in subfolder 1}  other_artifacts${/}some_artifact.foo
-${Artifact in subfolder 2}  other_artifacts${/}another_artifact.bar
+${Screenshot in root}  fake_screenshot_root_${SUITE NAME}.png
+${Screenshot in subfolder 1}  screenshots${/}fake_screenshot_subfolder_1_${SUITE NAME}.png
+${Screenshot in subfolder 2}  screenshots${/}fake_screenshot_subfolder_2_${SUITE NAME}.png
+${Artifact in subfolder 1}  other_artifacts${/}some_artifact_${SUITE NAME}.foo
+${Artifact in subfolder 2}  other_artifacts${/}another_artifact_${SUITE NAME}.bar
 
 *** Keywords ***
 Create artifact file
