@@ -146,20 +146,10 @@ class ResultMerger(SuiteVisitor):
             all_matches = re.finditer(pattern, msg.message)
             offset = 0
             prefix_str = self._prefix + "-"
-            match_found = False
             for match in all_matches:
-                match_found = True
-                parent = msg.parent
-                while not isinstance(parent, TestSuite):
-                    parent = parent.parent
-                suites_names = parent.longname.split('.')
-                if self._tests_root_name:
-                    suites_names[0] = self._tests_root_name
                 filename_start = match.start(3) + offset  # group 3 of regexp is the file name
                 msg.message = msg.message[:filename_start] + prefix_str + msg.message[filename_start:]
                 offset += len(prefix_str)  # the string has been changed but not the original match positions
-            if match_found:
-                return  # no search for other files links in the same message (should be a rare case) due to performance
 
 
 class ResultsCombiner(CombinedResult):
