@@ -319,7 +319,7 @@ class PabotLib(_PabotLib):
         queue_index = int(BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) or 0)
         if queue_index > 0 and self._remotelib:
             while self.get_parallel_value_for_key('pabot_only_last_executing') != 1:
-                time.sleep(PabotLib._pollingSeconds_SetupTeardownp)
+                time.sleep(PabotLib._pollingSeconds_SetupTeardown)
         BuiltIn().run_keyword(keyword)
 
     def set_parallel_value_for_key(self, key, value):
