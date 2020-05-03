@@ -183,9 +183,13 @@ def execute_and_wait_with(item):
         _write(traceback.format_exc())
 
 
+def _pabotlib_in_use():
+    return _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270'
+
+
 def _hived_execute(hive, cmd, outs_dir, item_name, verbose, pool_id, caller_id, my_index=-1):
     plib = None
-    if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
+    if _pabotlib_in_use():
         plib = Remote(_PABOTLIBURI)
     try:
         make_order(hive, ' '.join(cmd), outs_dir)
@@ -197,7 +201,7 @@ def _hived_execute(hive, cmd, outs_dir, item_name, verbose, pool_id, caller_id, 
 
 def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id, my_index=-1):
     plib = None
-    if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
+    if _pabotlib_in_use():
         plib = Remote(_PABOTLIBURI)
     try:
         with open(os.path.join(outs_dir, cmd[0]+'_stdout.out'), 'w') as stdout:
@@ -1602,7 +1606,7 @@ def main(args=None):
             print("Try --help for usage information.")
             sys.exit(252)
         _PABOTLIBPROCESS = _start_remote_library(pabot_args)
-        if _PABOTLIBPROCESS or _PABOTLIBURI != '127.0.0.1:8270':
+        if _pabotlib_in_use():
             _initialize_queue_index()
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options,
