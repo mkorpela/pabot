@@ -1342,10 +1342,11 @@ def _report_results_for_one_run(outs_dir, pabot_args, options, start_time_string
     return rebot(output_path, **_options_for_rebot(options,
                                                    start_time_string, _now()))
 
-def _merge_one_run(outs_dir, options, tests_root_name, stats, copied_artifacts, outputfile='output.xml'):
+def _merge_one_run(outs_dir, options, tests_root_name, stats, copied_artifacts, outputfile=None):
+    outputfile = outputfile or options.get('output', 'output.xml')
     output_path = os.path.abspath(os.path.join(
         options.get('outputdir', '.'),
-        options.get('output', outputfile)))
+        outputfile))
     files = sorted(glob(os.path.join(_glob_escape(outs_dir), '**/*.xml')))
     if not files:
         _write('WARN: No output files in "%s"' % outs_dir, Color.YELLOW)
