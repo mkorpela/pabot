@@ -193,7 +193,7 @@ class PabotLib(_PabotLib):
         try:
             self.release_locks()
             self.release_value_set()
-        except RuntimeError:
+        except RuntimeError as err:
             # This is just last line of defence
             # Ignore connection errors if library server already closed
             logger.console("pabot.PabotLib#_close: threw an exception: is --pabotlib flag used? ErrorDetails: {0}".format(repr(err)), stream='stderr')
