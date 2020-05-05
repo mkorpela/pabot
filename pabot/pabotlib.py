@@ -196,7 +196,7 @@ class PabotLib(_PabotLib):
         except RuntimeError:
             # This is just last line of defence
             # Ignore connection errors if library server already closed
-            logger.console("pabot.PabotLib#_close: threw an exception: is --pabotlib flag used?", stream='stderr')
+            logger.console("pabot.PabotLib#_close: threw an exception: is --pabotlib flag used? ErrorDetails: {0}".format(repr(err)), stream='stderr')
             pass
 
     @property
@@ -334,8 +334,8 @@ class PabotLib(_PabotLib):
         if self._remotelib:
             try:
                 return self._remotelib.run_keyword(keyword, args, {})
-            except RuntimeError:
-                logger.error('No connection - is pabot called with --pabotlib option?')
+            except RuntimeError as err:
+                logger.error("RuntimeError catched in remotelib keyword execution. Maybe there is no connection - is pabot called with --pabotlib option? ErrorDetails: {0}".format(repr(err)))
                 self.__remotelib = None
                 raise
         return getattr(_PabotLib, keyword)(self, *args)
@@ -360,8 +360,8 @@ class PabotLib(_PabotLib):
                     time.sleep(PabotLib._pollingSeconds)
                     if PabotLib._polling_logging: logger.debug('waiting for lock to release')
                 return True
-            except RuntimeError:
-                logger.error('No connection - is pabot called with --pabotlib option?')
+            except RuntimeError as err:
+                logger.error("RuntimeError catched in remote acquire_lock execution. Maybe there is no connection - is pabot called with --pabotlib option? ErrorDetails: {0}".format(repr(err)))
                 self.__remotelib = None
                 raise
         return _PabotLib.acquire_lock(self, name, self._my_id)
@@ -401,8 +401,8 @@ class PabotLib(_PabotLib):
                         return self._setname
                     time.sleep(PabotLib._pollingSeconds)
                     if PabotLib._polling_logging: logger.debug('waiting for a value set')
-            except RuntimeError:
-                logger.error('No connection - is pabot called with --pabotlib option?')
+            except RuntimeError as err:
+                logger.error("RuntimeError catched in remote _acquire_value_set execution. Maybe there is no connection - is pabot called with --pabotlib option? ErrorDetails: {0}".format(repr(err)))
                 self.__remotelib = None
                 raise
         self._setname, self._valueset = _PabotLib.acquire_value_set(self, self._my_id, *tags)
