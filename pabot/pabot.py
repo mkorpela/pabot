@@ -91,6 +91,7 @@ from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
 from robot.conf import RobotSettings
 from robot.errors import Information, DataError
+from robot.model import ModelModifier
 from robot.result.visitor import ResultVisitor
 from robot.running import TestSuiteBuilder
 from robot.libraries.Remote import Remote
@@ -1141,6 +1142,10 @@ def generate_suite_names_with_builder(outs_dir, datasources, options):
     suite = builder.build(*datasources)
     settings.rpa = builder.rpa
     suite.configure(**settings.suite_config)
+    if settings.pre_run_modifiers:
+        _write.error = _write
+        suite.visit(ModelModifier(settings.pre_run_modifiers,
+                                  settings.run_empty_suite, _write))
     all_suites = get_all_suites_from_main_suite(suite.suites) if suite.suites else [suite]
     suite_names = [SuiteItem(suite.longname, tests=[test.longname for test in suite.tests], suites=suite.suites) for suite in all_suites]
     if not suite_names and not options.get('runemptysuite', False):
