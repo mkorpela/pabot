@@ -85,8 +85,7 @@ from collections import namedtuple
 import shutil
 import subprocess
 import threading
-from contextlib import contextmanager
-from robot import run, rebot
+from robot import rebot
 from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
 from robot.conf import RobotSettings
@@ -523,17 +522,17 @@ def _group_by_groups(tokens):
     group = None
     for token in tokens:
         if isinstance(token, GroupStartItem):
-            if group != None:
+            if group is not None:
                 raise DataError("Ordering: Group can not contain a group. Encoutered '{'")
             group = GroupItem()
             result.append(group)
             continue
         if isinstance(token, GroupEndItem):
-            if group == None:
+            if group is None:
                 raise DataError("Ordering: Group end tag '}' encountered before start '{'")
             group = None
             continue
-        if group != None:
+        if group is not None:
             group.add(token)
         else:
             result.append(token)
@@ -609,7 +608,7 @@ def get_hash_of_command(options, pabot_args):
     hopts = dict(options)
     for option in options:
         if (option in IGNORED_OPTIONS or
-            options[option] == []):
+                options[option] == []):
             del hopts[option]
     if pabot_args.get('testlevelsplit'):
         hopts['testlevelsplit'] = True
@@ -1511,7 +1510,7 @@ def _create_execution_items_for_run(suite_names, datasources, outs_dir, options,
     for suite_group in suite_names:
         #TODO: Fix this better
         if options.get("randomize") in ["all", "suites"] and \
-            "suitesfrom" not in pabot_args:
+                "suitesfrom" not in pabot_args:
             random.shuffle(suite_group)
         items = [QueueItem(datasources, outs_dir, opts_for_run, suite,
             pabot_args['command'], pabot_args['verbose'], argfile, pabot_args.get('hive'))
@@ -1625,8 +1624,8 @@ def main(args=None):
         suite_names = _group_by_wait(_group_by_groups(suite_names))
         if suite_names and suite_names != [[]]:
             for items in _create_execution_items(
-                suite_names, datasources, outs_dir,
-                options, opts_for_run, pabot_args):
+                    suite_names, datasources, outs_dir,
+                    options, opts_for_run, pabot_args):
                 _parallel_execute(items, pabot_args['processes'])
             result_code = _report_results(outs_dir, pabot_args, options,
                                     start_time_string, _get_suite_root_name(suite_names))
