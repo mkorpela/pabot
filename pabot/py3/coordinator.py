@@ -1,6 +1,5 @@
 import socketserver
-import json
-from typing import List, Dict, Set
+from typing import Dict, Set
 from . import messages
 from queue import Queue
 

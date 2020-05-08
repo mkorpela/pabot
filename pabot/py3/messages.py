@@ -1,7 +1,5 @@
-
 import struct
-import socket
-from typing import Tuple, Optional
+from typing import Optional
 
 CONNECTION_END = 0
 REGISTER_CLIENT = 1

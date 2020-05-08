@@ -1,6 +1,4 @@
 import socket
-from typing import Dict
-import json
 import os
 from . import messages
 import tarfile

@@ -1,17 +1,15 @@
 import uuid
 import json
 import subprocess
-from typing import Dict
 import socket
 import tempfile
-import shutil
-import os
 import sys
 from . import messages
 import tarfile
 
-def working(hiveAddress:str):
-    HOST, PORT = hiveAddress.split(":")
+
+def working(hive_address:str):
+    HOST, PORT = hive_address.split(":")
     PORT = int(PORT)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(None)
