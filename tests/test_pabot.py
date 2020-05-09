@@ -159,6 +159,18 @@ class PabotTests(unittest.TestCase):
             "file:whatever"] + self._all_with_suites + ["--suite Fixtures.New Suite"])
         self.assertNotEqual(h1, h3)
 
+    def test_replace_base_name(self):
+        opts = {
+            'simplestring': 'old.simple',
+            'listofstrings': ['old.first', 'old.second']
+        }
+        pabot._replace_base_name('new', 'old', opts, 'simplestring')
+        self.assertEqual(opts['simplestring'], 'new.simple')
+        pabot._replace_base_name('new', 'old', opts, 'listofstrings')
+        self.assertEqual(opts['listofstrings'], ['new.first', 'new.second'])
+        pabot._replace_base_name('new', 'old', opts, 'nonexisting')
+        self.assertTrue('nonexisting' not in opts)
+
     def test_solve_suite_names_works_without_pabotsuitenames_file(self):
         if os.path.isfile(".pabotsuitenames"):
             os.remove(".pabotsuitenames")

@@ -363,18 +363,30 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id,
         if pabotLastLevel not in options['variable']:
             options['variable'].append(pabotLastLevel)
     if argfile:
-        argfile_opts, _ = ArgumentParser(USAGE,
-                                              auto_pythonpath=False,
-                                              auto_argumentfile=True,
-                                              env_options='ROBOT_OPTIONS'). \
-            parse_args(['--argumentfile', argfile])
-        old_name = options.get('name', None)
-        if argfile_opts['name'] and old_name:
-            new_name = argfile_opts['name']
-            options['suite'] = new_name + options['suite'][len(old_name):]
-            del options['name']
+        _modify_options_for_argfile_use(argfile, options)
         options['argumentfile'] = argfile
     return _set_terminal_coloring_options(options)
+
+
+def _modify_options_for_argfile_use(argfile, options):
+    argfile_opts, _ = ArgumentParser(USAGE,
+                                     auto_pythonpath=False,
+                                     auto_argumentfile=True,
+                                     env_options='ROBOT_OPTIONS'). \
+        parse_args(['--argumentfile', argfile])
+    old_name = options.get('name', '')
+    if argfile_opts['name']:
+        new_name = argfile_opts['name']
+        _replace_base_name(new_name, old_name, options, 'suite')
+        _replace_base_name(new_name, old_name, options, 'test')
+        del options['name']
+
+
+def _replace_base_name(new_name, old_name, options, key):
+    if isinstance(options.get(key, None), str):
+        options[key] = new_name + options[key][len(old_name):]
+    elif key in options:
+        options[key] = [new_name + s[len(old_name):] for s in options.get(key, [])]
 
 
 def _set_terminal_coloring_options(options):
