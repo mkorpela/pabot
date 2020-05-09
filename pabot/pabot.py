@@ -363,23 +363,25 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id,
         if pabotLastLevel not in options['variable']:
             options['variable'].append(pabotLastLevel)
     if argfile:
-        _modify_options_for_argfile_use(argfile, options)
+        _modify_options_for_argfile_use(argfile, options, execution_item.top_name())
         options['argumentfile'] = argfile
     return _set_terminal_coloring_options(options)
 
 
-def _modify_options_for_argfile_use(argfile, options):
+def _modify_options_for_argfile_use(argfile, options, root_name):
     argfile_opts, _ = ArgumentParser(USAGE,
                                      auto_pythonpath=False,
                                      auto_argumentfile=True,
                                      env_options='ROBOT_OPTIONS'). \
         parse_args(['--argumentfile', argfile])
-    old_name = options.get('name', '')
+    old_name = options.get('name', root_name)
     if argfile_opts['name']:
         new_name = argfile_opts['name']
         _replace_base_name(new_name, old_name, options, 'suite')
-        _replace_base_name(new_name, old_name, options, 'test')
-        del options['name']
+        if not options['suite']:
+            _replace_base_name(new_name, old_name, options, 'test')
+        if 'name' in options:
+            del options['name']
 
 
 def _replace_base_name(new_name, old_name, options, key):
