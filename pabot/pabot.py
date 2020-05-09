@@ -363,6 +363,16 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id,
         if pabotLastLevel not in options['variable']:
             options['variable'].append(pabotLastLevel)
     if argfile:
+        argfile_opts, _ = ArgumentParser(USAGE,
+                                              auto_pythonpath=False,
+                                              auto_argumentfile=True,
+                                              env_options='ROBOT_OPTIONS'). \
+            parse_args(['--argumentfile', argfile])
+        old_name = options.get('name', None)
+        if argfile_opts['name'] and old_name:
+            new_name = argfile_opts['name']
+            options['suite'] = new_name + options['suite'][len(old_name):]
+            del options['name']
         options['argumentfile'] = argfile
     return _set_terminal_coloring_options(options)
 
