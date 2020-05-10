@@ -112,10 +112,10 @@ class _PabotLib(object):
         return (None, None)
 
     def release_value_set(self, caller_id): # type: (str) -> None
-        self._owner_to_values[caller_id] = None
+        del self._owner_to_values[caller_id]
 
     def disable_value_set(self, setname, caller_id): # type: (str, str) -> None
-        self._owner_to_values[caller_id] = None
+        del self._owner_to_values[caller_id]
         del self._values[setname]
 
     def get_value_from_set(self, key, caller_id): # type: (str, str) -> object
