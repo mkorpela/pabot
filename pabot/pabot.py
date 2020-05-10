@@ -201,6 +201,7 @@ def _hived_execute(hive, cmd, outs_dir, item_name, verbose, pool_id, caller_id, 
 
 def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id, my_index=-1):
     plib = None
+    is_ignored = False
     if _pabotlib_in_use():
         plib = Remote(_PABOTLIBURI)
     try:
@@ -211,13 +212,26 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id,
         _write(traceback.format_exc())
     if plib:
         _increase_completed(plib, my_index)
+        is_ignored = _is_ignored(plib, caller_id)
     # Thread-safe list append
     _ALL_ELAPSED.append(elapsed)
-    if rc != 0:
-        _write_with_id(process, pool_id, my_index, _execution_failed_message(item_name, stdout, stderr, rc, verbose), Color.RED)
-    else:
-        _write_with_id(process, pool_id, my_index, _execution_passed_message(item_name, stdout, stderr, elapsed, verbose), Color.GREEN)
+    _result_to_stdout(elapsed, is_ignored, item_name, my_index, pool_id, process, rc, stderr, stdout, verbose)
 
+
+def _result_to_stdout(elapsed, is_ignored, item_name, my_index, pool_id, process, rc, stderr, stdout, verbose):
+    if is_ignored:
+        _write_with_id(process, pool_id, my_index,
+                       _execution_ignored_message(item_name, stdout, stderr, elapsed, verbose))
+    elif rc != 0:
+        _write_with_id(process, pool_id, my_index, _execution_failed_message(item_name, stdout, stderr, rc, verbose),
+                       Color.RED)
+    else:
+        _write_with_id(process, pool_id, my_index,
+                       _execution_passed_message(item_name, stdout, stderr, elapsed, verbose), Color.GREEN)
+
+
+def _is_ignored(plib, caller_id):  # type: (Remote, str) -> bool
+    return plib.run_keyword('is_ignored_execution', [caller_id], {})
 
 # optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
 def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, caller_id):
@@ -320,15 +334,24 @@ def _read_file(file_handle):
     except:
         return 'Unable to read file %s' % file_handle
 
+
 def _execution_failed_message(suite_name, stdout, stderr, rc, verbose):
     if not verbose:
         return 'FAILED %s' % suite_name
     return 'Execution failed in %s with %d failing test(s)\n%s\n%s' % (suite_name, rc, _read_file(stdout), _read_file(stderr))
 
+
 def _execution_passed_message(suite_name, stdout, stderr, elapsed, verbose):
     if not verbose:
         return 'PASSED %s in %s seconds' % (suite_name, elapsed)
     return 'PASSED %s in %s seconds\n%s\n%s' % (suite_name, elapsed, _read_file(stdout), _read_file(stderr))
+
+
+def _execution_ignored_message(suite_name, stdout, stderr, elapsed, verbose):
+    if not verbose:
+        return 'IGNORED %s' % suite_name
+    return 'IGNORED %s in %s seconds\n%s\n%s' % (suite_name, elapsed, _read_file(stdout), _read_file(stderr))
+
 
 def _options_for_custom_executor(*args):
     return _options_to_cli_arguments(_options_for_executor(*args))

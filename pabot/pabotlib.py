@@ -15,6 +15,8 @@
 
 from __future__ import absolute_import
 
+from robot.errors import PassExecution
+
 try:
     import configparser # type: ignore
 except:
@@ -28,7 +30,7 @@ from robot.running import TestLibrary
 from robot.api import logger
 import threading
 import time
-from typing import List, Dict, Tuple, Union, Optional, Any
+from typing import List, Dict, Tuple, Set, Optional, Any
 
 PABOT_LAST_LEVEL = "PABOTLASTLEVEL"
 PABOT_QUEUE_INDEX = "PABOTQUEUEINDEX"
@@ -46,6 +48,7 @@ class _PabotLib(object):
         self._remote_libraries = {} # type: Dict[str, Tuple[int, RobotRemoteServer, threading.Thread]]
         self._values = self._parse_values(resourcefile)
         self._added_suites = [] # type: List[Tuple[str, List[str]]]
+        self._ignored_executions = set() # type: Set[str]
 
     def _parse_values(self, resourcefile): # type: (Optional[str]) -> Dict[str, Dict[str, Any]]
         vals = {} # type: Dict[str, Dict[str, Any]]
@@ -146,6 +149,12 @@ class _PabotLib(object):
         added_suites = self._added_suites
         self._added_suites = []
         return added_suites
+
+    def ignore_execution(self, caller_id): # type: (str) -> None
+        self._ignored_executions.add(caller_id)
+
+    def is_ignored_execution(self, caller_id): # type: (str) -> bool
+        return caller_id in self._ignored_executions
 
     def stop_remote_libraries(self):
         for name in self._remote_libraries:
@@ -432,6 +441,10 @@ class PabotLib(_PabotLib):
         if key not in self._valueset:
             raise AssertionError('No value for key "%s"' % key)
         return self._valueset[key]
+
+    def ignore_execution(self):
+        self._run_with_lib('ignore_execution', self._my_id)
+        raise PassExecution('Ignore')
 
     def release_value_set(self):
         """
