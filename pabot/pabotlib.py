@@ -112,6 +112,8 @@ class _PabotLib(object):
         return (None, None)
 
     def release_value_set(self, caller_id): # type: (str) -> None
+        if caller_id not in self._owner_to_values:
+            return
         del self._owner_to_values[caller_id]
 
     def disable_value_set(self, setname, caller_id): # type: (str, str) -> None
