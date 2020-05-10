@@ -142,7 +142,7 @@ class _PabotLib(object):
 
     def get_added_suites(self): # type: () -> List[Tuple[str, List[str]]]
         added_suites = self._added_suites
-        self._added_suites = [] # type: List[Tuple[str, List[str]]]
+        self._added_suites = []
         return added_suites
 
     def stop_remote_libraries(self):
