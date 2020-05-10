@@ -15,7 +15,7 @@
 
 from __future__ import absolute_import
 
-from robot.errors import PassExecution
+from robot.errors import RobotError
 
 try:
     import configparser # type: ignore
@@ -444,7 +444,10 @@ class PabotLib(_PabotLib):
 
     def ignore_execution(self):
         self._run_with_lib('ignore_execution', self._my_id)
-        raise PassExecution('Ignore')
+        error = RobotError('Ignore')
+        error.ROBOT_EXIT_ON_FAILURE = True
+        error.ROBOT_CONTINUE_ON_FAILURE = False
+        raise error
 
     def release_value_set(self):
         """
