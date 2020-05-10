@@ -9,8 +9,8 @@ import tarfile
 
 
 def working(hive_address:str):
-    HOST, PORT = hive_address.split(":")
-    PORT = int(PORT)
+    HOST, p = hive_address.split(":")
+    PORT = int(p)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(None)
     try:

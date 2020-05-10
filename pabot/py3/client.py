@@ -5,8 +5,8 @@ import tarfile
 
 
 def make_order(hive:str, order:str, outputdir:str):
-    HOST, PORT = hive.split(":")
-    PORT = int(PORT)
+    HOST, p = hive.split(":")
+    PORT = int(p)
     # Create a socket (SOCK_STREAM means a TCP socket)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(None)

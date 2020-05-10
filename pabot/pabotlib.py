@@ -28,7 +28,7 @@ from robot.running import TestLibrary
 from robot.api import logger
 import threading
 import time
-from typing import List, Dict, Tuple, Union, Optional
+from typing import List, Dict, Tuple, Union, Optional, Any
 
 PABOT_LAST_LEVEL = "PABOTLASTLEVEL"
 PABOT_QUEUE_INDEX = "PABOTQUEUEINDEX"
@@ -39,16 +39,16 @@ class _PabotLib(object):
 
     _TAGS_KEY = "tags"
 
-    def __init__(self, resourcefile=None):
+    def __init__(self, resourcefile=None): # type: (Optional[str]) -> None
         self._locks = {} # type: Dict[str, Tuple[str, int]]
         self._owner_to_values = {} # type: Dict[str, Dict[str, object]]
         self._parallel_values = {} # type: Dict[str, object]
-        self._remote_libraries = {} # type: Dict[str, object]
+        self._remote_libraries = {} # type: Dict[str, Tuple[int, RobotRemoteServer, threading.Thread]]
         self._values = self._parse_values(resourcefile)
         self._added_suites = [] # type: List[Tuple[str, List[str]]]
 
-    def _parse_values(self, resourcefile):
-        vals = {} # type: Dict[str, Dict[str, any]]
+    def _parse_values(self, resourcefile): # type: (Optional[str]) -> Dict[str, Dict[str, Any]]
+        vals = {} # type: Dict[str, Dict[str, Any]]
         if resourcefile is None:
             return vals
         conf = configparser.ConfigParser()
@@ -63,13 +63,13 @@ class _PabotLib(object):
                 vals[section][self._TAGS_KEY] = []
         return vals
 
-    def set_parallel_value_for_key(self, key, value):
+    def set_parallel_value_for_key(self, key, value): # type: (str, object) -> None
         self._parallel_values[key] = value
 
-    def get_parallel_value_for_key(self, key):
+    def get_parallel_value_for_key(self, key): # type: (str) -> object
         return self._parallel_values.get(key, "")
 
-    def acquire_lock(self, name, caller_id):
+    def acquire_lock(self, name, caller_id): # type: (str, str) -> bool
         if name in self._locks and caller_id != self._locks[name][0]:
             return False
         if name not in self._locks:
@@ -77,7 +77,7 @@ class _PabotLib(object):
         self._locks[name] = (caller_id, self._locks[name][1] + 1)
         return True
 
-    def release_lock(self, name, caller_id):
+    def release_lock(self, name, caller_id): # type: (str, str) -> None
         assert self._locks[name][0] == caller_id
         self._locks[name] = (caller_id, self._locks[name][1] - 1)
         if self._locks[name][1] == 0:
@@ -111,21 +111,21 @@ class _PabotLib(object):
         # and the caller needs to wait until one is free.
         return (None, None)
 
-    def release_value_set(self, caller_id):
+    def release_value_set(self, caller_id): # type: (str) -> None
         self._owner_to_values[caller_id] = None
 
-    def disable_value_set(self, setname, caller_id):
+    def disable_value_set(self, setname, caller_id): # type: (str, str) -> None
         self._owner_to_values[caller_id] = None
         del self._values[setname]
 
-    def get_value_from_set(self, key, caller_id):
+    def get_value_from_set(self, key, caller_id): # type: (str, str) -> object
         if caller_id not in self._owner_to_values:
             raise AssertionError('No value set reserved for caller process')
         if key not in self._owner_to_values[caller_id]:
             raise AssertionError('No value for key "%s"' % key)
         return self._owner_to_values[caller_id][key]
 
-    def import_shared_library(self, name):
+    def import_shared_library(self, name): # type: (str) -> int
         if name in self._remote_libraries:
             return self._remote_libraries[name][0]
         imported = TestLibrary(name)
@@ -137,12 +137,12 @@ class _PabotLib(object):
         self._remote_libraries[name] = (port, server, server_thread)
         return port
 
-    def add_suite_to_execution_queue(self, suitename, variables):
-        self._added_suites.append([suitename, variables or []])
+    def add_suite_to_execution_queue(self, suitename, variables):  # type: (str, List[str]) -> None
+        self._added_suites.append((suitename, variables or []))
 
-    def get_added_suites(self):
+    def get_added_suites(self): # type: () -> List[Tuple[str, List[str]]]
         added_suites = self._added_suites
-        self._added_suites = []
+        self._added_suites = [] # type: List[Tuple[str, List[str]]]
         return added_suites
 
     def stop_remote_libraries(self):
@@ -150,7 +150,6 @@ class _PabotLib(object):
             self._remote_libraries[name][1].stop_remote_server()
         for name in self._remote_libraries:
             self._remote_libraries[name][2].join()
-
 
 
 class PabotLib(_PabotLib):
