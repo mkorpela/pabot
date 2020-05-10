@@ -213,6 +213,8 @@ def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id,
     if plib:
         _increase_completed(plib, my_index)
         is_ignored = _is_ignored(plib, caller_id)
+        if is_ignored and os.path.isdir(outs_dir):
+            shutil.rmtree(outs_dir)
     # Thread-safe list append
     _ALL_ELAPSED.append(elapsed)
     _result_to_stdout(elapsed, is_ignored, item_name, my_index, pool_id, process, rc, stderr, stdout, verbose)
