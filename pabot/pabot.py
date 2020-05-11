@@ -238,19 +238,21 @@ def _is_ignored(plib, caller_id):  # type: (Remote, str) -> bool
 # optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
 def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, caller_id):
     try:
-        rk = options['removekeywords']
-        fk = options['flattenkeywords']
-        if not rk and not fk:
+        remove_keywords = options['removekeywords']
+        flatten_keywords = options['flattenkeywords']
+        if not remove_keywords and not flatten_keywords:
             return  #  => no preprocessing needed if no removekeywords or flattenkeywords present
-        rkargs = [] # type: List[str]
-        fkargs =  [] # type: List[str]
-        for k in rk:
-            rkargs += ['--removekeywords', k]
-        for k in fk:
-            fkargs += ['--flattenkeywords', k]
+        remove_keywords_args = [] # type: List[str]
+        flatten_keywords_args =  [] # type: List[str]
+        for k in remove_keywords:
+            remove_keywords_args += ['--removekeywords', k]
+        for k in flatten_keywords:
+            flatten_keywords_args += ['--flattenkeywords', k]
         outputxmlfile = os.path.join(outs_dir, 'output.xml')
         oldsize = os.path.getsize(outputxmlfile)
-        cmd = ['rebot', '--log', 'NONE', '--report', 'NONE', '--xunit', 'NONE', '--consolecolors', 'off', '--NoStatusRC']+rkargs+fkargs+['--output', outputxmlfile, outputxmlfile]
+        cmd = ['rebot', '--log', 'NONE', '--report', 'NONE', '--xunit', 'NONE',
+               '--consolecolors', 'off', '--NoStatusRC'] + remove_keywords_args + flatten_keywords_args + [
+            '--output', outputxmlfile, outputxmlfile]
         cmd = _mapOptionalQuote(cmd)
 
         pool_id = _make_id()
@@ -1585,7 +1587,7 @@ def _create_execution_items_for_run(suite_names, datasources, outs_dir, options,
 
 def _create_execution_items_for_dry_run(suite_names, datasources, outs_dir, opts_for_run, pabot_args):
     global _NUMBER_OF_ITEMS_TO_BE_EXECUTED
-    all_items = []
+    all_items = []  # type: List[List[QueueItem]]
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
     processes_count = pabot_args.get('processes') or _processes_count()
     for suite_group in suite_names:
@@ -1599,6 +1601,7 @@ def _create_execution_items_for_dry_run(suite_names, datasources, outs_dir, opts
         all_items.append(chunked_items)
     return all_items
 
+
 def _chunk_items(items, chunk_size):
     for i in range(0, len(items), chunk_size):
         chunked_items = items[i:i + chunk_size]
@@ -1608,6 +1611,7 @@ def _chunk_items(items, chunk_size):
             chunked_item = QueueItem(base_item.datasources, base_item.outs_dir, base_item.options, execution_items,
                                      base_item.command, base_item.verbose, [base_item.argfile_index, base_item.argfile])
             yield chunked_item
+
 
 def _find_ending_level(name, group):
     n = name.split(".")
