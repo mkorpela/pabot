@@ -28,6 +28,22 @@ OR clone this repository and run:
 
      setup.py  install
 
+## Basic use
+
+Split execution to suite files.
+
+     pabot [path to tests]
+
+Split execution on test level.
+
+     pabot --testlevelsplit [path to tests]
+
+Run same tests with two different configurations.
+
+     pabot --argumentfile1 first.args --argumentfile2 second.args [path to tests]
+
+For more complex cases please read onward.
+
 ## Things you should know
 
    - Pabot will split test execution from suite files by default. For test level split use ```--testlevelsplit``` flag.
