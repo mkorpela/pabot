@@ -246,8 +246,6 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
                '--consolecolors', 'off', '--NoStatusRC'] + remove_keywords_args + flatten_keywords_args + [
             '--output', outputxmlfile, outputxmlfile]
         cmd = _mapOptionalQuote(cmd)
-
-        pool_id = _make_id()
         _try_execute_and_wait(cmd, outs_dir, 'preprocessing output.xml on ' + item_name, verbose,  pool_id, caller_id)
         newsize = os.path.getsize(outputxmlfile)
         perc = 100*newsize/oldsize
