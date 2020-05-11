@@ -177,8 +177,7 @@ def execute_and_wait_with(item):
             _hived_execute(item.hive, cmd, outs_dir, item_names, item.verbose, _make_id(), caller_id, item.index)
         else:
             _try_execute_and_wait(cmd, outs_dir, item_names, item.verbose, _make_id(), caller_id, item.index)
-        if not _DRY_RUN:
-            outputxml_preprocessing(item.options, outs_dir, item_names, item.verbose, _make_id(), caller_id)
+        outputxml_preprocessing(item.options, outs_dir, item_names, item.verbose, _make_id(), caller_id)
     except:
         _write(traceback.format_exc())
 
@@ -1606,11 +1605,12 @@ def _chunk_items(items, chunk_size):
     for i in range(0, len(items), chunk_size):
         chunked_items = items[i:i + chunk_size]
         base_item = chunked_items[0]
-        if base_item:
-            execution_items = SuiteItems([item.execution_item for item in chunked_items])
-            chunked_item = QueueItem(base_item.datasources, base_item.outs_dir, base_item.options, execution_items,
-                                     base_item.command, base_item.verbose, [base_item.argfile_index, base_item.argfile])
-            yield chunked_item
+        if not base_item:
+            continue
+        execution_items = SuiteItems([item.execution_item for item in chunked_items])
+        chunked_item = QueueItem(base_item.datasources, base_item.outs_dir, base_item.options, execution_items,
+                                 base_item.command, base_item.verbose, [base_item.argfile_index, base_item.argfile])
+        yield chunked_item
 
 
 def _find_ending_level(name, group):
