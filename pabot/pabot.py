@@ -126,7 +126,6 @@ _BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = "!#$^&*?[(){}<>~;'`\\|= \t\n" # doe
 _BAD_CHARS_SET = set(_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE)
 _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
 _ABNORMAL_EXIT_HAPPENED = False
-_DRY_RUN = False
 
 _COMPLETED_LOCK = threading.Lock()
 _NOT_COMPLETED_INDEXES = [] # type: List[int]
@@ -150,7 +149,7 @@ def _mapOptionalQuote(cmdargs):
 
 
 def execute_and_wait_with(item):
-    global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED, _DRY_RUN
+    global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     is_last = _NUMBER_OF_ITEMS_TO_BE_EXECUTED == 1
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED -= 1
     if CTRL_C_PRESSED:
@@ -160,15 +159,9 @@ def execute_and_wait_with(item):
     try:
         datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in item.datasources]
         caller_id = uuid.uuid4().hex
-
         name = item.execution_item.name
-        if _DRY_RUN:
-            outs_dir = os.path.join(item.outs_dir, item.argfile_index, caller_id)
-        else:
-            outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
-
+        outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
         os.makedirs(outs_dir)
-
         cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index, item.last_level) + datasources
         cmd = _mapOptionalQuote(cmd)
         if item.hive:
@@ -1551,12 +1544,19 @@ class QueueItem(object):
 
 
 def _create_execution_items(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args):
-    global _DRY_RUN, _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES
-    _DRY_RUN = options.get('dryrun') if ROBOT_VERSION >= '2.8' else options.get('runmode') == 'DryRun'
-    if _DRY_RUN:
+    is_dry_run = options.get('dryrun') if ROBOT_VERSION >= '2.8' else options.get('runmode') == 'DryRun'
+    if is_dry_run:
         all_items = _create_execution_items_for_dry_run(suite_names, datasources, outs_dir, opts_for_run, pabot_args)
     else:
         all_items = _create_execution_items_for_run(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args)
+    _construct_index_and_completed_index(all_items)
+    _construct_last_levels(all_items)
+    return all_items
+
+
+def _construct_index_and_completed_index(all_items):
+    # type: (List[List[QueueItem]]) -> None
+    global _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES
     with _COMPLETED_LOCK:
         index = 0
         for item_group in all_items:
@@ -1564,25 +1564,28 @@ def _create_execution_items(suite_names, datasources, outs_dir, options, opts_fo
                 _NOT_COMPLETED_INDEXES.append(index)
                 item.index = index
                 index += 1
-    _construct_last_levels(all_items)
-    return all_items
+
 
 def _create_execution_items_for_run(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args):
     global _NUMBER_OF_ITEMS_TO_BE_EXECUTED
-    all_items = []
+    all_items = [] # type: List[List[QueueItem]]
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
     for suite_group in suite_names:
         #TODO: Fix this better
         if options.get("randomize") in ["all", "suites"] and \
                 "suitesfrom" not in pabot_args:
             random.shuffle(suite_group)
-        items = [QueueItem(datasources, outs_dir, opts_for_run, suite,
-            pabot_args['command'], pabot_args['verbose'], argfile, pabot_args.get('hive'))
-            for suite in suite_group
-            for argfile in pabot_args['argumentfiles'] or [("", None)]]
+        items = _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group)
         _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(items)
         all_items.append(items)
     return all_items
+
+
+def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group):
+    return [QueueItem(datasources, outs_dir, opts_for_run, suite,
+                       pabot_args['command'], pabot_args['verbose'], argfile, pabot_args.get('hive'))
+             for suite in suite_group
+             for argfile in pabot_args['argumentfiles'] or [("", None)]]
 
 
 def _create_execution_items_for_dry_run(suite_names, datasources, outs_dir, opts_for_run, pabot_args):
@@ -1591,10 +1594,7 @@ def _create_execution_items_for_dry_run(suite_names, datasources, outs_dir, opts
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
     processes_count = pabot_args.get('processes') or _processes_count()
     for suite_group in suite_names:
-        items = [QueueItem(datasources, outs_dir, opts_for_run, suite,
-                           pabot_args['command'], pabot_args['verbose'], argfile, pabot_args.get('hive'))
-                 for suite in suite_group
-                 for argfile in pabot_args['argumentfiles'] or [("", None)]]
+        items = _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group)
         chunk_size = round(len(items) / processes_count) if len(items) > processes_count else len(items)
         chunked_items = list(_chunk_items(items, chunk_size))
         _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(chunked_items)
