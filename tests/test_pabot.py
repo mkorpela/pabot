@@ -6,14 +6,15 @@ import os
 import tempfile
 import shutil
 import random
-import codecs
+
+import pabot.execution_items as execution_items
 from pabot import pabot
 from robot.utils import PY2
 from robot.errors import DataError
 from robot import __version__ as ROBOT_VERSION
 
-s = pabot.SuiteItem
-t = pabot.TestItem
+s = execution_items.SuiteItem
+t = execution_items.TestItem
 datasource_hash = "3d13347143ee36859c56438361ba8bd8299fe6d1"
 file_hash = "1054c1d4fb850dcaccbd508aec1fb84a7abf52e8"
 
@@ -227,11 +228,11 @@ class PabotTests(unittest.TestCase):
 
     def _suites_element(self, name):
         if name == "#WAIT":
-            return pabot.WaitItem()
+            return execution_items.WaitItem()
         if name == "{":
-            return pabot.GroupStartItem()
+            return execution_items.GroupStartItem()
         if name == "}":
-            return pabot.GroupEndItem()
+            return execution_items.GroupEndItem()
         return s(name)
 
     def _test_preserve_order(self, expected, new_suites, old_suites):
@@ -327,7 +328,7 @@ class PabotTests(unittest.TestCase):
         self.assertEqual([s("s")], pabot._fix_items([s("s"), s("s")]))
 
     def test_fix_works_with_waits(self):
-        w = pabot.WaitItem
+        w = execution_items.WaitItem
         self.assertEqual([], pabot._fix_items([w()]))
         self.assertEqual([], pabot._fix_items([w(), w()]))
         self.assertEqual([s("s")], pabot._fix_items([w(), s("s")]))
