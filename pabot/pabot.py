@@ -161,12 +161,10 @@ def execute_and_wait_with(item):
         datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in item.datasources]
         caller_id = uuid.uuid4().hex
 
+        name = item.execution_item.name
         if _DRY_RUN:
-            item_names = [child_item.name for child_item in item.execution_item.suites]
-            item_names = " ".join(item_names)
             outs_dir = os.path.join(item.outs_dir, item.argfile_index, caller_id)
         else:
-            item_names = item.execution_item.name
             outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
 
         os.makedirs(outs_dir)
@@ -174,10 +172,10 @@ def execute_and_wait_with(item):
         cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index, item.last_level) + datasources
         cmd = _mapOptionalQuote(cmd)
         if item.hive:
-            _hived_execute(item.hive, cmd, outs_dir, item_names, item.verbose, _make_id(), caller_id, item.index)
+            _hived_execute(item.hive, cmd, outs_dir, name, item.verbose, _make_id(), caller_id, item.index)
         else:
-            _try_execute_and_wait(cmd, outs_dir, item_names, item.verbose, _make_id(), caller_id, item.index)
-        outputxml_preprocessing(item.options, outs_dir, item_names, item.verbose, _make_id(), caller_id)
+            _try_execute_and_wait(cmd, outs_dir, name, item.verbose, _make_id(), caller_id, item.index)
+        outputxml_preprocessing(item.options, outs_dir, name, item.verbose, _make_id(), caller_id)
     except:
         _write(traceback.format_exc())
 
@@ -560,12 +558,14 @@ def _parse_args(args):
     _delete_none_keys(options_for_subprocesses)
     return options, datasources, pabot_args, options_for_subprocesses
 
+
 def _parse_ordering(filename): # type: (str) -> Optional[List[ExecutionItem]]
     try:
         with open(filename, "r") as orderingfile:
             return [_parse_line(line.strip()) for line in orderingfile.readlines()]
     except:
         raise DataError("Error parsing ordering file '%s'" % filename)
+
 
 def _group_by_groups(tokens):
     result = []
@@ -985,12 +985,13 @@ class IncludeItem(ExecutionItem):
         return [self.name]
 
 
-class SuiteItems:
+class SuiteItems(ExecutionItem):
 
     type = "suite"
 
     def __init__(self, suites):
         self.suites = suites
+        self.name = " ".join([suite.name for suite in suites])
 
     def modify_options_for_executor(self, options):
         options['suite'] = [suite.name for suite in self.suites]
