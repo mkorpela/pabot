@@ -1264,6 +1264,7 @@ def _get_suite_root_name(suite_names):
 class QueueItem(object):
 
     def __init__(self, datasources, outs_dir, options, execution_item, command, verbose, argfile, hive=None):
+        # type: (List[str], str, Dict[str, object], ExecutionItem, object, bool, Tuple[str, Optional[str]], Optional[str]) -> None
         self.datasources = datasources
         self.outs_dir = outs_dir.encode('utf-8') if PY2 and is_unicode(outs_dir) else outs_dir
         self.options = options
@@ -1344,7 +1345,7 @@ def _chunk_items(items, chunk_size):
             continue
         execution_items = SuiteItems([item.execution_item for item in chunked_items])
         chunked_item = QueueItem(base_item.datasources, base_item.outs_dir, base_item.options, execution_items,
-                                 base_item.command, base_item.verbose, [base_item.argfile_index, base_item.argfile])
+                                 base_item.command, base_item.verbose, (base_item.argfile_index, base_item.argfile))
         yield chunked_item
 
 
