@@ -272,10 +272,9 @@ def _make_id(): # type: () -> int
 def _increase_completed(plib, my_index):
     global _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES
     with _COMPLETED_LOCK:
-        if my_index in _NOT_COMPLETED_INDEXES:
-            _NOT_COMPLETED_INDEXES.remove(my_index)
-        else:
+        if my_index not in _NOT_COMPLETED_INDEXES:
             return
+        _NOT_COMPLETED_INDEXES.remove(my_index)
         if _NOT_COMPLETED_INDEXES:
             plib.run_keyword('set_parallel_value_for_key',
             [pabotlib.PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE,
