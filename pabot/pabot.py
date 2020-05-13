@@ -162,6 +162,8 @@ def execute_and_wait_with(item):
         datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in item.datasources]
         caller_id = uuid.uuid4().hex
         name = item.execution_item.name
+        if item.argfile:
+            name += " (%s)" % item.argfile
         outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
         os.makedirs(outs_dir)
         cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index, item.last_level) + datasources
@@ -192,6 +194,7 @@ def _hived_execute(hive, cmd, outs_dir, item_name, verbose, pool_id, caller_id, 
 
 
 def _try_execute_and_wait(cmd, outs_dir, item_name, verbose, pool_id, caller_id, my_index=-1):
+    # type: (List[str], str, str, bool, int, str, int) -> None
     plib = None
     is_ignored = False
     if _pabotlib_in_use():
@@ -227,8 +230,11 @@ def _result_to_stdout(elapsed, is_ignored, item_name, my_index, pool_id, process
 def _is_ignored(plib, caller_id):  # type: (Remote, str) -> bool
     return plib.run_keyword('is_ignored_execution', [caller_id], {})
 
-# optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
+
+# optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords
+# and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
 def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, caller_id):
+    # type: (Dict[str, Any], str, str, bool, int, str) -> None
     try:
         remove_keywords = options['removekeywords']
         flatten_keywords = options['flattenkeywords']
@@ -270,7 +276,9 @@ def _make_id(): # type: () -> int
             EXECUTION_POOL_IDS += [thread_id]
         return EXECUTION_POOL_IDS.index(thread_id)
 
+
 def _increase_completed(plib, my_index):
+    # type: (Remote, int) -> None
     global _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES
     with _COMPLETED_LOCK:
         if my_index not in _NOT_COMPLETED_INDEXES:
@@ -287,7 +295,7 @@ def _increase_completed(plib, my_index):
 
 
 def _run(command, stderr, stdout, item_name, verbose, pool_id, item_index):
-    # type: (List[str], IO[Any], IO[Any], str, bool, str, int) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
+    # type: (List[str], IO[Any], IO[Any], str, bool, int, int) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
     timestamp = datetime.datetime.now()
     cmd = ' '.join(command)
     if PY2:
