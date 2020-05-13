@@ -2,8 +2,6 @@ from robot.libraries.BuiltIn import BuiltIn
 from robot.libraries.Remote import Remote
 from robot.api import logger
 from robot.running.testlibraries import TestLibrary
-from robot.running.context import EXECUTION_CONTEXTS
-from robot.running.model import Keyword
 from robotremoteserver import RemoteLibraryFactory
 from .pabotlib import PABOT_QUEUE_INDEX
 
