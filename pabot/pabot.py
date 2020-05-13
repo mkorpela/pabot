@@ -114,7 +114,7 @@ try:
 except ImportError:
     from pipes import quote # type: ignore
 
-from typing import List, Optional, Union, Dict, Tuple
+from typing import List, Optional, Union, Dict, Tuple, IO, Any
 
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = queue.Queue()
@@ -233,7 +233,8 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
         remove_keywords = options['removekeywords']
         flatten_keywords = options['flattenkeywords']
         if not remove_keywords and not flatten_keywords:
-            return  #  => no preprocessing needed if no removekeywords or flattenkeywords present
+            # => no preprocessing needed if no removekeywords or flattenkeywords present
+            return
         remove_keywords_args = [] # type: List[str]
         flatten_keywords_args =  [] # type: List[str]
         for k in remove_keywords:
@@ -284,11 +285,11 @@ def _increase_completed(plib, my_index):
             plib.run_keyword('set_parallel_value_for_key',
             ['pabot_only_last_executing', 1], {})
 
-def _run(cmd, stderr, stdout, item_name, verbose, pool_id, item_index):
+
+def _run(command, stderr, stdout, item_name, verbose, pool_id, item_index):
+    # type: (List[str], IO[Any], IO[Any], str, bool, str, int) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
     timestamp = datetime.datetime.now()
-    # isinstance(cmd,list)==True
-    cmd = ' '.join(cmd)
-    # isinstance(cmd,basestring if PY2 else str)==True
+    cmd = ' '.join(command)
     if PY2:
         cmd = cmd.decode('utf-8').encode(SYSTEM_ENCODING)
     # avoid hitting https://bugs.python.org/issue10394
