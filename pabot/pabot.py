@@ -144,13 +144,15 @@ class Color:
     YELLOW = '\033[93m'
 
 
-def _mapOptionalQuote(cmdargs):
+def _mapOptionalQuote(command_args):
+    # type: (List[str]) -> List[str]
     if os.name == 'posix':
-        return [quote(arg) for arg in cmdargs]
-    return [arg if set(arg).isdisjoint(_BAD_CHARS_SET) else '"%s"'%arg for arg in cmdargs]
+        return [quote(arg) for arg in command_args]
+    return [arg if set(arg).isdisjoint(_BAD_CHARS_SET) else '"%s"'%arg for arg in command_args]
 
 
 def execute_and_wait_with(item):
+    # type: ('QueueItem') -> None
     global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     is_last = _NUMBER_OF_ITEMS_TO_BE_EXECUTED == 1
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED -= 1
@@ -161,13 +163,10 @@ def execute_and_wait_with(item):
     try:
         datasources = [d.encode('utf-8') if PY2 and is_unicode(d) else d for d in item.datasources]
         caller_id = uuid.uuid4().hex
-        name = item.execution_item.name
-        if item.argfile:
-            name += " (%s)" % item.argfile
+        name = item.display_name
         outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
         os.makedirs(outs_dir)
-        cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile, caller_id, is_last, item.index, item.last_level) + datasources
-        cmd = _mapOptionalQuote(cmd)
+        cmd = _create_command_for_execution(caller_id, datasources, is_last, item, outs_dir)
         if item.hive:
             _hived_execute(item.hive, cmd, outs_dir, name, item.verbose, _make_id(), caller_id, item.index)
         else:
@@ -175,6 +174,12 @@ def execute_and_wait_with(item):
         outputxml_preprocessing(item.options, outs_dir, name, item.verbose, _make_id(), caller_id)
     except:
         _write(traceback.format_exc())
+
+
+def _create_command_for_execution(caller_id, datasources, is_last, item, outs_dir):
+    cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile,
+                                                      caller_id, is_last, item.index, item.last_level) + datasources
+    return _mapOptionalQuote(cmd)
 
 
 def _pabotlib_in_use():
@@ -356,6 +361,7 @@ def _execution_ignored_message(suite_name, stdout, stderr, elapsed, verbose):
 
 
 def _options_for_custom_executor(*args):
+    # type: (Any) -> List[str]
     return _options_to_cli_arguments(_options_for_executor(*args))
 
 
@@ -1270,7 +1276,7 @@ def _get_suite_root_name(suite_names):
 class QueueItem(object):
 
     def __init__(self, datasources, outs_dir, options, execution_item, command, verbose, argfile, hive=None):
-        # type: (List[str], str, Dict[str, object], ExecutionItem, object, bool, Tuple[str, Optional[str]], Optional[str]) -> None
+        # type: (List[str], str, Dict[str, object], ExecutionItem, List[str], bool, Tuple[str, Optional[str]], Optional[str]) -> None
         self.datasources = datasources
         self.outs_dir = outs_dir.encode('utf-8') if PY2 and is_unicode(outs_dir) else outs_dir
         self.options = options
@@ -1282,6 +1288,13 @@ class QueueItem(object):
         self.index = -1
         self.last_level = None
         self.hive = hive
+
+    @property
+    def display_name(self):
+        # type: () -> str
+        if self.argfile:
+            return "%s {%s}" % (self.execution_item.name, self.argfile)
+        return self.execution_item.name
 
 
 def _create_execution_items(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args):
