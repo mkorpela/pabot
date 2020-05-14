@@ -21,6 +21,28 @@ def _processes_count():  # type: () -> int
 
 
 def parse_args(args):  # type: (List[str]) -> Tuple[Dict[str, object], List[str], Dict[str, object], Dict[str, object]]
+    args, pabot_args = _parse_pabot_args(args)
+    options, datasources = ArgumentParser(USAGE,
+                                          auto_pythonpath=False,
+                                          auto_argumentfile=True,
+                                          env_options='ROBOT_OPTIONS'). \
+        parse_args(args)
+    options_for_subprocesses, sources_without_argfile = ArgumentParser(USAGE,
+                                          auto_pythonpath=False,
+                                          auto_argumentfile=False,
+                                          env_options='ROBOT_OPTIONS'). \
+        parse_args(args)
+    if len(datasources) != len(sources_without_argfile):
+        raise DataError('Pabot does not support datasources in argumentfiles.\nPlease move datasources to commandline.')
+    if len(datasources) > 1 and options['name'] is None:
+        options['name'] = 'Suites'
+        options_for_subprocesses['name'] = 'Suites'
+    opts = _delete_none_keys(options)
+    opts_sub = _delete_none_keys(options_for_subprocesses)
+    return opts, datasources, pabot_args, opts_sub
+
+
+def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, object]]
     pabot_args = {'command': ['pybot' if ROBOT_VERSION < '3.1' else 'robot'],
                   'verbose': False,
                   'help': False,
@@ -30,8 +52,8 @@ def parse_args(args):  # type: (List[str]) -> Tuple[Dict[str, object], List[str]
                   'pabotlibport': 8270,
                   'processes': _processes_count(),
                   'artifacts': ['png'],
-                  'artifactsinsubfolders': False,
-                  'argumentfiles': []}
+                  'artifactsinsubfolders': False}
+    argumentfiles = []
     while args and (args[0] in ['--' + param for param in ['hive',
                                                            'command',
                                                            'processes',
@@ -46,7 +68,7 @@ def parse_args(args):  # type: (List[str]) -> Tuple[Dict[str, object], List[str]
                                                            'artifacts',
                                                            'artifactsinsubfolders',
                                                            'help']] or
-                        ARGSMATCHER.match(args[0])):
+                    ARGSMATCHER.match(args[0])):
         if args[0] == '--hive':
             pabot_args['hive'] = args[1]
             args = args[2:]
@@ -102,30 +124,14 @@ def parse_args(args):  # type: (List[str]) -> Tuple[Dict[str, object], List[str]
             continue
         match = ARGSMATCHER.match(args[0])
         if match:
-            pabot_args['argumentfiles'] += [(match.group(1), args[1])]
+            argumentfiles += [(match.group(1), args[1])]
             args = args[2:]
             continue
         if args and args[0] == '--help':
             pabot_args['help'] = True
             args = args[1:]
-    options, datasources = ArgumentParser(USAGE,
-                                          auto_pythonpath=False,
-                                          auto_argumentfile=True,
-                                          env_options='ROBOT_OPTIONS'). \
-        parse_args(args)
-    options_for_subprocesses, sources_without_argfile = ArgumentParser(USAGE,
-                                          auto_pythonpath=False,
-                                          auto_argumentfile=False,
-                                          env_options='ROBOT_OPTIONS'). \
-        parse_args(args)
-    if len(datasources) != len(sources_without_argfile):
-        raise DataError('Pabot does not support datasources in argumentfiles.\nPlease move datasources to commandline.')
-    if len(datasources) > 1 and options['name'] is None:
-        options['name'] = 'Suites'
-        options_for_subprocesses['name'] = 'Suites'
-    opts = _delete_none_keys(options)
-    opts_sub = _delete_none_keys(options_for_subprocesses)
-    return opts, datasources, pabot_args, opts_sub
+    pabot_args['argumentfiles'] = argumentfiles
+    return args, pabot_args
 
 
 def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
