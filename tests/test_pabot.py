@@ -7,9 +7,8 @@ import tempfile
 import shutil
 import random
 
-import pabot.arguments
 import pabot.execution_items as execution_items
-from pabot import pabot
+from pabot import pabot, arguments
 from robot.utils import PY2
 from robot.errors import DataError
 from robot import __version__ as ROBOT_VERSION
@@ -24,7 +23,7 @@ class PabotTests(unittest.TestCase):
 
 
     def setUp(self):
-        self._options, self._datasources, self._pabot_args, _ = pabot.arguments.parse_args(['--pabotlib',
+        self._options, self._datasources, self._pabot_args, _ = arguments.parse_args(['--pabotlib',
                                                                                 '--verbose',
                                                                                 '--argumentfile1',
                                                                                 'tests/passingarg.txt',
@@ -68,7 +67,7 @@ class PabotTests(unittest.TestCase):
         self._all_with_tests = ['--test '+_t for _t in self._all_tests]
 
     def test_parse_args(self):
-        options, datasources, pabot_args, options_for_subprocesses = pabot.arguments.parse_args(
+        options, datasources, pabot_args, options_for_subprocesses = arguments.parse_args(
             ['--command', 'my_own_command.sh', '--end-command',
              '--processes', '12',
              '--verbose',
