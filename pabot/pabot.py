@@ -97,12 +97,12 @@ from robot.run import USAGE
 from robot.utils import ArgumentParser, SYSTEM_ENCODING, is_unicode, PY2
 import signal
 
-from pabot.arguments import parse_args, parse_execution_item_line
-from pabot.execution_items import ExecutionItem, HivedItem, GroupItem, SuiteItem, TestItem, DynamicSuiteItem, \
-    GroupStartItem, GroupEndItem, SuiteItems
 from . import pabotlib
 from .result_merger import merge
 from .clientwrapper import make_order
+from .arguments import parse_args, parse_execution_item_line
+from .execution_items import ExecutionItem, HivedItem, GroupItem, SuiteItem, TestItem, DynamicSuiteItem, \
+    GroupStartItem, GroupEndItem, SuiteItems
 
 try:
     import queue # type: ignore

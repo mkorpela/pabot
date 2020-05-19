@@ -7,7 +7,7 @@ from robot.errors import DataError
 from robot.run import USAGE
 from robot.utils import ArgumentParser
 
-from pabot.execution_items import SuiteItem, TestItem, IncludeItem, DynamicTestItem, WaitItem, GroupStartItem, \
+from .execution_items import SuiteItem, TestItem, IncludeItem, DynamicTestItem, WaitItem, GroupStartItem, \
     GroupEndItem, ExecutionItem
 
 ARGSMATCHER = re.compile(r'--argumentfile(\d+)')
