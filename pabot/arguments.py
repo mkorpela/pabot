@@ -33,7 +33,9 @@ def parse_args(args):  # type: (List[str]) -> Tuple[Dict[str, object], List[str]
                                           env_options='ROBOT_OPTIONS'). \
         parse_args(args)
     if len(datasources) != len(sources_without_argfile):
-        raise DataError('Pabot does not support datasources in argumentfiles.\nPlease move datasources to commandline.')
+        raise DataError('Pabot does not support datasources in argumentfiles.\nPlease move datasources to commandline or use --datasourcesfile.')
+    if 'datasourcesfile' in pabot_args:
+        datasources.extend(pabot_args['datasourcesfile'])
     if len(datasources) > 1 and options['name'] is None:
         options['name'] = 'Suites'
         options_for_subprocesses['name'] = 'Suites'
@@ -67,6 +69,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                                                            'suitesfrom',
                                                            'artifacts',
                                                            'artifactsinsubfolders',
+                                                           'datasourcesfile',
                                                            'help']] or
                     ARGSMATCHER.match(args[0])):
         if args[0] == '--hive':
@@ -96,6 +99,10 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
             continue
         if args[0] == '--ordering':
             pabot_args['ordering'] = _parse_ordering(args[1])
+            args = args[2:]
+            continue
+        if args[0] == '--datasourcesfile':
+            pabot_args['datasourcesfile'] = _parse_datasources_file(args[1])
             args = args[2:]
             continue
         if args[0] == '--testlevelsplit':
@@ -140,6 +147,13 @@ def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
             return [parse_execution_item_line(line.strip()) for line in orderingfile.readlines()]
     except:
         raise DataError("Error parsing ordering file '%s'" % filename)
+
+def _parse_datasources_file(filename): # type: (str) -> List[str]
+    try:
+        with open(filename, "r") as datasources_file:
+            return [line.strip() for line in datasources_file.readlines()]
+    except:
+        raise DataError("Error parsing data sources file '%s'" % filename)
 
 
 def _delete_none_keys(d):  # type: (Dict[str, Optional[object]]) -> Dict[str, object]

@@ -55,6 +55,10 @@ options (these must be before normal RF options):
 --ordering [FILE PATH]
   Optionally give execution order from a file.
 
+--datasourcesfile [FILEPATH]
+  Optionally read data sources from the txt file. Each line is one
+  data source entry.
+
 --suitesfrom [FILEPATH TO OUTPUTXML]
   Optionally read suites from output.xml file. Failed suites will run
   first and longer running ones will be executed before shorter ones.
