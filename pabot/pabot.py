@@ -102,7 +102,7 @@ from .result_merger import merge
 from .clientwrapper import make_order
 from .arguments import parse_args, parse_execution_item_line
 from .execution_items import ExecutionItem, HivedItem, GroupItem, SuiteItem, TestItem, DynamicSuiteItem, \
-    GroupStartItem, GroupEndItem, SuiteItems
+    GroupStartItem, GroupEndItem, SuiteItems, DynamicTestItem
 
 try:
     import queue # type: ignore
@@ -605,13 +605,13 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         return _levelsplit(generate_suite_names_with_builder(outs_dir, datasources, options), pabot_args)
 
 
-def _levelsplit(suites, pabot_args):  # type: (List[SuiteItem], Dict[str, object]) -> List[ExecutionItem]
+def _levelsplit(suites, pabot_args):  # type: (List[SuiteItem], Dict[str, str]) -> List[ExecutionItem]
         if pabot_args.get('testlevelsplit'):
-            tests = []  # type: List[TestItem]
+            tests = []  # type: List[ExecutionItem]
             for s in suites:
                 tests.extend(s.tests)
-            suites = tests
-        return suites
+            return tests
+        return list(suites)
 
 
 def _group_by_wait(lines):
@@ -769,15 +769,19 @@ def store_suite_names(hashes, suite_names):
     assert(all(isinstance(s, ExecutionItem) for s in suite_names))
     suite_lines = [s.line() for s in suite_names]
     _write("Storing .pabotsuitenames file")
-    with _open_pabotsuitenames("w") as suitenamesfile:
-        suitenamesfile.write("datasources:"+hashes.dirs+'\n')
-        suitenamesfile.write("commandlineoptions:"+hashes.cmd+'\n')
-        suitenamesfile.write("suitesfrom:"+hashes.suitesfrom+'\n')
-        suitenamesfile.write("file:"+_file_hash([
-            "datasources:"+hashes.dirs,
-            "commandlineoptions:"+hashes.cmd,
-            "suitesfrom:"+hashes.suitesfrom, None]+ suite_lines)+'\n')
-        suitenamesfile.writelines((d+'\n').encode('utf-8') if PY2 and is_unicode(d) else d+'\n' for d in suite_lines)
+    try:
+        with _open_pabotsuitenames("w") as suitenamesfile:
+            suitenamesfile.write("datasources:"+hashes.dirs+'\n')
+            suitenamesfile.write("commandlineoptions:"+hashes.cmd+'\n')
+            suitenamesfile.write("suitesfrom:"+hashes.suitesfrom+'\n')
+            suitenamesfile.write("file:"+_file_hash([
+                "datasources:"+hashes.dirs,
+                "commandlineoptions:"+hashes.cmd,
+                "suitesfrom:"+hashes.suitesfrom, None]+ suite_lines)+'\n')
+            suitenamesfile.writelines((d+'\n').encode('utf-8') if PY2 and is_unicode(d) else d+'\n' for d in suite_lines)
+    except IOError:
+
+        _write("[ " + _wrap_with(Color.YELLOW, "WARNING") + " ]: storing .pabotsuitenames failed")
 
 def generate_suite_names(outs_dir, datasources, options, pabot_args): # type: (object, object, object, Dict[str, str]) -> List[ExecutionItem]
     suites = [] # type: List[SuiteItem]
