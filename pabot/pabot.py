@@ -602,7 +602,16 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                                    execution_item_lines)
         return execution_item_lines
     except IOError:
-        return generate_suite_names_with_builder(outs_dir, datasources, options)
+        return _levelsplit(generate_suite_names_with_builder(outs_dir, datasources, options), pabot_args)
+
+
+def _levelsplit(suites, pabot_args):  # type: (List[SuiteItem], Dict[str, object]) -> List[ExecutionItem]
+        if pabot_args.get('testlevelsplit'):
+            tests = []  # type: List[TestItem]
+            for s in suites:
+                tests.extend(s.tests)
+            suites = tests
+        return suites
 
 
 def _group_by_wait(lines):
@@ -634,12 +643,7 @@ def _regenerate(
             all_suites = [suite for suite in lines if suite]
         suites = _preserve_order(all_suites, suites)
     else:
-        suites = generate_suite_names_with_builder(outs_dir, datasources, options)
-        if pabot_args.get('testlevelsplit'):
-            tests = [] # type: List[TestItem]
-            for s in suites:
-                tests.extend(s.tests)
-            suites = tests
+        suites = _levelsplit(generate_suite_names_with_builder(outs_dir, datasources, options), pabot_args)
         suites = _preserve_order(suites, [suite for suite in lines if suite])
     if suites:
         store_suite_names(h, suites)
