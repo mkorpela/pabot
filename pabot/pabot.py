@@ -102,7 +102,7 @@ from .result_merger import merge
 from .clientwrapper import make_order
 from .arguments import parse_args, parse_execution_item_line
 from .execution_items import ExecutionItem, HivedItem, GroupItem, SuiteItem, TestItem, DynamicSuiteItem, \
-    GroupStartItem, GroupEndItem, SuiteItems, DynamicTestItem
+    GroupStartItem, GroupEndItem, SuiteItems
 
 try:
     import queue # type: ignore

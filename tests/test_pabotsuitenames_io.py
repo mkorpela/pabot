@@ -43,7 +43,9 @@ class TestPabotSuiteNamesIO(unittest.TestCase):
 
     def test_unable_to_write_pabotsuitenames(self):
         names = pabot.solve_suite_names('outs', [self.tmpdir], {}, {'testlevelsplit':True})
-        self.assertEqual([n.name[len(self.tmpdir):] for n in names], ['.Test 1', '.Test 2', '.Test 3'])
+        self.assertEqual(len(names), 3)
+        for actual, expected in zip([n.name for n in names], ['Test.Test 1', 'Test.Test 2', 'Test.Test 3']):
+            self.assertTrue(actual.endswith(expected))
 
     def tearDown(self):
         os.chdir(self.original_curdir)
