@@ -46,9 +46,9 @@ class TestPabotSuiteNamesIO(unittest.TestCase):
         self.assertEqual([n.name[len(self.tmpdir):] for n in names], ['.Test 1', '.Test 2', '.Test 3'])
 
     def tearDown(self):
+        os.chdir(self.original_curdir)
         shutil.rmtree(self.tmpdir)
         pabot.store_suite_names = self.original
-        os.chdir(self.original_curdir)
 
 if __name__ == '__main__':
     unittest.main()
