@@ -1,6 +1,8 @@
 language: python
 sudo: required
 dist: xenial
+env:
+  - COVERAGE_PROCESS_START=1
 python:
   - "2.7"
   - "3.6"
