@@ -279,12 +279,13 @@ class StaticRemoteLibrary(object):
 
     def __init__(self, library):
         self._library = library
-        self._names, self._robot_name_index = self._get_keyword_names(library)
+        self._names = None
+        self._robot_name_index = None
 
-    def _get_keyword_names(self, library):
+    def _construct_keyword_names(self):
         names = []
         robot_name_index = {}
-        for name, kw in inspect.getmembers(library):
+        for name, kw in inspect.getmembers(self._library):
             if is_function_or_method(kw):
                 if getattr(kw, 'robot_name', None):
                     names.append(kw.robot_name)
@@ -294,6 +295,8 @@ class StaticRemoteLibrary(object):
         return names, robot_name_index
 
     def get_keyword_names(self):
+        if self._names is None:
+            self._names, self._robot_name_index = self._construct_keyword_names()
         return self._names
 
     def run_keyword(self, name, args, kwargs=None):
@@ -301,6 +304,8 @@ class StaticRemoteLibrary(object):
         return KeywordRunner(kw).run_keyword(args, kwargs)
 
     def _get_keyword(self, name):
+        if self._names is None:
+            self._names, self._robot_name_index = self._construct_keyword_names()
         if name in self._robot_name_index:
             name = self._robot_name_index[name]
         return getattr(self._library, name)
@@ -376,7 +381,7 @@ class DynamicRemoteLibrary(HybridRemoteLibrary):
         return len(spec.args) > 3    # self, name, args, kwargs=None
 
     def run_keyword(self, name, args, kwargs=None):
-        args = [name, args, kwargs] if kwargs else [name, args]
+        args = [name, args, kwargs] if kwargs else [name, args, {}]
         return KeywordRunner(self._run_keyword).run_keyword(args)
 
     def get_keyword_arguments(self, name):
