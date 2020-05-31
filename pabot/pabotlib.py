@@ -24,7 +24,7 @@ except:
     # Support Python 2
 
 from robot.libraries.BuiltIn import BuiltIn
-from robotremoteserver import RobotRemoteServer
+from .robotremoteserver import RobotRemoteServer
 from robot.libraries.Remote import Remote
 from robot.running import TestLibrary
 from robot.api import logger
