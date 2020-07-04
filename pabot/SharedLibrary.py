@@ -47,4 +47,4 @@ class SharedLibrary(object):
         result = self._lib.run_keyword(name, args, kwargs)
         if result['status'] == 'FAIL':
             raise AssertionError(result['error'])
-        return result['return']
+        return result.get('return')
