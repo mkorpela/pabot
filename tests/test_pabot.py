@@ -904,6 +904,47 @@ class PabotTests(unittest.TestCase):
             pabot._stop_remote_library(lib_process)
             shutil.rmtree(dtemp)
 
+    def test_execute_with_argumentfile(self):
+        dtemp = tempfile.mkdtemp()
+        outs_dir = os.path.join(dtemp, 'pabot_results')
+        _, datasources, pabot_args, options = arguments.parse_args(['--argumentfile',
+                                                                    'tests/suitearg.txt',
+                                                                    'tests/fixtures'])
+        suites = ['Fixtures.Suite One', 'Fixtures.Suite Second']
+        self._options['outputdir'] = dtemp
+        pabot_args['pabotlibport'] = 4000 + random.randint(0, 1000)
+        pabot_args['testlevelsplit'] = True
+        lib_process = pabot._start_remote_library(self._pabot_args)
+        pabot._initialize_queue_index()
+        try:
+            suite_names = [s(_s) for _s in suites]
+            items = [pabot.QueueItem(datasources, outs_dir, options, suite,
+                                     pabot_args['command'],
+                                     pabot_args['verbose'], argfile)
+                     for suite in suite_names
+                     for argfile in pabot_args['argumentfiles'] or [("", None)]]
+            for i, item in enumerate(items):
+                item.index = i
+            pabot._parallel_execute(items, pabot_args['processes'])
+            result_code = pabot._report_results(outs_dir,
+                                                pabot_args,
+                                                options,
+                                                pabot._now(),
+                                                pabot._get_suite_root_name(
+                                                    [suite_names]))
+            with open(os.path.join(dtemp, 'pabot_results', '0', 'argumentfile.txt'), 'r') as f:
+                self.assertEqual(f.readline().strip(), '--suite Fixtures.Suite One')
+            with open(os.path.join(dtemp, 'pabot_results', '0', 'robot_stdout.out'), 'r') as f:
+                self.assertIn('4 tests total, 2 passed, 2 failed', f.read())
+            with open(os.path.join(dtemp, 'pabot_results', '1', 'argumentfile.txt'), 'r') as f:
+                self.assertEqual(f.readline().strip(), '--suite Fixtures.Suite Second')
+            with open(os.path.join(dtemp, 'pabot_results', '1', 'robot_stdout.out'), 'r') as f:
+                self.assertIn('5 tests total, 3 passed, 2 failed', f.read())
+            self.assertEqual(4, result_code)
+        finally:
+            pabot._stop_remote_library(lib_process)
+            shutil.rmtree(dtemp)
+
     def test_suite_root_name(self):
         def t(l):
             return [[s(i) for i in suites] for suites in l]

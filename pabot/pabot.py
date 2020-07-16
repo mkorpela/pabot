@@ -165,7 +165,12 @@ def execute_and_wait_with(item):
         name = item.display_name
         outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
         os.makedirs(outs_dir)
-        cmd = _create_command_for_execution(caller_id, datasources, is_last, item, outs_dir)
+        if item.options.get('argumentfile'):
+            options = _save_opts_to_argumentfile(caller_id, is_last, item, outs_dir)
+        else:
+            options = _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile,
+                                                   caller_id, is_last, item.index, item.last_level)
+        cmd = _create_command_for_execution(item.command, options, datasources)
         if item.hive:
             _hived_execute(item.hive, cmd, outs_dir, name, item.verbose, _make_id(), caller_id, item.index)
         else:
@@ -175,9 +180,24 @@ def execute_and_wait_with(item):
         _write(traceback.format_exc())
 
 
-def _create_command_for_execution(caller_id, datasources, is_last, item, outs_dir):
-    cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile,
-                                                      caller_id, is_last, item.index, item.last_level) + datasources
+def _save_opts_to_argumentfile(caller_id, is_last, item, outs_dir):
+    options = _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile,
+                                           caller_id, is_last, item.index, item.last_level)
+    argumentfile_path = os.path.join(outs_dir, 'argumentfile.txt')
+    with open(argumentfile_path, 'w') as argumentfile:
+        current_line = ''
+        for option in options:
+            if option.startswith('-'):
+                current_line = option
+            else:
+                current_line += ' ' + option + '\n'
+                argumentfile.write(current_line)
+    options = ['--argumentfile', argumentfile_path]
+    return options
+
+
+def _create_command_for_execution(command, options, datasources):
+    cmd = command + options + datasources
     return _mapOptionalQuote(cmd)
 
 
@@ -395,6 +415,8 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id,
     if argfile:
         _modify_options_for_argfile_use(argfile, options, execution_item.top_name())
         options['argumentfile'] = argfile
+    else:
+        options['argumentfile'] = []
     return _set_terminal_coloring_options(options)
 
 
