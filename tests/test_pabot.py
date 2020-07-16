@@ -933,11 +933,15 @@ class PabotTests(unittest.TestCase):
                                                 pabot._get_suite_root_name(
                                                     [suite_names]))
             with open(os.path.join(dtemp, 'pabot_results', '0', 'argumentfile.txt'), 'r') as f:
-                self.assertEqual(f.readline().strip(), '--suite Fixtures.Suite One')
+                f_content = f.read()
+                self.assertIn('--suite Fixtures.Suite One', f_content)
+                self.assertNotIn('--suite Fixtures.Suite Second', f_content)
             with open(os.path.join(dtemp, 'pabot_results', '0', 'robot_stdout.out'), 'r') as f:
                 self.assertIn('4 tests total, 2 passed, 2 failed', f.read())
             with open(os.path.join(dtemp, 'pabot_results', '1', 'argumentfile.txt'), 'r') as f:
-                self.assertEqual(f.readline().strip(), '--suite Fixtures.Suite Second')
+                f_content = f.read()
+                self.assertIn('--suite Fixtures.Suite Second', f_content)
+                self.assertNotIn('--suite Fixtures.Suite One', f_content)
             with open(os.path.join(dtemp, 'pabot_results', '1', 'robot_stdout.out'), 'r') as f:
                 self.assertIn('5 tests total, 3 passed, 2 failed', f.read())
             self.assertEqual(4, result_code)
