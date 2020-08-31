@@ -389,7 +389,7 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id,
         options['variable'].append(pabotIsLast)
     pabotProcesses = 'PABOTNUMBEROFPROCESSES:%s' % str(processes)
     if pabotProcesses not in options['variable']:
-        options['variable'].append(pabotIsLast)
+        options['variable'].append(pabotProcesses)
     pabotIndex = pabotlib.PABOT_QUEUE_INDEX + ":" + str(queueIndex)
     if pabotIndex not in options['variable']:
         options['variable'].append(pabotIndex)
