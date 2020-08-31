@@ -177,7 +177,8 @@ def execute_and_wait_with(item):
 
 def _create_command_for_execution(caller_id, datasources, is_last, item, outs_dir):
     cmd = item.command + _options_for_custom_executor(item.options, outs_dir, item.execution_item, item.argfile,
-                                                      caller_id, is_last, item.index, item.last_level) + datasources
+                                                      caller_id, is_last, item.index, item.last_level,
+                                                      item.processes) + datasources
     return _mapOptionalQuote(cmd)
 
 
@@ -364,7 +365,8 @@ def _options_for_custom_executor(*args):
     return _options_to_cli_arguments(_options_for_executor(*args))
 
 
-def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id, is_last, queueIndex, last_level):
+def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id, is_last, queueIndex, last_level,
+                          processes):
     options = options.copy()
     options['log'] = 'NONE'
     options['report'] = 'NONE'
@@ -384,6 +386,9 @@ def _options_for_executor(options, outs_dir, execution_item, argfile, caller_id,
         options['variable'].append(pabotExecutionPoolId)
     pabotIsLast = 'PABOTISLASTEXECUTIONINPOOL:%s' % ('1' if is_last else '0')
     if pabotIsLast not in options['variable']:
+        options['variable'].append(pabotIsLast)
+    pabotProcesses = 'PABOTNUMBEROFPROCESSES:%s' % str(processes)
+    if pabotProcesses not in options['variable']:
         options['variable'].append(pabotIsLast)
     pabotIndex = pabotlib.PABOT_QUEUE_INDEX + ":" + str(queueIndex)
     if pabotIndex not in options['variable']:
@@ -1134,8 +1139,8 @@ def _get_suite_root_name(suite_names):
 
 class QueueItem(object):
 
-    def __init__(self, datasources, outs_dir, options, execution_item, command, verbose, argfile, hive=None):
-        # type: (List[str], str, Dict[str, object], ExecutionItem, List[str], bool, Tuple[str, Optional[str]], Optional[str]) -> None
+    def __init__(self, datasources, outs_dir, options, execution_item, command, verbose, argfile, hive=None, processes=0):
+        # type: (List[str], str, Dict[str, object], ExecutionItem, List[str], bool, Tuple[str, Optional[str]], Optional[str], int) -> None
         self.datasources = datasources
         self.outs_dir = outs_dir.encode('utf-8') if PY2 and is_unicode(outs_dir) else outs_dir
         self.options = options
@@ -1147,6 +1152,7 @@ class QueueItem(object):
         self.index = -1
         self.last_level = None
         self.hive = hive
+        self.processes = processes
 
     @property
     def display_name(self):
@@ -1196,7 +1202,8 @@ def _create_execution_items_for_run(suite_names, datasources, outs_dir, options,
 
 def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group):
     return [QueueItem(datasources, outs_dir, opts_for_run, suite,
-                       pabot_args['command'], pabot_args['verbose'], argfile, pabot_args.get('hive'))
+                       pabot_args['command'], pabot_args['verbose'], argfile, pabot_args.get('hive'),
+                      pabot_args['processes'])
              for suite in suite_group
              for argfile in pabot_args['argumentfiles'] or [("", None)]]
 
@@ -1223,7 +1230,8 @@ def _chunk_items(items, chunk_size):
             continue
         execution_items = SuiteItems([item.execution_item for item in chunked_items])
         chunked_item = QueueItem(base_item.datasources, base_item.outs_dir, base_item.options, execution_items,
-                                 base_item.command, base_item.verbose, (base_item.argfile_index, base_item.argfile))
+                                 base_item.command, base_item.verbose, (base_item.argfile_index, base_item.argfile),
+                                 processes=base_item.processes)
         yield chunked_item
 
 
@@ -1280,7 +1288,8 @@ def _add_dynamically_created_execution_items(execution_items, datasources, outs_
         return
     suite_group = [DynamicSuiteItem(s, v) for s, v in new_suites]
     items = [QueueItem(datasources, outs_dir, opts_for_run, suite,
-                pabot_args['command'], pabot_args['verbose'], ("", None), pabot_args.get('hive'))
+                pabot_args['command'], pabot_args['verbose'], ("", None), pabot_args.get('hive'),
+                pabot_args['processes'])
                 for suite in suite_group]
     execution_items.insert(0, items)
 
