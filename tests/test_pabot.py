@@ -861,8 +861,6 @@ class PabotTests(unittest.TestCase):
                     self._pabot_args['verbose'], argfile)
                     for suite in suite_names
                     for argfile in self._pabot_args['argumentfiles'] or [("", None)]]
-            for i, item in enumerate(items):
-                item.index = i
             pabot._parallel_execute(items, self._pabot_args['processes'])
             result_code = pabot._report_results(outs_dir,
                                                 self._pabot_args,
@@ -890,8 +888,6 @@ class PabotTests(unittest.TestCase):
                     self._pabot_args['verbose'], argfile)
                     for test in test_names
                     for argfile in self._pabot_args['argumentfiles'] or [("", None)]]
-            for i, item in enumerate(items):
-                item.index = i
             pabot._parallel_execute(items, self._pabot_args['processes'])
             result_code = pabot._report_results(outs_dir,
                                                 self._pabot_args,

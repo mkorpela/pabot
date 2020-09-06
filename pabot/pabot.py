@@ -1139,6 +1139,8 @@ def _get_suite_root_name(suite_names):
 
 class QueueItem(object):
 
+    _queue_index = 0
+
     def __init__(self, datasources, outs_dir, options, execution_item, command, verbose, argfile, hive=None, processes=0):
         # type: (List[str], str, Dict[str, object], ExecutionItem, List[str], bool, Tuple[str, Optional[str]], Optional[str], int) -> None
         self.datasources = datasources
@@ -1149,10 +1151,16 @@ class QueueItem(object):
         self.verbose = verbose
         self.argfile_index = argfile[0]
         self.argfile = argfile[1]
-        self.index = -1
+        self._index = QueueItem._queue_index
+        QueueItem._queue_index += 1
         self.last_level = None
         self.hive = hive
         self.processes = processes
+
+    @property
+    def index(self):
+        # type: () -> int
+        return self._index
 
     @property
     def display_name(self):
@@ -1177,12 +1185,9 @@ def _construct_index_and_completed_index(all_items):
     # type: (List[List[QueueItem]]) -> None
     global _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES
     with _COMPLETED_LOCK:
-        index = 0
         for item_group in all_items:
             for item in item_group:
-                _NOT_COMPLETED_INDEXES.append(index)
-                item.index = index
-                index += 1
+                _NOT_COMPLETED_INDEXES.append(item.index)
 
 
 def _create_execution_items_for_run(suite_names, datasources, outs_dir, options, opts_for_run, pabot_args):
@@ -1280,6 +1285,7 @@ def _initialize_queue_index():
 
 
 def _add_dynamically_created_execution_items(execution_items, datasources, outs_dir, opts_for_run, pabot_args):
+    global _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     if not _pabotlib_in_use():
         return
     plib = Remote(_PABOTLIBURI)
@@ -1291,6 +1297,10 @@ def _add_dynamically_created_execution_items(execution_items, datasources, outs_
                 pabot_args['command'], pabot_args['verbose'], ("", None), pabot_args.get('hive'),
                 pabot_args['processes'])
                 for suite in suite_group]
+    with _COMPLETED_LOCK:
+        _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(items)
+        for item in items:
+            _NOT_COMPLETED_INDEXES.append(item.index)
     execution_items.insert(0, items)
 
 

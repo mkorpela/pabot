@@ -359,7 +359,7 @@ class PabotLib(_PabotLib):
                 raise
         return getattr(_PabotLib, keyword)(self, *args)
 
-    def add_suite_to_execution_queue(self, suitename, variables=None):
+    def add_suite_to_execution_queue(self, suitename, *variables):
         self._run_with_lib('add_suite_to_execution_queue', suitename, variables)
 
     def get_parallel_value_for_key(self, key):
