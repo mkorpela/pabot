@@ -8,7 +8,7 @@ name = 'Mikko Korpela'
 address = name.lower().replace(' ', '.')+chr(64)+'gmail.com'
 
 setup(name='robotframework-pabot',
-      version='1.9.0',
+      version='1.9.1',
       description='Parallel test runner for Robot Framework',
       long_description='A parallel executor for Robot Framework tests.'
                        ' With Pabot you can split one execution into multiple and save test execution time.',
