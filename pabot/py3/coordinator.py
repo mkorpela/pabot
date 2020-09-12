@@ -3,15 +3,15 @@ from typing import Dict, Set
 from . import messages
 from queue import Queue
 
-workers:Queue = Queue()
-clients:Set['CoordinatorHandler'] = set()
-work_to_client:Dict['CoordinatorHandler','CoordinatorHandler'] = dict()
+workers: Queue = Queue()
+clients: Set["CoordinatorHandler"] = set()
+work_to_client: Dict["CoordinatorHandler", "CoordinatorHandler"] = dict()
+
 
 class CoordinatorHandler(socketserver.BaseRequestHandler):
-
     def handle(self):
         try:
-            while 'connected':
+            while "connected":
                 msg = messages.get_message(self.request)
                 if msg.type == messages.CONNECTION_END:
                     return
@@ -30,13 +30,13 @@ class CoordinatorHandler(socketserver.BaseRequestHandler):
                     continue
                 elif messages.WORK_RESULT == msg.type:
                     print(f"Received work results!")
-                    #FIXME: Forward this direclty instead of unwrapping and wrapping
+                    # FIXME: Forward this direclty instead of unwrapping and wrapping
                     msg.forward_to(work_to_client[self].request)
                     del work_to_client[self]
                     workers.put(self)
-                    #print("Closing connection")
-                    #messages.put_message(self.request, messages.CONNECTION_END, '')
-                    #return
+                    # print("Closing connection")
+                    # messages.put_message(self.request, messages.CONNECTION_END, '')
+                    # return
                 elif messages.LOG == msg.type:
                     print(f"Received log '{msg.data}'")
                 msg.flush()
@@ -45,8 +45,10 @@ class CoordinatorHandler(socketserver.BaseRequestHandler):
                 clients.remove(self)
             print("Closed connection")
 
+
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     pass
+
 
 def main(args=None):
     HOST, PORT = "0.0.0.0", 8765
@@ -55,5 +57,6 @@ def main(args=None):
     print(f"Starting Coordinator server at {HOST}:{PORT}")
     server.serve_forever()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

@@ -30,28 +30,37 @@ if sys.version_info < (3,):
     from StringIO import StringIO
     from xmlrpclib import Binary, ServerProxy
     from collections import Mapping
+
     PY2, PY3 = True, False
 else:
     from io import StringIO
     from xmlrpc.client import Binary, ServerProxy
     from xmlrpc.server import SimpleXMLRPCServer
     from collections.abc import Mapping
+
     PY2, PY3 = False, True
     unicode = str
     long = int
 
 
-__all__ = ['RobotRemoteServer', 'stop_remote_server', 'test_remote_server']
-__version__ = '1.1.1.dev1'
+__all__ = ["RobotRemoteServer", "stop_remote_server", "test_remote_server"]
+__version__ = "1.1.1.dev1"
 
-BINARY = re.compile('[\x00-\x08\x0B\x0C\x0E-\x1F]')
-NON_ASCII = re.compile('[\x80-\xff]')
+BINARY = re.compile("[\x00-\x08\x0B\x0C\x0E-\x1F]")
+NON_ASCII = re.compile("[\x80-\xff]")
 
 
 class RobotRemoteServer(object):
-
-    def __init__(self, library, host='127.0.0.1', port=8270, port_file=None,
-                 allow_stop='DEPRECATED', serve=True, allow_remote_stop=True):
+    def __init__(
+        self,
+        library,
+        host="127.0.0.1",
+        port=8270,
+        port_file=None,
+        allow_stop="DEPRECATED",
+        serve=True,
+        allow_remote_stop=True,
+    ):
         """Configure and start-up remote server.
 
         :param library:     Test library instance or module to host.
@@ -76,8 +85,9 @@ class RobotRemoteServer(object):
         self._server = StoppableXMLRPCServer(host, int(port))
         self._register_functions(self._server)
         self._port_file = port_file
-        self._allow_remote_stop = allow_remote_stop \
-                if allow_stop == 'DEPRECATED' else allow_stop
+        self._allow_remote_stop = (
+            allow_remote_stop if allow_stop == "DEPRECATED" else allow_stop
+        )
         if serve:
             self.serve()
 
@@ -138,22 +148,22 @@ class RobotRemoteServer(object):
         self._announce_stop(log, self._port_file)
 
     def _announce_start(self, log, port_file):
-        self._log('started', log)
+        self._log("started", log)
         if port_file:
-            with open(port_file, 'w') as pf:
+            with open(port_file, "w") as pf:
                 pf.write(str(self.server_port))
 
     def _announce_stop(self, log, port_file):
-        self._log('stopped', log)
+        self._log("stopped", log)
         if port_file and os.path.exists(port_file):
             os.remove(port_file)
 
     def _log(self, action, log=True, warn=False):
         if log:
-            address = '%s:%s' % self.server_address
+            address = "%s:%s" % self.server_address
             if warn:
-                print('*WARN*', end=' ')
-            print('Robot Framework remote server at %s %s.' % (address, action))
+                print("*WARN*", end=" ")
+            print("Robot Framework remote server at %s %s." % (address, action))
 
     def stop(self):
         """Stop server."""
@@ -163,32 +173,34 @@ class RobotRemoteServer(object):
 
     def stop_remote_server(self, log=True):
         if not self._allow_remote_stop:
-            self._log('does not allow stopping', log, warn=True)
+            self._log("does not allow stopping", log, warn=True)
             return False
         self.stop()
         return True
 
     def get_keyword_names(self):
-        return self._library.get_keyword_names() + ['stop_remote_server']
+        return self._library.get_keyword_names() + ["stop_remote_server"]
 
     def run_keyword(self, name, args, kwargs=None):
-        if name == 'stop_remote_server':
+        if name == "stop_remote_server":
             return KeywordRunner(self.stop_remote_server).run_keyword(args, kwargs)
         return self._library.run_keyword(name, args, kwargs)
 
     def get_keyword_arguments(self, name):
-        if name == 'stop_remote_server':
+        if name == "stop_remote_server":
             return []
         return self._library.get_keyword_arguments(name)
 
     def get_keyword_documentation(self, name):
-        if name == 'stop_remote_server':
-            return ('Stop the remote server unless stopping is disabled.\n\n'
-                    'Return ``True/False`` depending was server stopped or not.')
+        if name == "stop_remote_server":
+            return (
+                "Stop the remote server unless stopping is disabled.\n\n"
+                "Return ``True/False`` depending was server stopped or not."
+            )
         return self._library.get_keyword_documentation(name)
 
     def get_keyword_tags(self, name):
-        if name == 'stop_remote_server':
+        if name == "stop_remote_server":
             return []
         return self._library.get_keyword_tags(name)
 
@@ -197,8 +209,9 @@ class StoppableXMLRPCServer(SimpleXMLRPCServer):
     allow_reuse_address = True
 
     def __init__(self, host, port):
-        SimpleXMLRPCServer.__init__(self, (host, port), logRequests=False,
-                                    bind_and_activate=False)
+        SimpleXMLRPCServer.__init__(
+            self, (host, port), logRequests=False, bind_and_activate=False
+        )
         self._activated = False
         self._stopper_thread = None
 
@@ -229,13 +242,12 @@ class StoppableXMLRPCServer(SimpleXMLRPCServer):
 
 
 class SignalHandler(object):
-
     def __init__(self, handler):
         self._handler = lambda signum, frame: handler()
         self._original = {}
 
     def __enter__(self):
-        for name in 'SIGINT', 'SIGTERM', 'SIGHUP':
+        for name in "SIGINT", "SIGTERM", "SIGHUP":
             if hasattr(signal, name):
                 try:
                     orig = signal.signal(getattr(signal, name), self._handler)
@@ -252,18 +264,18 @@ class SignalHandler(object):
 def RemoteLibraryFactory(library):
     if inspect.ismodule(library):
         return StaticRemoteLibrary(library)
-    get_keyword_names = dynamic_method(library, 'get_keyword_names')
+    get_keyword_names = dynamic_method(library, "get_keyword_names")
     if not get_keyword_names:
         return StaticRemoteLibrary(library)
-    run_keyword = dynamic_method(library, 'run_keyword')
+    run_keyword = dynamic_method(library, "run_keyword")
     if not run_keyword:
         return HybridRemoteLibrary(library, get_keyword_names)
     return DynamicRemoteLibrary(library, get_keyword_names, run_keyword)
 
 
 def dynamic_method(library, underscore_name):
-    tokens = underscore_name.split('_')
-    camelcase_name = tokens[0] + ''.join(t.title() for t in tokens[1:])
+    tokens = underscore_name.split("_")
+    camelcase_name = tokens[0] + "".join(t.title() for t in tokens[1:])
     for name in underscore_name, camelcase_name:
         method = getattr(library, name, None)
         if method and is_function_or_method(method):
@@ -276,7 +288,6 @@ def is_function_or_method(item):
 
 
 class StaticRemoteLibrary(object):
-
     def __init__(self, library):
         self._library = library
         self._names = None
@@ -287,10 +298,10 @@ class StaticRemoteLibrary(object):
         robot_name_index = {}
         for name, kw in inspect.getmembers(self._library):
             if is_function_or_method(kw):
-                if getattr(kw, 'robot_name', None):
+                if getattr(kw, "robot_name", None):
                     names.append(kw.robot_name)
                     robot_name_index[kw.robot_name] = name
-                elif name[0] != '_':
+                elif name[0] != "_":
                     names.append(name)
         return names, robot_name_index
 
@@ -311,41 +322,41 @@ class StaticRemoteLibrary(object):
         return getattr(self._library, name)
 
     def get_keyword_arguments(self, name):
-        if __name__ == '__init__':
+        if __name__ == "__init__":
             return []
         kw = self._get_keyword(name)
         args, varargs, kwargs, defaults = inspect.getargspec(kw)
         if inspect.ismethod(kw):
             args = args[1:]  # drop 'self'
         if defaults:
-            args, names = args[:-len(defaults)], args[-len(defaults):]
-            args += ['%s=%s' % (n, d) for n, d in zip(names, defaults)]
+            args, names = args[: -len(defaults)], args[-len(defaults) :]
+            args += ["%s=%s" % (n, d) for n, d in zip(names, defaults)]
         if varargs:
-            args.append('*%s' % varargs)
+            args.append("*%s" % varargs)
         if kwargs:
-            args.append('**%s' % kwargs)
+            args.append("**%s" % kwargs)
         return args
 
     def get_keyword_documentation(self, name):
-        if name == '__intro__':
+        if name == "__intro__":
             source = self._library
-        elif name == '__init__':
+        elif name == "__init__":
             source = self._get_init(self._library)
         else:
             source = self._get_keyword(name)
-        return inspect.getdoc(source) or ''
+        return inspect.getdoc(source) or ""
 
     def _get_init(self, library):
         if inspect.ismodule(library):
             return None
-        init = getattr(library, '__init__', None)
+        init = getattr(library, "__init__", None)
         return init if self._is_valid_init(init) else None
 
     def _is_valid_init(self, init):
         if not init:
             return False
         # https://bitbucket.org/pypy/pypy/issues/2462/
-        if 'PyPy' in sys.version:
+        if "PyPy" in sys.version:
             if PY2:
                 return init.__func__ is not object.__init__.__func__
             return init is not object.__init__
@@ -353,32 +364,29 @@ class StaticRemoteLibrary(object):
 
     def get_keyword_tags(self, name):
         keyword = self._get_keyword(name)
-        return getattr(keyword, 'robot_tags', [])
+        return getattr(keyword, "robot_tags", [])
 
 
 class HybridRemoteLibrary(StaticRemoteLibrary):
-
     def __init__(self, library, get_keyword_names):
         StaticRemoteLibrary.__init__(self, library)
         self.get_keyword_names = get_keyword_names
 
 
 class DynamicRemoteLibrary(HybridRemoteLibrary):
-
     def __init__(self, library, get_keyword_names, run_keyword):
         HybridRemoteLibrary.__init__(self, library, get_keyword_names)
         self._run_keyword = run_keyword
         self._supports_kwargs = self._get_kwargs_support(run_keyword)
-        self._get_keyword_arguments \
-            = dynamic_method(library, 'get_keyword_arguments')
-        self._get_keyword_documentation \
-            = dynamic_method(library, 'get_keyword_documentation')
-        self._get_keyword_tags \
-            = dynamic_method(library, 'get_keyword_tags')
+        self._get_keyword_arguments = dynamic_method(library, "get_keyword_arguments")
+        self._get_keyword_documentation = dynamic_method(
+            library, "get_keyword_documentation"
+        )
+        self._get_keyword_tags = dynamic_method(library, "get_keyword_tags")
 
     def _get_kwargs_support(self, run_keyword):
         spec = inspect.getargspec(run_keyword)
-        return len(spec.args) > 3    # self, name, args, kwargs=None
+        return len(spec.args) > 3  # self, name, args, kwargs=None
 
     def run_keyword(self, name, args, kwargs=None):
         args = [name, args, kwargs] if kwargs else [name, args, {}]
@@ -388,13 +396,13 @@ class DynamicRemoteLibrary(HybridRemoteLibrary):
         if self._get_keyword_arguments:
             return self._get_keyword_arguments(name)
         if self._supports_kwargs:
-            return ['*varargs', '**kwargs']
-        return ['*varargs']
+            return ["*varargs", "**kwargs"]
+        return ["*varargs"]
 
     def get_keyword_documentation(self, name):
         if self._get_keyword_documentation:
             return self._get_keyword_documentation(name)
-        return ''
+        return ""
 
     def get_keyword_tags(self, name):
         if self._get_keyword_tags:
@@ -403,7 +411,6 @@ class DynamicRemoteLibrary(HybridRemoteLibrary):
 
 
 class KeywordRunner(object):
-
     def __init__(self, keyword):
         self._keyword = keyword
 
@@ -422,7 +429,7 @@ class KeywordRunner(object):
                 except Exception:
                     result.set_error(*sys.exc_info()[:2])
                 else:
-                    result.set_status('PASS')
+                    result.set_status("PASS")
         result.set_output(interceptor.output)
         return result.data
 
@@ -440,9 +447,8 @@ class KeywordRunner(object):
 
 
 class StandardStreamInterceptor(object):
-
     def __init__(self):
-        self.output = ''
+        self.output = ""
         self.origout = sys.stdout
         self.origerr = sys.stderr
         sys.stdout = StringIO()
@@ -460,11 +466,12 @@ class StandardStreamInterceptor(object):
         for stream in close:
             stream.close()
         if stdout and stderr:
-            if not stderr.startswith(('*TRACE*', '*DEBUG*', '*INFO*', '*HTML*',
-                                      '*WARN*', '*ERROR*')):
-                stderr = '*INFO* %s' % stderr
-            if not stdout.endswith('\n'):
-                stdout += '\n'
+            if not stderr.startswith(
+                ("*TRACE*", "*DEBUG*", "*INFO*", "*HTML*", "*WARN*", "*ERROR*")
+            ):
+                stderr = "*INFO* %s" % stderr
+            if not stdout.endswith("\n"):
+                stdout += "\n"
         self.output = stdout + stderr
 
 
@@ -472,50 +479,51 @@ class KeywordResult(object):
     _generic_exceptions = (AssertionError, RuntimeError, Exception)
 
     def __init__(self):
-        self.data = {'status': 'FAIL'}
+        self.data = {"status": "FAIL"}
 
     def set_error(self, exc_type, exc_value, exc_tb=None):
-        self.data['error'] = self._get_message(exc_type, exc_value)
+        self.data["error"] = self._get_message(exc_type, exc_value)
         if exc_tb:
-            self.data['traceback'] = self._get_traceback(exc_tb)
-        continuable = self._get_error_attribute(exc_value, 'CONTINUE')
+            self.data["traceback"] = self._get_traceback(exc_tb)
+        continuable = self._get_error_attribute(exc_value, "CONTINUE")
         if continuable:
-            self.data['continuable'] = continuable
-        fatal = self._get_error_attribute(exc_value, 'EXIT')
+            self.data["continuable"] = continuable
+        fatal = self._get_error_attribute(exc_value, "EXIT")
         if fatal:
-            self.data['fatal'] = fatal
+            self.data["fatal"] = fatal
 
     def _get_message(self, exc_type, exc_value):
         name = exc_type.__name__
         message = self._get_message_from_exception(exc_value)
         if not message:
             return name
-        if exc_type in self._generic_exceptions \
-                or getattr(exc_value, 'ROBOT_SUPPRESS_NAME', False):
+        if exc_type in self._generic_exceptions or getattr(
+            exc_value, "ROBOT_SUPPRESS_NAME", False
+        ):
             return message
-        return '%s: %s' % (name, message)
+        return "%s: %s" % (name, message)
 
     def _get_message_from_exception(self, value):
         # UnicodeError occurs if message contains non-ASCII bytes
         try:
             msg = unicode(value)
         except UnicodeError:
-            msg = ' '.join(self._str(a, handle_binary=False) for a in value.args)
+            msg = " ".join(self._str(a, handle_binary=False) for a in value.args)
         return self._handle_binary_result(msg)
 
     def _get_traceback(self, exc_tb):
         # Latest entry originates from this module so it can be removed
         entries = traceback.extract_tb(exc_tb)[1:]
-        trace = ''.join(traceback.format_list(entries))
-        return 'Traceback (most recent call last):\n' + trace
+        trace = "".join(traceback.format_list(entries))
+        return "Traceback (most recent call last):\n" + trace
 
     def _get_error_attribute(self, exc_value, name):
-        return bool(getattr(exc_value, 'ROBOT_%s_ON_FAILURE' % name, False))
+        return bool(getattr(exc_value, "ROBOT_%s_ON_FAILURE" % name, False))
 
     def set_return(self, value):
         value = self._handle_return_value(value)
-        if value != '':
-            self.data['return'] = value
+        if value != "":
+            self.data["return"] = value
 
     def _handle_return_value(self, ret):
         if isinstance(ret, (str, unicode, bytes)):
@@ -523,8 +531,10 @@ class KeywordResult(object):
         if isinstance(ret, (int, long, float)):
             return ret
         if isinstance(ret, Mapping):
-            return dict((self._str(key), self._handle_return_value(value))
-                        for key, value in ret.items())
+            return dict(
+                (self._str(key), self._handle_return_value(value))
+                for key, value in ret.items()
+            )
         try:
             return [self._handle_return_value(item) for item in ret]
         except TypeError:
@@ -535,23 +545,26 @@ class KeywordResult(object):
             return result
         if not isinstance(result, bytes):
             try:
-                result = result.encode('ASCII')
+                result = result.encode("ASCII")
             except UnicodeError:
                 raise ValueError("Cannot represent %r as binary." % result)
         # With IronPython Binary cannot be sent if it contains "real" bytes.
-        if sys.platform == 'cli':
+        if sys.platform == "cli":
             result = str(result)
         return Binary(result)
 
     def _contains_binary(self, result):
         if PY3:
             return isinstance(result, bytes) or BINARY.search(result)
-        return (isinstance(result, bytes) and NON_ASCII.search(result) or
-                BINARY.search(result))
+        return (
+            isinstance(result, bytes)
+            and NON_ASCII.search(result)
+            or BINARY.search(result)
+        )
 
     def _str(self, item, handle_binary=True):
         if item is None:
-            return ''
+            return ""
         if not isinstance(item, (str, unicode, bytes)):
             item = unicode(item)
         if handle_binary:
@@ -559,11 +572,11 @@ class KeywordResult(object):
         return item
 
     def set_status(self, status):
-        self.data['status'] = status
+        self.data["status"] = status
 
     def set_output(self, output):
         if output:
-            self.data['output'] = self._handle_binary_result(output)
+            self.data["output"] = self._handle_binary_result(output)
 
 
 def test_remote_server(uri, log=True):
@@ -577,9 +590,9 @@ def test_remote_server(uri, log=True):
     try:
         ServerProxy(uri).get_keyword_names()
     except Exception:
-        logger('No remote server running at %s.' % uri)
+        logger("No remote server running at %s." % uri)
         return False
-    logger('Remote server running at %s.' % uri)
+    logger("Remote server running at %s." % uri)
     return True
 
 
@@ -593,24 +606,24 @@ def stop_remote_server(uri, log=True):
     """
     logger = print if log else lambda message: None
     if not test_remote_server(uri, log=False):
-        logger('No remote server running at %s.' % uri)
+        logger("No remote server running at %s." % uri)
         return True
-    logger('Stopping remote server at %s.' % uri)
+    logger("Stopping remote server at %s." % uri)
     if not ServerProxy(uri).stop_remote_server():
-        logger('Stopping not allowed!')
+        logger("Stopping not allowed!")
         return False
     return True
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     def parse_args(script, *args):
-        actions = {'stop': stop_remote_server, 'test': test_remote_server}
+        actions = {"stop": stop_remote_server, "test": test_remote_server}
         if not (0 < len(args) < 3) or args[0] not in actions:
-            sys.exit('Usage:  %s {test|stop} [uri]' % os.path.basename(script))
-        uri = args[1] if len(args) == 2 else 'http://127.0.0.1:8270'
-        if '://' not in uri:
-            uri = 'http://' + uri
+            sys.exit("Usage:  %s {test|stop} [uri]" % os.path.basename(script))
+        uri = args[1] if len(args) == 2 else "http://127.0.0.1:8270"
+        if "://" not in uri:
+            uri = "http://" + uri
         return actions[args[0]], uri
 
     action, uri = parse_args(*sys.argv)

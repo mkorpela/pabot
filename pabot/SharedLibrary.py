@@ -6,9 +6,10 @@ from robot.running.testlibraries import TestLibrary
 from .robotremoteserver import RemoteLibraryFactory
 from .pabotlib import PABOT_QUEUE_INDEX
 
+
 class SharedLibrary(object):
 
-    ROBOT_LIBRARY_SCOPE = 'GLOBAL'
+    ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
     def __init__(self, name):
         """
@@ -17,24 +18,28 @@ class SharedLibrary(object):
         """
         # FIXME: RELATIVE IMPORTS WITH FILE NAME
         self._remote = None
-        if BuiltIn().get_variable_value('${%s}' % PABOT_QUEUE_INDEX) is None:
-            logger.debug("Not currently running pabot. Importing library for this process.")
+        if BuiltIn().get_variable_value("${%s}" % PABOT_QUEUE_INDEX) is None:
+            logger.debug(
+                "Not currently running pabot. Importing library for this process."
+            )
             self._lib = RemoteLibraryFactory(TestLibrary(name).get_instance())
             return
-        uri = BuiltIn().get_variable_value('${PABOTLIBURI}')
-        logger.debug('PabotLib URI %r' % uri)
+        uri = BuiltIn().get_variable_value("${PABOTLIBURI}")
+        logger.debug("PabotLib URI %r" % uri)
         remotelib = Remote(uri) if uri else None
         if remotelib:
             try:
                 port = remotelib.run_keyword("import_shared_library", [name], {})
             except RuntimeError:
-                logger.error('No connection - is pabot called with --pabotlib option?')
+                logger.error("No connection - is pabot called with --pabotlib option?")
                 raise
             self._remote = Remote("http://127.0.0.1:%s" % port)
-            logger.debug("Lib imported with name %s from http://127.0.0.1:%s" % (name, port))
+            logger.debug(
+                "Lib imported with name %s from http://127.0.0.1:%s" % (name, port)
+            )
         else:
-            logger.error('No connection - is pabot called with --pabotlib option?')
-            raise AssertionError('No connection to pabotlib')
+            logger.error("No connection - is pabot called with --pabotlib option?")
+            raise AssertionError("No connection to pabotlib")
 
     def get_keyword_names(self):
         if self._remote:
@@ -45,6 +50,6 @@ class SharedLibrary(object):
         if self._remote:
             return self._remote.run_keyword(name, args, kwargs)
         result = self._lib.run_keyword(name, args, kwargs)
-        if result['status'] == 'FAIL':
-            raise AssertionError(result['error'])
-        return result.get('return')
+        if result["status"] == "FAIL":
+            raise AssertionError(result["error"])
+        return result.get("return")

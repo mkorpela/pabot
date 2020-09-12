@@ -1,4 +1,5 @@
 import sys
+
 try:
     from .py3.worker import main
 except SyntaxError:

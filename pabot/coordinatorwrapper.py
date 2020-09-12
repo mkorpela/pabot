@@ -1,4 +1,5 @@
 import sys
+
 try:
     from .py3.coordinator import main
 except SyntaxError:

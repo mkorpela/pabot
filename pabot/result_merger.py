@@ -34,7 +34,6 @@ from robot.model import SuiteVisitor
 
 
 class ResultMerger(SuiteVisitor):
-
     def __init__(self, result, tests_root_name, out_dir, copied_artifacts):
         self.root = result.suite
         self.errors = result.errors
@@ -45,7 +44,9 @@ class ResultMerger(SuiteVisitor):
         self._out_dir = out_dir
 
         self._patterns = []
-        regexp_template = r'(src|href)="(.*?[\\\/]+)?({})"'  # https://regex101.com/r/sBwbgN/5
+        regexp_template = (
+            r'(src|href)="(.*?[\\\/]+)?({})"'  # https://regex101.com/r/sBwbgN/5
+        )
         for artifact in copied_artifacts:
             pattern = regexp_template.format(re.escape(artifact))
             self._patterns.append(re.compile(pattern))
@@ -54,9 +55,10 @@ class ResultMerger(SuiteVisitor):
         try:
             self._set_prefix(merged.source)
             merged.suite.visit(self)
-            if self.errors!=merged.errors: self.errors.add(merged.errors)
+            if self.errors != merged.errors:
+                self.errors.add(merged.errors)
         except:
-            print('Error while merging result %s' % merged.source)
+            print("Error while merging result %s" % merged.source)
             raise
 
     def _set_prefix(self, source):
@@ -67,7 +69,7 @@ class ResultMerger(SuiteVisitor):
             return
         if not self.current:
             self.current = self._find_root(suite)
-            assert(self.current)
+            assert self.current
             if self.current is not suite:
                 for keyword in suite.keywords:
                     self.current.keywords.append(keyword)
@@ -85,8 +87,9 @@ class ResultMerger(SuiteVisitor):
 
     def _find_root(self, suite):
         if self.root.name != suite.name:
-            raise ValueError('self.root.name "%s" != suite.name "%s"' %
-                             (self.root.name, suite.name))
+            raise ValueError(
+                'self.root.name "%s" != suite.name "%s"' % (self.root.name, suite.name)
+            )
         return self.root
 
     def _find(self, items, suite):
@@ -108,7 +111,7 @@ class ResultMerger(SuiteVisitor):
         self.clean_pabotlib_waiting_keywords(self.current)
         self.current = self.current.parent
 
-    if ROBOT_VERSION <= '3.0':
+    if ROBOT_VERSION <= "3.0":
 
         def clean_pabotlib_waiting_keywords(self, suite):
             pass
@@ -117,9 +120,11 @@ class ResultMerger(SuiteVisitor):
 
         def clean_pabotlib_waiting_keywords(self, suite):
             for index, keyword in reversed(list(enumerate(suite.keywords))):
-                if (keyword.libname == "pabot.PabotLib" and
-                    keyword.kwname.startswith("Run") and
-                    len(keyword.keywords) == 0):
+                if (
+                    keyword.libname == "pabot.PabotLib"
+                    and keyword.kwname.startswith("Run")
+                    and len(keyword.keywords) == 0
+                ):
                     suite.keywords.pop(index)
 
     def merge_missing_tests(self, suite):
@@ -139,7 +144,9 @@ class ResultMerger(SuiteVisitor):
             return
         if not self._patterns:  # don't update links if no artifacts were copied
             return
-        if not ("src=" in msg.message or "href=" in msg.message):  # quick check before start search with complex regex
+        if not (
+            "src=" in msg.message or "href=" in msg.message
+        ):  # quick check before start search with complex regex
             return
 
         for pattern in self._patterns:
@@ -147,13 +154,20 @@ class ResultMerger(SuiteVisitor):
             offset = 0
             prefix_str = self._prefix + "-"
             for match in all_matches:
-                filename_start = match.start(3) + offset  # group 3 of regexp is the file name
-                msg.message = msg.message[:filename_start] + prefix_str + msg.message[filename_start:]
-                offset += len(prefix_str)  # the string has been changed but not the original match positions
+                filename_start = (
+                    match.start(3) + offset
+                )  # group 3 of regexp is the file name
+                msg.message = (
+                    msg.message[:filename_start]
+                    + prefix_str
+                    + msg.message[filename_start:]
+                )
+                offset += len(
+                    prefix_str
+                )  # the string has been changed but not the original match positions
 
 
 class ResultsCombiner(CombinedResult):
-
     def add_result(self, other):
         for suite in other.suite.suites:
             self.suite.suites.append(suite)
@@ -165,6 +179,7 @@ def prefix(source):
         return os.path.split(os.path.dirname(source))[1]
     except:
         return ""
+
 
 def group_by_root(results, critical_tags, non_critical_tags, invalid_xml_callback):
     groups = {}
@@ -181,10 +196,19 @@ def group_by_root(results, critical_tags, non_critical_tags, invalid_xml_callbac
     return groups
 
 
-def merge_groups(results, critical_tags, non_critical_tags, tests_root_name, invalid_xml_callback, out_dir, copied_artifacts):
+def merge_groups(
+    results,
+    critical_tags,
+    non_critical_tags,
+    tests_root_name,
+    invalid_xml_callback,
+    out_dir,
+    copied_artifacts,
+):
     merged = []
-    for group in group_by_root(results, critical_tags,
-                               non_critical_tags, invalid_xml_callback).values():
+    for group in group_by_root(
+        results, critical_tags, non_critical_tags, invalid_xml_callback
+    ).values():
         base = group[0]
         merger = ResultMerger(base, tests_root_name, out_dir, copied_artifacts)
         for out in group:
@@ -193,18 +217,33 @@ def merge_groups(results, critical_tags, non_critical_tags, tests_root_name, inv
     return merged
 
 
-def merge(result_files, rebot_options, tests_root_name, copied_artifacts, invalid_xml_callback=None):
-    assert(len(result_files) > 0)
+def merge(
+    result_files,
+    rebot_options,
+    tests_root_name,
+    copied_artifacts,
+    invalid_xml_callback=None,
+):
+    assert len(result_files) > 0
     if invalid_xml_callback is None:
-        invalid_xml_callback = lambda:0
+        invalid_xml_callback = lambda: 0
     settings = RebotSettings(rebot_options)
-    merged = merge_groups(result_files, settings.critical_tags,
-                          settings.non_critical_tags, tests_root_name,
-                          invalid_xml_callback, settings.output_directory,
-                          copied_artifacts)
+    merged = merge_groups(
+        result_files,
+        settings.critical_tags,
+        settings.non_critical_tags,
+        tests_root_name,
+        invalid_xml_callback,
+        settings.output_directory,
+        copied_artifacts,
+    )
     if len(merged) == 1:
         if not merged[0].suite.doc:
-            merged[0].suite.doc = '[https://pabot.org/?ref=log|Pabot] result from %d executions.' % len(result_files)
+            merged[
+                0
+            ].suite.doc = "[https://pabot.org/?ref=log|Pabot] result from %d executions." % len(
+                result_files
+            )
         return merged[0]
     else:
         return ResultsCombiner(merged)
