@@ -61,7 +61,7 @@ class PabotArgumentsOutputsTest(unittest.TestCase):
         self.assertEqual(rc, 1)
         if sys.version_info < (3, 0):
             self.assertIn("PASSED", stdout, stderr)
-            self.assertIn("FAILED", stdout, stderr)
+            self.assertIn("failed", stdout, stderr)
         else:
             self.assertIn(b"PASSED", stdout, stderr)
-            self.assertIn(b"FAILED", stdout, stderr)
+            self.assertIn(b"failed", stdout, stderr)
