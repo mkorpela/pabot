@@ -1741,6 +1741,8 @@ def main(args=None):
             _initialize_queue_index()
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
+        if opts_for_run.get("prerunmodifier"):
+            opts_for_run["prerunmodifier"] = []
         if pabot_args["verbose"]:
             _write("Suite names resolved in %s seconds" % str(time.time() - start_time))
         ordering = pabot_args.get("ordering")
