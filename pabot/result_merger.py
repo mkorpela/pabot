@@ -191,7 +191,8 @@ def group_by_root(results, critical_tags, non_critical_tags, invalid_xml_callbac
             print("Skipping '%s' from final result" % src)
             invalid_xml_callback()
             continue
-        res.suite.set_criticality(critical_tags, non_critical_tags)
+        if ROBOT_VERSION < "4.0":
+            res.suite.set_criticality(critical_tags, non_critical_tags)
         groups[res.suite.name] = groups.get(res.suite.name, []) + [res]
     return groups
 
@@ -228,10 +229,15 @@ def merge(
     if invalid_xml_callback is None:
         invalid_xml_callback = lambda: 0
     settings = RebotSettings(rebot_options)
+    critical_tags = []
+    non_critical_tags = []
+    if ROBOT_VERSION < "4.0":
+        critical_tags = settings.critical_tags,
+        non_critical_tags = settings.non_critical_tags,
     merged = merge_groups(
         result_files,
-        settings.critical_tags,
-        settings.non_critical_tags,
+        critical_tags,
+        non_critical_tags,
         tests_root_name,
         invalid_xml_callback,
         settings.output_directory,

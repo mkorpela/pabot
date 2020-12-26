@@ -1356,12 +1356,13 @@ def _merge_one_run(
 
 def _update_stats(result, stats):
     s = result.statistics
-    stats["critical"]["total"] += s.total.critical.total
-    stats["critical"]["passed"] += s.total.critical.passed
-    stats["critical"]["failed"] += s.total.critical.failed
-    stats["all"]["total"] += s.total.all.total
-    stats["all"]["passed"] += s.total.all.passed
-    stats["all"]["failed"] += s.total.all.failed
+    if ROBOT_VERSION < "4.0":
+        stats["critical"]["total"] += s.total.critical.total
+        stats["critical"]["passed"] += s.total.critical.passed
+        stats["critical"]["failed"] += s.total.critical.failed
+        stats["all"]["total"] += s.total.all.total
+        stats["all"]["passed"] += s.total.all.passed
+        stats["all"]["failed"] += s.total.all.failed
 
 
 # This is from https://github.com/django/django/blob/master/django/utils/glob.py
