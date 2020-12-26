@@ -1,4 +1,4 @@
-import os
+from robot import __version__ as ROBOT_VERSION
 import sys
 import tempfile
 import textwrap
@@ -105,12 +105,20 @@ class PabotOrderingGroupTest(unittest.TestCase):
         if sys.version_info < (3, 0):
             self.assertIn("PASSED", stdout, stderr)
             self.assertNotIn("FAILED", stdout, stderr)
-            self.assertIn("5 critical tests, 5 passed, 0 failed", stdout, stderr)
+            if ROBOT_VERSION < "4.0":
+                expected_write = "5 critical tests, 5 passed, 0 failed"
+            else:
+                expected_write = "5 tests, 5 passed, 0 failed, 0 skipped."
+            self.assertIn(expected_write, stdout, stderr)
             self.assertEqual(stdout.count("PASSED"), 3)
         else:
             self.assertIn(b"PASSED", stdout, stderr)
             self.assertNotIn(b"FAILED", stdout, stderr)
-            self.assertIn(b"5 critical tests, 5 passed, 0 failed", stdout, stderr)
+            if ROBOT_VERSION < "4.0":
+                expected_write = b"5 critical tests, 5 passed, 0 failed"
+            else:
+                expected_write = b"5 tests, 5 passed, 0 failed, 0 skipped."
+            self.assertIn(expected_write, stdout, stderr)
             self.assertEqual(stdout.count(b"PASSED"), 3)
 
     def test_too_big_testname(self):

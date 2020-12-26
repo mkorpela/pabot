@@ -1259,10 +1259,18 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
 
 
 def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root_name):
-    stats = {
-        "critical": {"total": 0, "passed": 0, "failed": 0},
-        "all": {"total": 0, "passed": 0, "failed": 0},
-    }
+    if ROBOT_VERSION < "4.0":
+        stats = {
+            "critical": {"total": 0, "passed": 0, "failed": 0},
+            "all": {"total": 0, "passed": 0, "failed": 0},
+        }
+    else:
+        stats = {
+            "total": 0,
+            "passed": 0,
+            "failed": 0,
+            "skipped": 0,
+        }
     if pabot_args["argumentfiles"]:
         outputs = []  # type: List[str]
         for index, _ in pabot_args["argumentfiles"]:
@@ -1290,16 +1298,22 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
 
 
 def _write_stats(stats):
-    crit = stats["critical"]
-    al = stats["all"]
-    _write(
-        "%d critical tests, %d passed, %d failed"
-        % (crit["total"], crit["passed"], crit["failed"])
-    )
-    _write(
-        "%d tests total, %d passed, %d failed"
-        % (al["total"], al["passed"], al["failed"])
-    )
+    if ROBOT_VERSION < "4.0":
+        crit = stats["critical"]
+        al = stats["all"]
+        _write(
+            "%d critical tests, %d passed, %d failed"
+            % (crit["total"], crit["passed"], crit["failed"])
+        )
+        _write(
+            "%d tests total, %d passed, %d failed"
+            % (al["total"], al["passed"], al["failed"])
+        )
+    else:
+        _write(
+            "%d tests, %d passed, %d failed, %d skipped."
+            % (stats["total"], stats["passed"], stats["failed"], stats["skipped"])
+        )
     _write("===================================================")
 
 
@@ -1363,6 +1377,11 @@ def _update_stats(result, stats):
         stats["all"]["total"] += s.total.all.total
         stats["all"]["passed"] += s.total.all.passed
         stats["all"]["failed"] += s.total.all.failed
+    else:
+        stats["total"] += s.total.total
+        stats["passed"] += s.total.passed
+        stats["failed"] += s.total.failed
+        stats["skipped"] +=  s.total.skipped
 
 
 # This is from https://github.com/django/django/blob/master/django/utils/glob.py
