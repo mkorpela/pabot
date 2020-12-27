@@ -232,8 +232,8 @@ def merge(
     critical_tags = []
     non_critical_tags = []
     if ROBOT_VERSION < "4.0":
-        critical_tags = settings.critical_tags,
-        non_critical_tags = settings.non_critical_tags,
+        critical_tags = settings.critical_tags
+        non_critical_tags = settings.non_critical_tags
     merged = merge_groups(
         result_files,
         critical_tags,
