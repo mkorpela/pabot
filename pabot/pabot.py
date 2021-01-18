@@ -77,6 +77,7 @@ import datetime
 import uuid
 import random
 import traceback
+import socket
 from glob import glob
 from io import BytesIO, StringIO
 from collections import namedtuple
@@ -1432,9 +1433,20 @@ def _stop_message_writer():
     MESSAGE_QUEUE.join()
 
 
+def _get_free_port(pabot_args):
+    # Determines a free port using sockets.
+    free_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    free_socket.bind((pabot_args['pabotlibhost'], pabot_args['pabotlibport']))
+    free_socket.listen(5)
+    port = free_socket.getsockname()[1]
+    free_socket.close()
+    return port
+
+
 def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Popen]
     global _PABOTLIBURI
-    _PABOTLIBURI = "%s:%s" % (pabot_args["pabotlibhost"], pabot_args["pabotlibport"])
+    free_port = _get_free_port(pabot_args)
+    _PABOTLIBURI = "%s:%s" % (pabot_args["pabotlibhost"], free_port)
     if not pabot_args["pabotlib"]:
         return None
     if pabot_args.get("resourcefile") and not os.path.exists(
@@ -1452,7 +1464,7 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Po
             pabotlibname=pabotlib.__name__,
             resourcefile=pabot_args.get("resourcefile"),
             pabotlibhost=pabot_args["pabotlibhost"],
-            pabotlibport=pabot_args["pabotlibport"],
+            pabotlibport=free_port,
         ),
         shell=True,
     )
