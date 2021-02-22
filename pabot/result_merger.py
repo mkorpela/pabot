@@ -71,8 +71,7 @@ class ResultMerger(SuiteVisitor):
             self.current = self._find_root(suite)
             assert self.current
             if self.current is not suite:
-                for keyword in suite.keywords:
-                    self.current.keywords.append(keyword)
+                self._append_keywords(suite)
         else:
             next = self._find(self.current.suites, suite)
             if next is None:
@@ -82,8 +81,18 @@ class ResultMerger(SuiteVisitor):
             else:
                 self.current = next
                 if self.current is not suite:
-                    for keyword in suite.keywords:
-                        self.current.keywords.append(keyword)
+                    self._append_keywords(suite)
+
+    if ROBOT_VERSION < "4.0":
+        def _append_keywords(self, suite):
+            for keyword in suite.keywords:
+                self.current.keywords.append(keyword)
+    else:
+        def _append_keywords(self, suite):
+            for keyword in suite.setup.body:
+                self.current.setup.body.append(keyword)
+            for keyword in suite.teardown.body:
+                self.current.teardown.body.append(keyword)
 
     def _find_root(self, suite):
         if self.root.name != suite.name:
@@ -111,7 +120,7 @@ class ResultMerger(SuiteVisitor):
         self.clean_pabotlib_waiting_keywords(self.current)
         self.current = self.current.parent
 
-    if ROBOT_VERSION <= "3.0":
+    if ROBOT_VERSION <= "3.0" or ROBOT_VERSION >= "4.0":
 
         def clean_pabotlib_waiting_keywords(self, suite):
             pass

@@ -1,8 +1,8 @@
 #!/bin/sh
 set -e
-virtualenv -p /usr/bin/python3 .pabotenv
-source .pabotenv/bin/activate
+source .venv/bin/activate
 pip install nose
+pip install mypy
 pip install .
 ./devpy3.sh
 mypy .
