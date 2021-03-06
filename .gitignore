@@ -11,3 +11,4 @@ dist
 .idea
 *.html
 *.xml
+.venv
