@@ -78,6 +78,7 @@ import uuid
 import random
 import traceback
 import socket
+from contextlib import closing
 from glob import glob
 from io import BytesIO, StringIO
 from collections import namedtuple
@@ -1434,13 +1435,12 @@ def _stop_message_writer():
 
 
 def _get_free_port(pabot_args):
-    # Determines a free port using sockets.
-    free_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    free_socket.bind((pabot_args['pabotlibhost'], pabot_args['pabotlibport']))
-    free_socket.listen(5)
-    port = free_socket.getsockname()[1]
-    free_socket.close()
-    return port
+    if pabot_args['pabotlibport'] != 0:
+        return pabot_args['pabotlibport']
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(('localhost', 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return s.getsockname()[1]
 
 
 def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Popen]
