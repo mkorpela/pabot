@@ -189,6 +189,7 @@ class DynamicSuiteItem(SuiteItem):
     def modify_options_for_executor(self, options):
         variables = options.get("variable", [])[:]
         variables.extend(self._variables)
+        options["suite"] = self.name
         options["variable"] = variables
 
 
