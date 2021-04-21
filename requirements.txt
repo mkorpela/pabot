@@ -26,7 +26,6 @@ pytest==6.2.3
 PyYAML==5.4.1
 regex==2021.4.4
 robotframework==4.0.1
-robotframework-pabot==1.12
 six==1.15.0
 toml==0.10.2
 tox==3.23.0
