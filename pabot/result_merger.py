@@ -155,6 +155,9 @@ class ResultMerger(SuiteVisitor):
     def visit_message(self, msg):
         if not msg.html:  # no html -> no link -> no update needed
             return
+        # fix links that go outside of result directory
+        msg.message = msg.message.replace('src="../../', 'src="')
+        msg.message = msg.message.replace('href="../../', 'href="')
         if not self._patterns:  # don't update links if no artifacts were copied
             return
         if not (
@@ -178,7 +181,6 @@ class ResultMerger(SuiteVisitor):
                 offset += len(
                     prefix_str
                 )  # the string has been changed but not the original match positions
-
 
 class ResultsCombiner(CombinedResult):
     def add_result(self, other):
