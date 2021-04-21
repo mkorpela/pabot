@@ -30,6 +30,6 @@ robotframework-pabot==1.12
 six==1.15.0
 toml==0.10.2
 tox==3.23.0
-typed-ast==1.4.2
+typed-ast==1.4.3
 typing-extensions==3.7.4.3
 virtualenv==20.4.4
