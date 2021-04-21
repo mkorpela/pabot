@@ -17,12 +17,13 @@
 #  that was licensed under Apache License Version 2.0
 from __future__ import absolute_import, print_function
 
-import os, re
+import os
+import re
 
 from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
-from robot.errors import DataError
 from robot.conf import RebotSettings
+from robot.errors import DataError
 from robot.result.executionresult import CombinedResult
 
 try:

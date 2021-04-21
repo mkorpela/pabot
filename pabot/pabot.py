@@ -68,52 +68,45 @@ Copyright 2019 Mikko Korpela - Apache 2 License
 
 from __future__ import absolute_import, print_function
 
-import os
-import hashlib
-import re
-import sys
-import time
 import datetime
-import uuid
+import hashlib
+import os
 import random
-import traceback
+import re
+import shutil
+import signal
 import socket
+import subprocess
+import sys
+import threading
+import time
+import traceback
+import uuid
+from collections import namedtuple
 from contextlib import closing
 from glob import glob
 from io import BytesIO, StringIO
-from collections import namedtuple
-import shutil
-import subprocess
-import threading
-from robot import rebot
+from multiprocessing.pool import ThreadPool
+
 from robot import __version__ as ROBOT_VERSION
+from robot import rebot
 from robot.api import ExecutionResult
 from robot.conf import RobotSettings
-from robot.errors import Information, DataError
+from robot.errors import DataError, Information
+from robot.libraries.Remote import Remote
 from robot.model import ModelModifier
 from robot.result.visitor import ResultVisitor
-from robot.running import TestSuiteBuilder
-from robot.libraries.Remote import Remote
-from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
-from robot.utils import ArgumentParser, SYSTEM_ENCODING, is_unicode, PY2
-import signal
+from robot.running import TestSuiteBuilder
+from robot.utils import PY2, SYSTEM_ENCODING, ArgumentParser, is_unicode
 
 from . import pabotlib
-from .result_merger import merge
-from .clientwrapper import make_order
 from .arguments import parse_args, parse_execution_item_line
-from .execution_items import (
-    ExecutionItem,
-    HivedItem,
-    GroupItem,
-    SuiteItem,
-    TestItem,
-    DynamicSuiteItem,
-    GroupStartItem,
-    GroupEndItem,
-    SuiteItems,
-)
+from .clientwrapper import make_order
+from .execution_items import (DynamicSuiteItem, ExecutionItem, GroupEndItem,
+                              GroupItem, GroupStartItem, HivedItem, SuiteItem,
+                              SuiteItems, TestItem)
+from .result_merger import merge
 
 try:
     import queue  # type: ignore
@@ -125,7 +118,7 @@ try:
 except ImportError:
     from pipes import quote  # type: ignore
 
-from typing import List, Optional, Union, Dict, Tuple, IO, Any
+from typing import IO, Any, Dict, List, Optional, Tuple, Union
 
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = queue.Queue()

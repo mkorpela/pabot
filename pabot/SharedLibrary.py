@@ -1,10 +1,12 @@
 from __future__ import absolute_import
+
+from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from robot.libraries.Remote import Remote
-from robot.api import logger
 from robot.running.testlibraries import TestLibrary
-from .robotremoteserver import RemoteLibraryFactory
+
 from .pabotlib import PABOT_QUEUE_INDEX
+from .robotremoteserver import RemoteLibraryFactory
 
 
 class SharedLibrary(object):
