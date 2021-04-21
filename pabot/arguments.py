@@ -7,9 +7,16 @@ from robot.errors import DataError
 from robot.run import USAGE
 from robot.utils import ArgumentParser
 
-from .execution_items import (DynamicTestItem, ExecutionItem, GroupEndItem,
-                              GroupStartItem, IncludeItem, SuiteItem, TestItem,
-                              WaitItem)
+from .execution_items import (
+    DynamicTestItem,
+    ExecutionItem,
+    GroupEndItem,
+    GroupStartItem,
+    IncludeItem,
+    SuiteItem,
+    TestItem,
+    WaitItem,
+)
 
 ARGSMATCHER = re.compile(r"--argumentfile(\d+)")
 

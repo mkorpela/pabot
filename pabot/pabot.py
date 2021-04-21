@@ -103,9 +103,17 @@ from robot.utils import PY2, SYSTEM_ENCODING, ArgumentParser, is_unicode
 from . import pabotlib
 from .arguments import parse_args, parse_execution_item_line
 from .clientwrapper import make_order
-from .execution_items import (DynamicSuiteItem, ExecutionItem, GroupEndItem,
-                              GroupItem, GroupStartItem, HivedItem, SuiteItem,
-                              SuiteItems, TestItem)
+from .execution_items import (
+    DynamicSuiteItem,
+    ExecutionItem,
+    GroupEndItem,
+    GroupItem,
+    GroupStartItem,
+    HivedItem,
+    SuiteItem,
+    SuiteItems,
+    TestItem,
+)
 from .result_merger import merge
 
 try:

@@ -182,6 +182,7 @@ class ResultMerger(SuiteVisitor):
                     prefix_str
                 )  # the string has been changed but not the original match positions
 
+
 class ResultsCombiner(CombinedResult):
     def add_result(self, other):
         for suite in other.suite.suites:
