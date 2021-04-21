@@ -1383,7 +1383,7 @@ def _update_stats(result, stats):
         stats["total"] += s.total.total
         stats["passed"] += s.total.passed
         stats["failed"] += s.total.failed
-        stats["skipped"] +=  s.total.skipped
+        stats["skipped"] += s.total.skipped
 
 
 # This is from https://github.com/django/django/blob/master/django/utils/glob.py
@@ -1435,10 +1435,10 @@ def _stop_message_writer():
 
 
 def _get_free_port(pabot_args):
-    if pabot_args['pabotlibport'] != 0:
-        return pabot_args['pabotlibport']
+    if pabot_args["pabotlibport"] != 0:
+        return pabot_args["pabotlibport"]
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(('localhost', 0))
+        s.bind(("localhost", 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 

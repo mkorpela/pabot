@@ -84,10 +84,13 @@ class ResultMerger(SuiteVisitor):
                     self._append_keywords(suite)
 
     if ROBOT_VERSION < "4.0" or ROBOT_VERSION == "4.0b1":
+
         def _append_keywords(self, suite):
             for keyword in suite.keywords:
                 self.current.keywords.append(keyword)
+
     else:
+
         def _append_keywords(self, suite):
             for keyword in suite.setup.body:
                 self.current.setup.body.append(keyword)
