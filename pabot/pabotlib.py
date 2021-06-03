@@ -272,6 +272,12 @@ class PabotLib(_PabotLib):
             self.__remotelib = Remote(uri) if uri else None
         return self.__remotelib
 
+    @property
+    def polling_logging(self):
+        logging_name = 'pabot_set_polling_logging'
+        parallel_value = self.get_parallel_value_for_key(logging_name)
+        return parallel_value if parallel_value is not None else PabotLib._polling_logging
+
     def set_polling_seconds(self, secs):
         """
         Determine the amount of seconds to wait between checking for free locks. Default: 0.1  (100ms)
@@ -288,9 +294,11 @@ class PabotLib(_PabotLib):
         """
         Enable or disable logging inside of polling. Logging inside of polling can be disabled (enable=False) to reduce log file size.
         """
+        logging_name = 'pabot_set_polling_logging'
         if isinstance(enable, str):
             enable = enable.lower() == "true"
         PabotLib._polling_logging = bool(enable)
+        self.set_parallel_value_for_key(logging_name, bool(enable))
 
     def run_setup_only_once(self, keyword, *args):
         """
@@ -361,7 +369,7 @@ class PabotLib(_PabotLib):
                 )
                 < queue_index
             ):
-                if PabotLib._polling_logging:
+                if self.polling_logging:
                     logger.trace(
                         self.get_parallel_value_for_key(
                             PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE
@@ -438,7 +446,7 @@ class PabotLib(_PabotLib):
                     "acquire_lock", [name, self._my_id], {}
                 ):
                     time.sleep(PabotLib._pollingSeconds)
-                    if PabotLib._polling_logging:
+                    if self.polling_logging:
                         logger.debug("waiting for lock to release")
                 return True
             except RuntimeError as err:
@@ -486,7 +494,7 @@ class PabotLib(_PabotLib):
                         logger.info('Value set "%s" acquired' % self._setname)
                         return self._setname
                     time.sleep(PabotLib._pollingSeconds)
-                    if PabotLib._polling_logging:
+                    if self.polling_logging:
                         logger.debug("waiting for a value set")
             except RuntimeError as err:
                 logger.error(
