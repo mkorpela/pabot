@@ -227,10 +227,13 @@ def execute_and_wait_with(item):
 
 
 def _create_command_for_execution(caller_id, datasources, is_last, item, outs_dir):
+    options = item.options.copy()
+    if item.command == ['robot'] and not options["listener"]:
+        options["listener"] = ["RobotStackTracer"]
     cmd = (
         item.command
         + _options_for_custom_executor(
-            item.options,
+            options,
             outs_dir,
             item.execution_item,
             item.argfile,
