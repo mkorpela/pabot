@@ -29,7 +29,7 @@ setup(
     ],
     entry_points={"console_scripts": ["pabot=pabot.pabot:main"]},
     license="Apache License, Version 2.0",
-    install_requires=["robotframework>=3.2"],
+    install_requires=["robotframework>=3.2", "robotframework-stacktrace>=0.4.0"],
     python_requires='>=3.6',
     include_package_data=True,
 )
