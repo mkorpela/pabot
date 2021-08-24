@@ -177,7 +177,7 @@ valueset.dat
       USERNAME=user2
       PASSWORD=password2
 
-      [Server2]
+      [Server3]
       tags=admin-server
       HOST=222.222.222.222
       USERNAME=user3
