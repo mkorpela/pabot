@@ -184,9 +184,9 @@ valueset.dat
       PASSWORD=password4
 
 
-pabot call with two processes using resources from valueset.dat
+pabot call using resources from valueset.dat
 
-      pabot --pabotlib --resourcefile valueset.dat test.robot test.robot
+      pabot --pabotlib --resourcefile valueset.dat test.robot
 
 ### Controlling execution order and level of parallelism
 
