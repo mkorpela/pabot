@@ -1748,7 +1748,7 @@ def _add_dynamically_created_execution_items(
     execution_items.insert(0, items)
 
 
-def main(args=None):
+def main(args=None, exit=True):
     global _PABOTLIBPROCESS
     args = args or sys.argv[1:]
     if len(args) == 0:
@@ -1758,7 +1758,10 @@ def main(args=None):
             + " ]: Expected at least 1 argument, got 0."
         )
         print("Try --help for usage information.")
-        sys.exit(252)
+        if exit:
+            sys.exit(252)
+        else:
+            return 252
     start_time = time.time()
     start_time_string = _now()
     # NOTE: timeout option
@@ -1767,11 +1770,17 @@ def main(args=None):
         options, datasources, pabot_args, opts_for_run = parse_args(args)
         if pabot_args["help"]:
             print(__doc__)
-            sys.exit(0)
+            if exit:
+                sys.exit(0)
+            else:
+                return 0
         if len(datasources) == 0:
             print("[ " + _wrap_with(Color.RED, "ERROR") + " ]: No datasources given.")
             print("Try --help for usage information.")
-            sys.exit(252)
+            if exit:
+                sys.exit(252)
+            else:
+                return 252
         _PABOTLIBPROCESS = _start_remote_library(pabot_args)
         if _pabotlib_in_use():
             _initialize_queue_index()
@@ -1786,7 +1795,10 @@ def main(args=None):
         if not suite_names or suite_names == [[]]:
             _write("No tests to execute")
             if not options.get("runemptysuite", False):
-                sys.exit(252)
+                if exit:
+                    sys.exit(252)
+                else:
+                    return 252
         execution_items = _create_execution_items(
             suite_names, datasources, outs_dir, options, opts_for_run, pabot_args
         )
@@ -1803,13 +1815,19 @@ def main(args=None):
             start_time_string,
             _get_suite_root_name(suite_names),
         )
-        sys.exit(result_code if not _ABNORMAL_EXIT_HAPPENED else 252)
+        if exit:
+            sys.exit(result_code if not _ABNORMAL_EXIT_HAPPENED else 252)
+        else:
+            return result_code if not _ABNORMAL_EXIT_HAPPENED else 252
     except Information as i:
         print(__doc__)
         print(i.message)
     except DataError as err:
         print(err.message)
-        sys.exit(252)
+        if exit:
+            sys.exit(252)
+        else:
+            return 252
     except Exception:
         _write("[ERROR] EXCEPTION RAISED DURING PABOT EXECUTION", Color.RED)
         _write(
