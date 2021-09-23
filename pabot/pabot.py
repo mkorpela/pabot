@@ -282,8 +282,8 @@ def _try_execute_and_wait(
     if _pabotlib_in_use():
         plib = Remote(_PABOTLIBURI)
     try:
-        with open(os.path.join(outs_dir, cmd[0] + "_stdout.out"), "w") as stdout:
-            with open(os.path.join(outs_dir, cmd[0] + "_stderr.out"), "w") as stderr:
+        with open(os.path.join(outs_dir, os.path.splitext(cmd[0])[0] + "_stdout.out"), "w") as stdout:
+            with open(os.path.join(outs_dir, os.path.splitext(cmd[0])[0] + "_stderr.out"), "w") as stderr:
                 process, (rc, elapsed) = _run(
                     cmd, stderr, stdout, item_name, verbose, pool_id, my_index
                 )
