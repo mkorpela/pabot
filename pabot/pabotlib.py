@@ -24,14 +24,16 @@ except:
 
     # Support Python 2
 
-from robot.libraries.BuiltIn import BuiltIn
-from .robotremoteserver import RobotRemoteServer
-from robot.libraries.Remote import Remote
-from robot.running import TestLibrary
-from robot.api import logger
 import threading
 import time
-from typing import List, Dict, Tuple, Set, Optional, Any
+from typing import Any, Dict, List, Optional, Set, Tuple
+
+from robot.api import logger
+from robot.libraries.BuiltIn import BuiltIn
+from robot.libraries.Remote import Remote
+from robot.running import TestLibrary
+
+from .robotremoteserver import RobotRemoteServer
 
 PABOT_LAST_LEVEL = "PABOTLASTLEVEL"
 PABOT_QUEUE_INDEX = "PABOTQUEUEINDEX"

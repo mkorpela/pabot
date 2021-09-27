@@ -177,14 +177,14 @@ valueset.dat
       USERNAME=user2
       PASSWORD=password2
 
-      [Server2]
+      [Server3]
       tags=admin-server
       HOST=222.222.222.222
       USERNAME=user3
       PASSWORD=password4
 
 
-pabot call
+pabot call using resources from valueset.dat
 
       pabot --pabotlib --resourcefile valueset.dat test.robot
 

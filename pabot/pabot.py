@@ -16,7 +16,7 @@
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
 """A parallel executor for Robot Framework test cases.
-Version 1.12.1
+Version 2.0.1
 
 Supports all Robot Framework command line options and also following
 options (these must be before normal RF options):
@@ -68,52 +68,53 @@ Copyright 2019 Mikko Korpela - Apache 2 License
 
 from __future__ import absolute_import, print_function
 
-import os
-import hashlib
-import re
-import sys
-import time
 import datetime
-import uuid
+import hashlib
+import os
 import random
-import traceback
+import re
+import shutil
+import signal
 import socket
+import subprocess
+import sys
+import threading
+import time
+import traceback
+import uuid
+from collections import namedtuple
 from contextlib import closing
 from glob import glob
 from io import BytesIO, StringIO
-from collections import namedtuple
-import shutil
-import subprocess
-import threading
-from robot import rebot
+from multiprocessing.pool import ThreadPool
+
 from robot import __version__ as ROBOT_VERSION
+from robot import rebot
 from robot.api import ExecutionResult
 from robot.conf import RobotSettings
-from robot.errors import Information, DataError
+from robot.errors import DataError, Information
+from robot.libraries.Remote import Remote
 from robot.model import ModelModifier
 from robot.result.visitor import ResultVisitor
-from robot.running import TestSuiteBuilder
-from robot.libraries.Remote import Remote
-from multiprocessing.pool import ThreadPool
 from robot.run import USAGE
-from robot.utils import ArgumentParser, SYSTEM_ENCODING, is_unicode, PY2
-import signal
+from robot.running import TestSuiteBuilder
+from robot.utils import PY2, SYSTEM_ENCODING, ArgumentParser, is_unicode
 
 from . import pabotlib
-from .result_merger import merge
-from .clientwrapper import make_order
 from .arguments import parse_args, parse_execution_item_line
+from .clientwrapper import make_order
 from .execution_items import (
-    ExecutionItem,
-    HivedItem,
-    GroupItem,
-    SuiteItem,
-    TestItem,
     DynamicSuiteItem,
-    GroupStartItem,
+    ExecutionItem,
     GroupEndItem,
+    GroupItem,
+    GroupStartItem,
+    HivedItem,
+    SuiteItem,
     SuiteItems,
+    TestItem,
 )
+from .result_merger import merge
 
 try:
     import queue  # type: ignore
@@ -125,7 +126,7 @@ try:
 except ImportError:
     from pipes import quote  # type: ignore
 
-from typing import List, Optional, Union, Dict, Tuple, IO, Any
+from typing import IO, Any, Dict, List, Optional, Tuple, Union
 
 CTRL_C_PRESSED = False
 MESSAGE_QUEUE = queue.Queue()
@@ -226,10 +227,13 @@ def execute_and_wait_with(item):
 
 
 def _create_command_for_execution(caller_id, datasources, is_last, item, outs_dir):
+    options = item.options.copy()
+    if item.command == ['robot'] and not options["listener"]:
+        options["listener"] = ["RobotStackTracer"]
     cmd = (
         item.command
         + _options_for_custom_executor(
-            item.options,
+            options,
             outs_dir,
             item.execution_item,
             item.argfile,
@@ -1383,7 +1387,7 @@ def _update_stats(result, stats):
         stats["total"] += s.total.total
         stats["passed"] += s.total.passed
         stats["failed"] += s.total.failed
-        stats["skipped"] +=  s.total.skipped
+        stats["skipped"] += s.total.skipped
 
 
 # This is from https://github.com/django/django/blob/master/django/utils/glob.py
@@ -1435,10 +1439,10 @@ def _stop_message_writer():
 
 
 def _get_free_port(pabot_args):
-    if pabot_args['pabotlibport'] != 0:
-        return pabot_args['pabotlibport']
+    if pabot_args["pabotlibport"] != 0:
+        return pabot_args["pabotlibport"]
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(('localhost', 0))
+        s.bind(("localhost", 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         return s.getsockname()[1]
 

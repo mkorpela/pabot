@@ -1,10 +1,9 @@
 from functools import total_ordering
+from typing import Dict, List, Optional, Tuple, Union
 
 from robot import __version__ as ROBOT_VERSION
 from robot.errors import DataError
 from robot.utils import PY2, is_unicode
-
-from typing import List, Optional, Union, Dict, Tuple
 
 
 @total_ordering

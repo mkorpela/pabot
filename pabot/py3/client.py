@@ -1,7 +1,8 @@
-import socket
 import os
-from . import messages
+import socket
 import tarfile
+
+from . import messages
 
 
 def make_order(hive: str, order: str, outputdir: str):

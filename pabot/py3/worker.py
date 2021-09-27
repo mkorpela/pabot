@@ -1,11 +1,12 @@
-import uuid
 import json
-import subprocess
 import socket
-import tempfile
+import subprocess
 import sys
-from . import messages
 import tarfile
+import tempfile
+import uuid
+
+from . import messages
 
 
 def working(hive_address: str):

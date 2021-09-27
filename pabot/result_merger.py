@@ -17,12 +17,13 @@
 #  that was licensed under Apache License Version 2.0
 from __future__ import absolute_import, print_function
 
-import os, re
+import os
+import re
 
 from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
-from robot.errors import DataError
 from robot.conf import RebotSettings
+from robot.errors import DataError
 from robot.result.executionresult import CombinedResult
 
 try:
@@ -84,10 +85,13 @@ class ResultMerger(SuiteVisitor):
                     self._append_keywords(suite)
 
     if ROBOT_VERSION < "4.0" or ROBOT_VERSION == "4.0b1":
+
         def _append_keywords(self, suite):
             for keyword in suite.keywords:
                 self.current.keywords.append(keyword)
+
     else:
+
         def _append_keywords(self, suite):
             for keyword in suite.setup.body:
                 self.current.setup.body.append(keyword)
@@ -151,6 +155,9 @@ class ResultMerger(SuiteVisitor):
     def visit_message(self, msg):
         if not msg.html:  # no html -> no link -> no update needed
             return
+        # fix links that go outside of result directory
+        msg.message = msg.message.replace('src="../../', 'src="')
+        msg.message = msg.message.replace('href="../../', 'href="')
         if not self._patterns:  # don't update links if no artifacts were copied
             return
         if not (

@@ -1,6 +1,6 @@
 import multiprocessing
 import re
-from typing import Optional, List, Dict, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from robot import __version__ as ROBOT_VERSION
 from robot.errors import DataError
@@ -8,14 +8,14 @@ from robot.run import USAGE
 from robot.utils import ArgumentParser
 
 from .execution_items import (
+    DynamicTestItem,
+    ExecutionItem,
+    GroupEndItem,
+    GroupStartItem,
+    IncludeItem,
     SuiteItem,
     TestItem,
-    IncludeItem,
-    DynamicTestItem,
     WaitItem,
-    GroupStartItem,
-    GroupEndItem,
-    ExecutionItem,
 )
 
 ARGSMATCHER = re.compile(r"--argumentfile(\d+)")

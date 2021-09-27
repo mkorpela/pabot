@@ -1,7 +1,8 @@
 import socketserver
-from typing import Dict, Set
-from . import messages
 from queue import Queue
+from typing import Dict, Set
+
+from . import messages
 
 workers: Queue = Queue()
 clients: Set["CoordinatorHandler"] = set()

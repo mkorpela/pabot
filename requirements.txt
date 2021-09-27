@@ -1,0 +1,12 @@
+black==21.8b0
+flake8==3.9.1
+isort==5.9.3
+mccabe==0.6.1
+mypy==0.901
+mypy-extensions==0.4.3
+pre-commit==2.14.1
+pytest==6.2.5
+robotframework==4.0.3
+tox==3.24.3
+virtualenv==20.4.4
+robotframework-stacktrace==0.4.1
