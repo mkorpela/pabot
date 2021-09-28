@@ -1814,9 +1814,6 @@ def main(args=None):
                     items.extend(next_items)
                 execution_items.clear()
 
-            for item in items:
-                print (item.execution_item.name)
-
             _parallel_execute(items, pabot_args["processes"])
             _add_dynamically_created_execution_items(
                 execution_items, datasources, outs_dir, opts_for_run, pabot_args
