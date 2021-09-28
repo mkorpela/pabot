@@ -10,3 +10,4 @@ robotframework==4.0.3
 tox==3.24.3
 virtualenv==20.4.4
 robotframework-stacktrace==0.4.1
+psutil==5.8.0

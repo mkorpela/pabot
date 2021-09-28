@@ -87,6 +87,7 @@ from contextlib import closing
 from glob import glob
 from io import BytesIO, StringIO
 from multiprocessing.pool import ThreadPool
+import psutil
 
 from robot import __version__ as ROBOT_VERSION
 from robot import rebot
@@ -1212,8 +1213,7 @@ def keyboard_interrupt(*args):
 
 def init_worker(load_check):
     while load_check:
-        load1, load5, load15 = os.getloadavg()
-        if load1 < 90 and load5 < 90:
+        if psutil.cpu_percent(interval=5) < 90:
             return
         time.sleep(random.randint(60))
 
