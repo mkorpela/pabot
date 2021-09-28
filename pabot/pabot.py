@@ -1810,8 +1810,11 @@ def main(args=None):
                     execution_items.insert(0, items)
                 items = template_items
             else:
+                new_items = []
                 for next_items in execution_items:
-                    items.extend(next_items)
+                    new_items.extend(next_items)
+                new_items.extend(items)
+                items = new_items
                 execution_items.clear()
 
             _parallel_execute(items, pabot_args["processes"])
