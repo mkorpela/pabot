@@ -1220,7 +1220,7 @@ def init_worker(load_check):
 def _parallel_execute(items, processes):
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
     load_check = processes >= os.cpu_count()
-    pool = ThreadPool(processes)
+    pool = ThreadPool(processes, initializer=init_worker, initargs=(load_check,))
     result = pool.map_async(execute_and_wait_with, items, 1)
     pool.close()
     while not result.ready():
@@ -1799,6 +1799,24 @@ def main(args=None):
         )
         while execution_items:
             items = execution_items.pop(0)
+            template_items = []
+            for item in items:
+                if 'DataDriver' in item.execution_item.name:
+                    template_items.append(item)
+                    items.remove(item)
+
+            if len(template_items):
+                if len(items):
+                    execution_items.insert(0, items)
+                items = template_items
+            else:
+                new_items = []
+                for next_items in execution_items:
+                    new_items.extend(next_items)
+                new_items.extend(items)
+                items = new_items
+                execution_items.clear()
+
             _parallel_execute(items, pabot_args["processes"])
             _add_dynamically_created_execution_items(
                 execution_items, datasources, outs_dir, opts_for_run, pabot_args
