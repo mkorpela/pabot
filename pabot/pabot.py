@@ -1752,7 +1752,7 @@ def _add_dynamically_created_execution_items(
         _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(items)
         for item in items:
             _NOT_COMPLETED_INDEXES.append(item.index)
-    execution_items.append(items)
+    execution_items.insert(0, items)
 
 
 def main(args=None):
@@ -1799,24 +1799,6 @@ def main(args=None):
         )
         while execution_items:
             items = execution_items.pop(0)
-            template_items = []
-            for item in items:
-                if 'DataDriver' in item.execution_item.name:
-                    template_items.append(item)
-                    items.remove(item)
-
-            if len(template_items):
-                if len(items):
-                    execution_items.insert(0, items)
-                items = template_items
-            else:
-                for next_items in execution_items:
-                    items.extend(next_items)
-                execution_items.clear()
-
-            for item in items:
-                print (item.execution_item.name)
-
             _parallel_execute(items, pabot_args["processes"])
             _add_dynamically_created_execution_items(
                 execution_items, datasources, outs_dir, opts_for_run, pabot_args
