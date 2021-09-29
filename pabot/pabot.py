@@ -1210,16 +1210,10 @@ def keyboard_interrupt(*args):
     global CTRL_C_PRESSED
     CTRL_C_PRESSED = True
 
-def init_worker(processes):
-    while processes == 28:
-        load1, load5, load15 = os.getloadavg()
-        if load1 < 90 and load5 < 90:
-            return
-        time.sleep(random.randint(60))
 
 def _parallel_execute(items, processes):
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
-    pool = ThreadPool(processes, initializer=init_worker, initargs=(processes,))
+    pool = ThreadPool(processes)
     result = pool.map_async(execute_and_wait_with, items, 1)
     pool.close()
     while not result.ready():
