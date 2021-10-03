@@ -56,6 +56,7 @@ class ResultMerger(SuiteVisitor):
         try:
             self._set_prefix(merged.source)
             merged.suite.visit(self)
+            self.root.metadata._add_initial(merged.suite.metadata)
             if self.errors != merged.errors:
                 self.errors.add(merged.errors)
         except:

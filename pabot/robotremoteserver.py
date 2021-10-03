@@ -326,7 +326,7 @@ class StaticRemoteLibrary(object):
         if __name__ == "__init__":
             return []
         kw = self._get_keyword(name)
-        args, varargs, kwargs, defaults = inspect.getargspec(kw)
+        args, varargs, kwargs, defaults = inspect.getfullargspec(kw)
         if inspect.ismethod(kw):
             args = args[1:]  # drop 'self'
         if defaults:
@@ -386,7 +386,7 @@ class DynamicRemoteLibrary(HybridRemoteLibrary):
         self._get_keyword_tags = dynamic_method(library, "get_keyword_tags")
 
     def _get_kwargs_support(self, run_keyword):
-        spec = inspect.getargspec(run_keyword)
+        spec = inspect.getfullargspec(run_keyword)
         return len(spec.args) > 3  # self, name, args, kwargs=None
 
     def run_keyword(self, name, args, kwargs=None):
