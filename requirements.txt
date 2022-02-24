@@ -8,5 +8,5 @@ pre-commit==2.14.1
 pytest==6.2.5
 robotframework==4.0.3
 tox==3.24.3
-virtualenv==20.4.4
+virtualenv==20.13.2
 robotframework-stacktrace==0.4.1
