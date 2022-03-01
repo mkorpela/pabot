@@ -1172,18 +1172,17 @@ def _options_for_rebot(options, start_time_string, end_time_string):
     rebot_options["include"] = []
     if ROBOT_VERSION >= "2.8":
         options["monitormarkers"] = "off"
-    if ROBOT_VERSION >= "5.0":
-        for key in [
-            "skip",
-            "skiponfailure",
-            "variable",
-            "variablefile",
-            "listener",
-            "prerunmodifier",
-            "monitorcolors",
-        ]:
-            if key in rebot_options:
-                del rebot_options[key]
+    for key in [
+        "skip",
+        "skiponfailure",
+        "variable",
+        "variablefile",
+        "listener",
+        "prerunmodifier",
+        "monitorcolors",
+    ]:
+        if key in rebot_options:
+            del rebot_options[key]
     return rebot_options
 
 
