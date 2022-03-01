@@ -1036,7 +1036,6 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(options["exclude"], [])
         for key in self._options:
             if key in [
-                "pythonpath",
                 "skip",
                 "skiponfailure",
                 "variable",
