@@ -1035,7 +1035,19 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(options["include"], [])
         self.assertEqual(options["exclude"], [])
         for key in self._options:
-            self.assertEqual(options[key], self._options[key])
+            if key in [
+                "pythonpath",
+                "skip",
+                "skiponfailure",
+                "variable",
+                "variablefile",
+                "listener",
+                "prerunmodifier",
+                "monitorcolors",
+            ]:
+                self.assertFalse(key in options, "%s should not be in options" % key)
+            else:
+                self.assertEqual(options[key], self._options[key])
 
     def test_greates_common_name(self):
         self.assertEqual(pabot._find_ending_level("foo.bar", ["a", "b"]), "foo")

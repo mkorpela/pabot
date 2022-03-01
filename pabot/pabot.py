@@ -228,7 +228,7 @@ def execute_and_wait_with(item):
 
 def _create_command_for_execution(caller_id, datasources, is_last, item, outs_dir):
     options = item.options.copy()
-    if item.command == ['robot'] and not options["listener"]:
+    if item.command == ["robot"] and not options["listener"]:
         options["listener"] = ["RobotStackTracer"]
     cmd = (
         item.command
@@ -1069,6 +1069,8 @@ def generate_suite_names(
 
 def generate_suite_names_with_builder(outs_dir, datasources, options):
     opts = _options_for_dryrun(options, outs_dir)
+    if "pythonpath" in opts:
+        del opts["pythonpath"]
     settings = RobotSettings(opts)
     builder = TestSuiteBuilder(
         settings["SuiteNames"], settings.extension, rpa=settings.rpa
@@ -1171,7 +1173,15 @@ def _options_for_rebot(options, start_time_string, end_time_string):
     if ROBOT_VERSION >= "2.8":
         options["monitormarkers"] = "off"
     if ROBOT_VERSION >= "5.0":
-        for key in ['skip', 'skiponfailure', 'variable', 'variablefile', 'listener', 'prerunmodifier', 'monitorcolors']:
+        for key in [
+            "skip",
+            "skiponfailure",
+            "variable",
+            "variablefile",
+            "listener",
+            "prerunmodifier",
+            "monitorcolors",
+        ]:
             if key in rebot_options:
                 del rebot_options[key]
     return rebot_options
@@ -1269,6 +1279,8 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
 
 
 def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root_name):
+    if "pythonpath" in options:
+        del options["pythonpath"]
     if ROBOT_VERSION < "4.0":
         stats = {
             "critical": {"total": 0, "passed": 0, "failed": 0},
@@ -1800,8 +1812,6 @@ def main(args=None):
             _add_dynamically_created_execution_items(
                 execution_items, datasources, outs_dir, opts_for_run, pabot_args
             )
-        if 'pythonpath' in options:
-            del options['pythonpath']
         result_code = _report_results(
             outs_dir,
             pabot_args,

@@ -318,12 +318,12 @@ class PabotLib(_PabotLib):
     def run_only_once(self, keyword, *args):
         """
         Runs a keyword only once in one of the parallel processes. Optional arguments of the keyword needs to be serializeable in order to
-        create an unique lockname. 
-        Sample request sequence [keyword, keyword 'x', keyword, keyword 5, keyword 'x', keyword 5] 
-        results in execution of [keyword, keyword 'x', keyword 5]        
+        create an unique lockname.
+        Sample request sequence [keyword, keyword 'x', keyword, keyword 5, keyword 'x', keyword 5]
+        results in execution of [keyword, keyword 'x', keyword 5]
         [https://pabot.org/PabotLib.html?ref=log#run-only-once|Open online docs.]
         """
-        lock_name = "pabot_run_only_once_%s_%s" % (keyword,str(args))
+        lock_name = "pabot_run_only_once_%s_%s" % (keyword, str(args))
         try:
             self.acquire_lock(lock_name)
             passed = self.get_parallel_value_for_key(lock_name)
