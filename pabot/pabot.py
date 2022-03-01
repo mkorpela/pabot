@@ -1800,6 +1800,8 @@ def main(args=None):
             _add_dynamically_created_execution_items(
                 execution_items, datasources, outs_dir, opts_for_run, pabot_args
             )
+        if 'pythonpath' in options:
+            del options['pythonpath']
         result_code = _report_results(
             outs_dir,
             pabot_args,
