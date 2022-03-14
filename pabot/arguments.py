@@ -56,6 +56,12 @@ def parse_args(
     return opts, datasources, pabot_args, opts_sub
 
 
+def _parse_shard(arg):
+    # type: (str) -> Tuple[int, int]
+    parts = arg.split("/")
+    return int(parts[0]), int(parts[1])
+
+
 def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, object]]
     pabot_args = {
         "command": ["pybot" if ROBOT_VERSION < "3.1" else "robot"],
@@ -68,6 +74,8 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "processes": _processes_count(),
         "artifacts": ["png"],
         "artifactsinsubfolders": False,
+        "shardindex": 0,
+        "shardcount": 1,
     }
     argumentfiles = []
     while args and (
@@ -89,6 +97,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                 "artifacts",
                 "artifactsinsubfolders",
                 "help",
+                "shard",
             ]
         ]
         or ARGSMATCHER.match(args[0])
@@ -145,6 +154,10 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         if args[0] == "--artifactsinsubfolders":
             pabot_args["artifactsinsubfolders"] = True
             args = args[1:]
+            continue
+        if args[0] == "--shard":
+            pabot_args["shardindex"], pabot_args["shardcount"] = _parse_shard(args[1])
+            args = args[2:]
             continue
         match = ARGSMATCHER.match(args[0])
         if match:
