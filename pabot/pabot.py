@@ -779,6 +779,19 @@ else:
         return open(".pabotsuitenames", mode, encoding="utf-8")
 
 
+def shard_suites(suite_names, pabot_args):
+    if pabot_args.get("shardcount", 1) <= 1:
+        return suite_names
+    if "shardindex" not in pabot_args:
+        return suite_names
+    shard_index = pabot_args["shardindex"]
+    shard_count = pabot_args["shardcount"]
+    if shard_index > shard_count:
+        return []
+    shard_size = len(suite_names) // shard_count
+    return suite_names[(shard_index - 1) * shard_size : shard_index * shard_size]
+
+
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
     h = Hashes(
         dirs=get_hash_of_dirs(datasources),
@@ -1520,7 +1533,6 @@ def _get_suite_root_name(suite_names):
 
 
 class QueueItem(object):
-
     _queue_index = 0
 
     def __init__(
@@ -1792,6 +1804,7 @@ def main(args=None):
             _initialize_queue_index()
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
+        suite_names = shard_suites(suite_names, pabot_args)
         if pabot_args["verbose"]:
             _write("Suite names resolved in %s seconds" % str(time.time() - start_time))
         ordering = pabot_args.get("ordering")
