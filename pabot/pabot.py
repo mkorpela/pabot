@@ -792,8 +792,12 @@ def shard_suites(suite_names, pabot_args):
     shard_count = pabot_args["shardcount"]
     if shard_index > shard_count:
         return []
-    shard_size = len(suite_names) // shard_count
-    return suite_names[(shard_index - 1) * shard_size : shard_index * shard_size]
+    q, r = divmod(len(suite_names), shard_count)
+    return suite_names[
+        (shard_index - 1) * q
+        + min(shard_index - 1, r) : shard_index * q
+        + min(shard_index, r)
+    ]
 
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
