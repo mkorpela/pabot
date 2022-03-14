@@ -63,6 +63,10 @@ options (these must be before normal RF options):
   Run same suite with multiple argumentfile options.
   For example "--argumentfile1 arg1.txt --argumentfile2 arg2.txt".
 
+--shard [SHARD]/[SHARD COUNT]
+  Optionally split execution into smaller pieces. This is
+  typically used for distributing testing to multiple machines.
+
 Copyright 2019 Mikko Korpela - Apache 2 License
 """
 
