@@ -61,6 +61,7 @@ There are several ways you can help in improving this tool:
 
     pabot [--verbose|--testlevelsplit|--command .. --end-command|
            --processes num|--pabotlib|--pabotlibhost host|--pabotlibport port|
+           --shard i/n|
            --artifacts extensions|--artifactsinsubfolders|
            --resourcefile file|--argumentfile[num] file|--suitesfrom file] 
           [robot options] [path ...]
@@ -125,6 +126,10 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
 --suitesfrom   [FILEPATH TO OUTPUTXML]          
   Optionally read suites from output.xml file. Failed suites will run
   first and longer running ones will be executed before shorter ones.
+
+--shard [INDEX]/[TOTAL]
+  Optionally split execution into smaller pieces. This is
+  typically used for distributing testing to multiple machines.
 
 Example usages:
 
