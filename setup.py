@@ -9,7 +9,7 @@ address = name.lower().replace(" ", ".") + chr(64) + "gmail.com"
 
 setup(
     name="robotframework-pabot",
-    version="2.3.1",
+    version="2.4.0",
     description="Parallel test runner for Robot Framework",
     long_description="A parallel executor for Robot Framework tests."
     " With Pabot you can split one execution into multiple and save test execution time.",
