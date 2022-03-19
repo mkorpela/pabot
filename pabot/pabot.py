@@ -791,7 +791,7 @@ def shard_suites(suite_names, pabot_args):
     shard_index = pabot_args["shardindex"]
     shard_count = pabot_args["shardcount"]
     if shard_index > shard_count:
-        return []
+        raise DataError(f"Shard index ({shard_index}) greater than shard count ({shard_count}).")
     q, r = divmod(len(suite_names), shard_count)
     return suite_names[
         (shard_index - 1) * q
