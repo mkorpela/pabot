@@ -1819,7 +1819,13 @@ def main(args=None):
         ordering = pabot_args.get("ordering")
         if ordering:
             suite_names = _preserve_order(suite_names, ordering)
-        suite_names = _group_by_wait(_group_by_groups(suite_names))
+        if pabot_args["processes"] > 1:
+            suite_names = _group_by_wait(_group_by_groups(suite_names))
+        else:
+            all_group = GroupItem()
+            for s in suite_names:
+                all_group.add(s)
+            suite_names = [[all_group]]
         if not suite_names or suite_names == [[]]:
             _write("No tests to execute")
             if not options.get("runemptysuite", False):
