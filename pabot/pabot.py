@@ -1201,6 +1201,7 @@ def _options_for_rebot(options, start_time_string, end_time_string):
         "listener",
         "prerunmodifier",
         "monitorcolors",
+        "randomize",
     ]:
         if key in rebot_options:
             del rebot_options[key]
