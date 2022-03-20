@@ -76,6 +76,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "artifactsinsubfolders": False,
         "shardindex": 0,
         "shardcount": 1,
+        "chunk": False,
     }
     argumentfiles = []
     while args and (
@@ -98,6 +99,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                 "artifactsinsubfolders",
                 "help",
                 "shard",
+                "chunk",
             ]
         ]
         or ARGSMATCHER.match(args[0])
@@ -117,6 +119,10 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
             continue
         if args[0] == "--verbose":
             pabot_args["verbose"] = True
+            args = args[1:]
+            continue
+        if args[0] == "--chunk":
+            pabot_args["chunk"] = True
             args = args[1:]
             continue
         if args[0] == "--resourcefile":

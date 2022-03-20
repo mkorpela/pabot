@@ -1819,13 +1819,10 @@ def main(args=None):
         ordering = pabot_args.get("ordering")
         if ordering:
             suite_names = _preserve_order(suite_names, ordering)
-        if pabot_args["processes"] > 1:
-            suite_names = _group_by_wait(_group_by_groups(suite_names))
+        if pabot_args["chunk"]:
+            suite_names = _chunked_suite_names(suite_names, pabot_args["processes"])
         else:
-            all_group = GroupItem()
-            for s in suite_names:
-                all_group.add(s)
-            suite_names = [[all_group]]
+            suite_names = _group_by_wait(_group_by_groups(suite_names))
         if not suite_names or suite_names == [[]]:
             _write("No tests to execute")
             if not options.get("runemptysuite", False):
@@ -1865,6 +1862,23 @@ def main(args=None):
             _stop_remote_library(_PABOTLIBPROCESS)
         _print_elapsed(start_time, time.time())
         _stop_message_writer()
+
+
+def _chunked_suite_names(suite_names, processes):
+    q, r = divmod(len(suite_names), processes)
+    result = []
+    for index in range(processes):
+        chunk = suite_names[(index) * q
+        + min(index, r): (index + 1) * q
+                                   + min((index + 1), r)
+        ]
+        if len(chunk) == 0:
+            continue
+        grouped = GroupItem()
+        for item in chunk:
+            grouped.add(item)
+        result.append(grouped)
+    return [result]
 
 
 if __name__ == "__main__":
