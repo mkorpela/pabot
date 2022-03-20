@@ -128,8 +128,11 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   first and longer running ones will be executed before shorter ones.
 
 --shard [INDEX]/[TOTAL]
-  Optionally split execution into smaller pieces. This is
-  typically used for distributing testing to multiple machines.
+  Optionally split execution into smaller pieces. This can
+  be used for distributing testing to multiple machines.
+
+--chunk
+  Optionally chunk tests to PROCESSES number of robot runs.
 
 Example usages:
 
