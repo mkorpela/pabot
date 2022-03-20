@@ -132,7 +132,7 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   be used for distributing testing to multiple machines.
 
 --chunk
-  Optionally chunk tests to PROCESSES number of robot runs.
+  Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same setups and teardowns.
 
 Example usages:
 
