@@ -1252,18 +1252,23 @@ def keyboard_interrupt(*args):
     CTRL_C_PRESSED = True
 
 
-def _parallel_execute(items, processes):
+def _parallel_execute(items, processes, datasources, outs_dir, opts_for_run, pabot_args):
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
     pool = ThreadPool(processes)
-    result = pool.map_async(execute_and_wait_with, items, 1)
-    pool.close()
-    while not result.ready():
+    results = [pool.map_async(execute_and_wait_with, items, 1)]
+    while not all(result.ready() for result in results):
         # keyboard interrupt is executed in main thread
         # and needs this loop to get time to get executed
         try:
             time.sleep(0.1)
         except IOError:
             keyboard_interrupt()
+        items = _get_dynamically_created_execution_items(
+            datasources, outs_dir, opts_for_run, pabot_args
+        )
+        if items:
+            results.append(pool.map_async(execute_and_wait_with, items, 1))
+    pool.close()
     signal.signal(signal.SIGINT, original_signal_handler)
 
 
@@ -1758,16 +1763,16 @@ def _initialize_queue_index():
     raise RuntimeError("Can not connect to PabotLib at %s" % _PABOTLIBURI)
 
 
-def _add_dynamically_created_execution_items(
-    execution_items, datasources, outs_dir, opts_for_run, pabot_args
+def _get_dynamically_created_execution_items(
+     datasources, outs_dir, opts_for_run, pabot_args
 ):
     global _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     if not _pabotlib_in_use():
-        return
+        return None
     plib = Remote(_PABOTLIBURI)
     new_suites = plib.run_keyword("get_added_suites", [], {})
     if len(new_suites) == 0:
-        return
+        return None
     suite_group = [DynamicSuiteItem(s, v) for s, v in new_suites]
     items = [
         QueueItem(
@@ -1787,7 +1792,15 @@ def _add_dynamically_created_execution_items(
         _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(items)
         for item in items:
             _NOT_COMPLETED_INDEXES.append(item.index)
-    execution_items.insert(0, items)
+    return items
+
+
+def _add_dynamically_created_execution_items(
+    execution_items, datasources, outs_dir, opts_for_run, pabot_args
+):
+    items = _get_dynamically_created_execution_items(datasources, outs_dir, opts_for_run, pabot_args)
+    if items:
+        execution_items.insert(0, items)
 
 
 def main(args=None):
@@ -1838,10 +1851,7 @@ def main(args=None):
         )
         while execution_items:
             items = execution_items.pop(0)
-            _parallel_execute(items, pabot_args["processes"])
-            _add_dynamically_created_execution_items(
-                execution_items, datasources, outs_dir, opts_for_run, pabot_args
-            )
+            _parallel_execute(items, pabot_args["processes"], datasources, outs_dir, opts_for_run, pabot_args)
         result_code = _report_results(
             outs_dir,
             pabot_args,
