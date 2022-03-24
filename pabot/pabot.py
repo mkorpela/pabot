@@ -16,7 +16,7 @@
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
 """A parallel executor for Robot Framework test cases.
-Version 2.0.1
+Version 2.5.1
 
 Supports all Robot Framework command line options and also following
 options (these must be before normal RF options):
@@ -63,7 +63,14 @@ options (these must be before normal RF options):
   Run same suite with multiple argumentfile options.
   For example "--argumentfile1 arg1.txt --argumentfile2 arg2.txt".
 
-Copyright 2019 Mikko Korpela - Apache 2 License
+--shard [SHARD]/[SHARD COUNT]
+  Optionally split execution into smaller pieces. This can
+  be used for distributing testing to multiple machines.
+
+--chunk
+  Optionally chunk tests to PROCESSES number of robot runs.
+
+Copyright 2022 Mikko Korpela - Apache 2 License
 """
 
 from __future__ import absolute_import, print_function
@@ -228,7 +235,7 @@ def execute_and_wait_with(item):
 
 def _create_command_for_execution(caller_id, datasources, is_last, item, outs_dir):
     options = item.options.copy()
-    if item.command == ['robot'] and not options["listener"]:
+    if item.command == ["robot"] and not options["listener"]:
         options["listener"] = ["RobotStackTracer"]
     cmd = (
         item.command
@@ -779,6 +786,26 @@ else:
         return open(".pabotsuitenames", mode, encoding="utf-8")
 
 
+def shard_suites(suite_names, pabot_args):
+    if pabot_args.get("shardcount", 1) <= 1:
+        return suite_names
+    if "shardindex" not in pabot_args:
+        return suite_names
+    shard_index = pabot_args["shardindex"]
+    shard_count = pabot_args["shardcount"]
+    if shard_index > shard_count:
+        raise DataError(f"Shard index ({shard_index}) greater than shard count ({shard_count}).")
+    items_count = len(suite_names)
+    if items_count < shard_count:
+        raise DataError(f"Not enought items ({items_count}) for shard cound ({shard_count}).")
+    q, r = divmod(items_count, shard_count)
+    return suite_names[
+        (shard_index - 1) * q
+        + min(shard_index - 1, r) : shard_index * q
+        + min(shard_index, r)
+    ]
+
+
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
     h = Hashes(
         dirs=get_hash_of_dirs(datasources),
@@ -1069,6 +1096,8 @@ def generate_suite_names(
 
 def generate_suite_names_with_builder(outs_dir, datasources, options):
     opts = _options_for_dryrun(options, outs_dir)
+    if "pythonpath" in opts:
+        del opts["pythonpath"]
     settings = RobotSettings(opts)
     builder = TestSuiteBuilder(
         settings["SuiteNames"], settings.extension, rpa=settings.rpa
@@ -1170,6 +1199,18 @@ def _options_for_rebot(options, start_time_string, end_time_string):
     rebot_options["include"] = []
     if ROBOT_VERSION >= "2.8":
         options["monitormarkers"] = "off"
+    for key in [
+        "skip",
+        "skiponfailure",
+        "variable",
+        "variablefile",
+        "listener",
+        "prerunmodifier",
+        "monitorcolors",
+        "randomize",
+    ]:
+        if key in rebot_options:
+            del rebot_options[key]
     return rebot_options
 
 
@@ -1211,18 +1252,23 @@ def keyboard_interrupt(*args):
     CTRL_C_PRESSED = True
 
 
-def _parallel_execute(items, processes):
+def _parallel_execute(items, processes, datasources, outs_dir, opts_for_run, pabot_args):
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
     pool = ThreadPool(processes)
-    result = pool.map_async(execute_and_wait_with, items, 1)
-    pool.close()
-    while not result.ready():
+    results = [pool.map_async(execute_and_wait_with, items, 1)]
+    while not all(result.ready() for result in results):
         # keyboard interrupt is executed in main thread
         # and needs this loop to get time to get executed
         try:
             time.sleep(0.1)
         except IOError:
             keyboard_interrupt()
+        items = _get_dynamically_created_execution_items(
+            datasources, outs_dir, opts_for_run, pabot_args
+        )
+        if items:
+            results.append(pool.map_async(execute_and_wait_with, items, 1))
+    pool.close()
     signal.signal(signal.SIGINT, original_signal_handler)
 
 
@@ -1265,6 +1311,8 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
 
 
 def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root_name):
+    if "pythonpath" in options:
+        del options["pythonpath"]
     if ROBOT_VERSION < "4.0":
         stats = {
             "critical": {"total": 0, "passed": 0, "failed": 0},
@@ -1505,7 +1553,6 @@ def _get_suite_root_name(suite_names):
 
 
 class QueueItem(object):
-
     _queue_index = 0
 
     def __init__(
@@ -1716,16 +1763,16 @@ def _initialize_queue_index():
     raise RuntimeError("Can not connect to PabotLib at %s" % _PABOTLIBURI)
 
 
-def _add_dynamically_created_execution_items(
-    execution_items, datasources, outs_dir, opts_for_run, pabot_args
+def _get_dynamically_created_execution_items(
+     datasources, outs_dir, opts_for_run, pabot_args
 ):
     global _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     if not _pabotlib_in_use():
-        return
+        return None
     plib = Remote(_PABOTLIBURI)
     new_suites = plib.run_keyword("get_added_suites", [], {})
     if len(new_suites) == 0:
-        return
+        return None
     suite_group = [DynamicSuiteItem(s, v) for s, v in new_suites]
     items = [
         QueueItem(
@@ -1745,7 +1792,15 @@ def _add_dynamically_created_execution_items(
         _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(items)
         for item in items:
             _NOT_COMPLETED_INDEXES.append(item.index)
-    execution_items.insert(0, items)
+    return items
+
+
+def _add_dynamically_created_execution_items(
+    execution_items, datasources, outs_dir, opts_for_run, pabot_args
+):
+    items = _get_dynamically_created_execution_items(datasources, outs_dir, opts_for_run, pabot_args)
+    if items:
+        execution_items.insert(0, items)
 
 
 def main(args=None, exit=True):
@@ -1786,12 +1841,16 @@ def main(args=None, exit=True):
             _initialize_queue_index()
         outs_dir = _output_dir(options)
         suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
+        suite_names = shard_suites(suite_names, pabot_args)
         if pabot_args["verbose"]:
             _write("Suite names resolved in %s seconds" % str(time.time() - start_time))
         ordering = pabot_args.get("ordering")
         if ordering:
             suite_names = _preserve_order(suite_names, ordering)
-        suite_names = _group_by_wait(_group_by_groups(suite_names))
+        if pabot_args["chunk"]:
+            suite_names = _chunked_suite_names(suite_names, pabot_args["processes"])
+        else:
+            suite_names = _group_by_wait(_group_by_groups(suite_names))
         if not suite_names or suite_names == [[]]:
             _write("No tests to execute")
             if not options.get("runemptysuite", False):
@@ -1804,10 +1863,7 @@ def main(args=None, exit=True):
         )
         while execution_items:
             items = execution_items.pop(0)
-            _parallel_execute(items, pabot_args["processes"])
-            _add_dynamically_created_execution_items(
-                execution_items, datasources, outs_dir, opts_for_run, pabot_args
-            )
+            _parallel_execute(items, pabot_args["processes"], datasources, outs_dir, opts_for_run, pabot_args)
         result_code = _report_results(
             outs_dir,
             pabot_args,
@@ -1840,6 +1896,23 @@ def main(args=None, exit=True):
             _stop_remote_library(_PABOTLIBPROCESS)
         _print_elapsed(start_time, time.time())
         _stop_message_writer()
+
+
+def _chunked_suite_names(suite_names, processes):
+    q, r = divmod(len(suite_names), processes)
+    result = []
+    for index in range(processes):
+        chunk = suite_names[(index) * q
+        + min(index, r): (index + 1) * q
+                                   + min((index + 1), r)
+        ]
+        if len(chunk) == 0:
+            continue
+        grouped = GroupItem()
+        for item in chunk:
+            grouped.add(item)
+        result.append(grouped)
+    return [result]
 
 
 if __name__ == "__main__":

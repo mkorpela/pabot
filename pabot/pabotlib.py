@@ -315,12 +315,15 @@ class PabotLib(_PabotLib):
         finally:
             self.release_lock(lock_name)
 
-    def run_only_once(self, keyword):
+    def run_only_once(self, keyword, *args):
         """
-        Runs a keyword only once in one of the parallel processes.
+        Runs a keyword only once in one of the parallel processes. Optional arguments of the keyword needs to be serializeable in order to
+        create an unique lockname.
+        Sample request sequence [keyword, keyword 'x', keyword, keyword 5, keyword 'x', keyword 5]
+        results in execution of [keyword, keyword 'x', keyword 5]
         [https://pabot.org/PabotLib.html?ref=log#run-only-once|Open online docs.]
         """
-        lock_name = "pabot_run_only_once_%s" % keyword
+        lock_name = "pabot_run_only_once_%s_%s" % (keyword, str(args))
         try:
             self.acquire_lock(lock_name)
             passed = self.get_parallel_value_for_key(lock_name)
@@ -329,7 +332,7 @@ class PabotLib(_PabotLib):
                     raise AssertionError("Keyword failed in other process")
                 logger.info("Skipped in this item")
                 return
-            BuiltIn().run_keyword(keyword)
+            BuiltIn().run_keyword(keyword, *args)
             self.set_parallel_value_for_key(lock_name, "PASSED")
         except:
             self.set_parallel_value_for_key(lock_name, "FAILED")
