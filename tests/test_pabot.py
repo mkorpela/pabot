@@ -1085,7 +1085,14 @@ class PabotTests(unittest.TestCase):
                 for suite in suite_names
                 for argfile in self._pabot_args["argumentfiles"] or [("", None)]
             ]
-            pabot._parallel_execute(items, self._pabot_args["processes"])
+            pabot._parallel_execute(
+                items,
+                self._pabot_args["processes"],
+                self._datasources,
+                outs_dir,
+                self._options,
+                self._pabot_args,
+            )
             result_code = pabot._report_results(
                 outs_dir,
                 self._pabot_args,
@@ -1121,7 +1128,14 @@ class PabotTests(unittest.TestCase):
                 for test in test_names
                 for argfile in self._pabot_args["argumentfiles"] or [("", None)]
             ]
-            pabot._parallel_execute(items, self._pabot_args["processes"])
+            pabot._parallel_execute(
+                items,
+                self._pabot_args["processes"],
+                self._datasources,
+                outs_dir,
+                self._options,
+                self._pabot_args,
+            )
             result_code = pabot._report_results(
                 outs_dir,
                 self._pabot_args,
