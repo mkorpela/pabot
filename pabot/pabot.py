@@ -794,10 +794,14 @@ def shard_suites(suite_names, pabot_args):
     shard_index = pabot_args["shardindex"]
     shard_count = pabot_args["shardcount"]
     if shard_index > shard_count:
-        raise DataError(f"Shard index ({shard_index}) greater than shard count ({shard_count}).")
+        raise DataError(
+            f"Shard index ({shard_index}) greater than shard count ({shard_count})."
+        )
     items_count = len(suite_names)
     if items_count < shard_count:
-        raise DataError(f"Not enought items ({items_count}) for shard cound ({shard_count}).")
+        raise DataError(
+            f"Not enought items ({items_count}) for shard cound ({shard_count})."
+        )
     q, r = divmod(items_count, shard_count)
     return suite_names[
         (shard_index - 1) * q
@@ -1200,14 +1204,30 @@ def _options_for_rebot(options, start_time_string, end_time_string):
     if ROBOT_VERSION >= "2.8":
         options["monitormarkers"] = "off"
     for key in [
+        "console",
+        "consolemarkers",
+        "consolewidth",
+        "debugfile",
+        "dotted",
+        "dryrun",
+        "exitonerror",
+        "exitonfailure",
+        "extension",
+        "listener",
+        "loglevel",
+        "maxassignlength",
+        "maxerrorlines",
+        "monitorcolors",
+        "output",
+        "prerunmodifier",
+        "quiet",
+        "randomize",
+        "runemptysuite",
         "skip",
         "skiponfailure",
+        "skipteardownonexit",
         "variable",
         "variablefile",
-        "listener",
-        "prerunmodifier",
-        "monitorcolors",
-        "randomize",
     ]:
         if key in rebot_options:
             del rebot_options[key]
@@ -1252,7 +1272,9 @@ def keyboard_interrupt(*args):
     CTRL_C_PRESSED = True
 
 
-def _parallel_execute(items, processes, datasources, outs_dir, opts_for_run, pabot_args):
+def _parallel_execute(
+    items, processes, datasources, outs_dir, opts_for_run, pabot_args
+):
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
     pool = ThreadPool(processes)
     results = [pool.map_async(execute_and_wait_with, items, 1)]
@@ -1764,7 +1786,7 @@ def _initialize_queue_index():
 
 
 def _get_dynamically_created_execution_items(
-     datasources, outs_dir, opts_for_run, pabot_args
+    datasources, outs_dir, opts_for_run, pabot_args
 ):
     global _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     if not _pabotlib_in_use():
@@ -1798,7 +1820,9 @@ def _get_dynamically_created_execution_items(
 def _add_dynamically_created_execution_items(
     execution_items, datasources, outs_dir, opts_for_run, pabot_args
 ):
-    items = _get_dynamically_created_execution_items(datasources, outs_dir, opts_for_run, pabot_args)
+    items = _get_dynamically_created_execution_items(
+        datasources, outs_dir, opts_for_run, pabot_args
+    )
     if items:
         execution_items.insert(0, items)
 
@@ -1851,7 +1875,14 @@ def main(args=None):
         )
         while execution_items:
             items = execution_items.pop(0)
-            _parallel_execute(items, pabot_args["processes"], datasources, outs_dir, opts_for_run, pabot_args)
+            _parallel_execute(
+                items,
+                pabot_args["processes"],
+                datasources,
+                outs_dir,
+                opts_for_run,
+                pabot_args,
+            )
         result_code = _report_results(
             outs_dir,
             pabot_args,
@@ -1884,9 +1915,8 @@ def _chunked_suite_names(suite_names, processes):
     q, r = divmod(len(suite_names), processes)
     result = []
     for index in range(processes):
-        chunk = suite_names[(index) * q
-        + min(index, r): (index + 1) * q
-                                   + min((index + 1), r)
+        chunk = suite_names[
+            (index) * q + min(index, r) : (index + 1) * q + min((index + 1), r)
         ]
         if len(chunk) == 0:
             continue
