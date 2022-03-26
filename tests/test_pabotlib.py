@@ -1,15 +1,9 @@
 import unittest
-import time
 import os
-import tempfile
-import shutil
-import random
 from pabot import pabotlib
-from robot.libraries.BuiltIn import BuiltIn
 from robot.running.context import EXECUTION_CONTEXTS
 from robot.running.namespace import Namespace
 from robot.running.model import TestSuite
-from robot.output import Output
 from robot.variables import Variables
 
 

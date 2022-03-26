@@ -190,6 +190,7 @@ class DynamicSuiteItem(SuiteItem):
         variables.extend(self._variables)
         options["suite"] = self.name
         options["variable"] = variables
+        options["suite"] = self.name
 
 
 class DynamicTestItem(ExecutionItem):

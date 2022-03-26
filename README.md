@@ -5,10 +5,6 @@
 
 [![Version](https://img.shields.io/pypi/v/robotframework-pabot.svg)](https://pypi.python.org/pypi/robotframework-pabot)
 [![Downloads](http://pepy.tech/badge/robotframework-pabot)](http://pepy.tech/project/robotframework-pabot)
-[![Build Status](https://travis-ci.org/mkorpela/pabot.svg?branch=master)](https://travis-ci.org/mkorpela/pabot)
-[![Build status](https://ci.appveyor.com/api/projects/status/5g52rkflbtfw2anb/branch/master?svg=true)](https://ci.appveyor.com/project/mkorpela/pabot/branch/master)
-[![Coverage](https://coveralls.io/repos/mkorpela/pabot/badge.svg)](https://coveralls.io/r/mkorpela/pabot)
-
 
 <img src="https://raw.githubusercontent.com/mkorpela/pabot/master/pabot.png" width="100">
 
@@ -61,6 +57,7 @@ There are several ways you can help in improving this tool:
 
     pabot [--verbose|--testlevelsplit|--command .. --end-command|
            --processes num|--pabotlib|--pabotlibhost host|--pabotlibport port|
+           --shard i/n|
            --artifacts extensions|--artifactsinsubfolders|
            --resourcefile file|--argumentfile[num] file|--suitesfrom file] 
           [robot options] [path ...]
@@ -125,6 +122,13 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
 --suitesfrom   [FILEPATH TO OUTPUTXML]          
   Optionally read suites from output.xml file. Failed suites will run
   first and longer running ones will be executed before shorter ones.
+
+--shard [INDEX]/[TOTAL]
+  Optionally split execution into smaller pieces. This can
+  be used for distributing testing to multiple machines.
+
+--chunk
+  Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same setups and teardowns.
 
 Example usages:
 

@@ -22,7 +22,7 @@ import re
 
 from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
-from robot.conf import RebotSettings
+from robot.conf import RobotSettings
 from robot.errors import DataError
 from robot.result.executionresult import CombinedResult
 
@@ -245,7 +245,7 @@ def merge(
     assert len(result_files) > 0
     if invalid_xml_callback is None:
         invalid_xml_callback = lambda: 0
-    settings = RebotSettings(rebot_options)
+    settings = RobotSettings(rebot_options).get_rebot_settings()
     critical_tags = []
     non_critical_tags = []
     if ROBOT_VERSION < "4.0":
