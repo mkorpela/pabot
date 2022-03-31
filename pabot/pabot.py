@@ -1495,7 +1495,13 @@ def _wrap_with(color, message):
 
 
 def _is_output_coloring_supported():
-    return sys.stdout.isatty() and os.name in Color.SUPPORTED_OSES
+    return (sys.stdout.isatty() and os.name in Color.SUPPORTED_OSES) \
+           or _is_output_coloring_forced()
+
+
+def _is_output_coloring_forced():
+    pabot_force_color_env = os.environ.get('PABOT_FORCE_COLOR')
+    return pabot_force_color_env.lower() == 'true' or pabot_force_color_env == '1'
 
 
 def _start_message_writer():
