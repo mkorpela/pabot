@@ -203,12 +203,31 @@ After this come the suite names.
 
 With ```--ordering FILENAME``` you can have a list that controls order also. The syntax is same as .pabotsuitenames file syntax but does not contain 4 hash rows that are present in .pabotsuitenames. 
 
-There are four possibilities to influence the execution:
+There are five possibilities to influence the execution:
 
   * The order of suites can be changed.
   * If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row.
   * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
   * You can group suites and tests together to same executor process by adding line `{` before the group and `}`after.
+  * You can introduce dependencies using the word `#DEPENDS` after a test declaration. Please take care that in case of circular dependencies an exception will be thrown. An example could be.
+
+```
+--test robotTest.1 Scalar.Test With Environment Variables #DEPENDS robotTest.1 Scalar.Test with BuiltIn Variables of Robot Framework
+--test robotTest.1 Scalar.Test with BuiltIn Variables of Robot Framework
+--test robotTest.2 Lists.Test with Keywords and a list
+#WAIT
+--test robotTest.2 Lists.Test with a Keyword that accepts multiple arguments
+--test robotTest.2 Lists.Test with some Collections keywords
+--test robotTest.2 Lists.Test to access list entries
+--test robotTest.3 Dictionary.Test that accesses Dictionaries
+--test robotTest.3 Dictionary.Dictionaries for named arguments #DEPENDS robotTest.3 Dictionary.Test that accesses Dictionaries
+--test robotTest.1 Scalar.Test Case With Variables #DEPENDS robotTest.3 Dictionary.Test that accesses Dictionaries
+--test robotTest.1 Scalar.Test with Numbers #DEPENDS robotTest.1 Scalar.Test With Arguments and Return Values
+--test robotTest.1 Scalar.Test Case with Return Values #DEPENDS robotTest.1 Scalar.Test with Numbers
+--test robotTest.1 Scalar.Test With Arguments and Return Values
+--test robotTest.3 Dictionary.Test with Dictionaries as Arguments
+--test robotTest.3 Dictionary.Test with FOR loops and Dictionaries #DEPENDS robotTest.1 Scalar.Test Case with Return Values
+```
 
 ### Global variables
 

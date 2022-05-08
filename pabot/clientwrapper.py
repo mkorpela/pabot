@@ -1,7 +1,7 @@
 import sys
 
 try:
-    from .py3.client import make_order
+    from py3.client import make_order
 except SyntaxError:
 
     def make_order(*args):
