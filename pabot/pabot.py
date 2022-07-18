@@ -1215,6 +1215,7 @@ def _options_for_rebot(options, start_time_string, end_time_string):
         "extension",
         "listener",
         "loglevel",
+        "language",
         "maxassignlength",
         "maxerrorlines",
         "monitorcolors",
