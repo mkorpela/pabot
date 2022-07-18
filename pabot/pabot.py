@@ -1222,6 +1222,7 @@ def _options_for_rebot(options, start_time_string, end_time_string):
         "quiet",
         "randomize",
         "runemptysuite",
+        "rerunfailed",
         "skip",
         "skiponfailure",
         "skipteardownonexit",
