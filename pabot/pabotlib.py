@@ -33,7 +33,7 @@ from robot.libraries.BuiltIn import BuiltIn
 from robot.libraries.Remote import Remote
 from robot.running import TestLibrary
 
-from robotremoteserver import RobotRemoteServer
+from .robotremoteserver import RobotRemoteServer
 
 PABOT_LAST_LEVEL = "PABOTLASTLEVEL"
 PABOT_QUEUE_INDEX = "PABOTQUEUEINDEX"

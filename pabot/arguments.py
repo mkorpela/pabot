@@ -7,7 +7,7 @@ from robot.errors import DataError
 from robot.run import USAGE
 from robot.utils import ArgumentParser
 
-from execution_items import (
+from .execution_items import (
     DynamicTestItem,
     ExecutionItem,
     GroupEndItem,

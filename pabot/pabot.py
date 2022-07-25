@@ -107,10 +107,10 @@ from robot.run import USAGE
 from robot.running import TestSuiteBuilder
 from robot.utils import PY2, SYSTEM_ENCODING, ArgumentParser, is_unicode
 
-import pabotlib
-from arguments import parse_args, parse_execution_item_line
-from clientwrapper import make_order
-from execution_items import (
+from . import pabotlib
+from .arguments import parse_args, parse_execution_item_line
+from .clientwrapper import make_order
+from .execution_items import (
     DynamicSuiteItem,
     ExecutionItem,
     GroupEndItem,
@@ -120,10 +120,8 @@ from execution_items import (
     SuiteItem,
     SuiteItems,
     TestItem,
-    RunnableItem,
-    WaitItem,
 )
-from result_merger import merge
+from .result_merger import merge
 
 try:
     import queue  # type: ignore
