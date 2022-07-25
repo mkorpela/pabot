@@ -120,6 +120,7 @@ from .execution_items import (
     SuiteItem,
     SuiteItems,
     TestItem,
+    RunnableItem,
 )
 from .result_merger import merge
 
