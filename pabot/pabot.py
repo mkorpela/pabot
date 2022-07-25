@@ -16,7 +16,7 @@
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
 """A parallel executor for Robot Framework test cases.
-Version 2.5.3
+Version 2.5.4
 
 Supports all Robot Framework command line options and also following
 options (these must be before normal RF options):
@@ -1215,6 +1215,7 @@ def _options_for_rebot(options, start_time_string, end_time_string):
         "extension",
         "listener",
         "loglevel",
+        "language",
         "maxassignlength",
         "maxerrorlines",
         "monitorcolors",
@@ -1222,6 +1223,7 @@ def _options_for_rebot(options, start_time_string, end_time_string):
         "quiet",
         "randomize",
         "runemptysuite",
+        "rerunfailed",
         "skip",
         "skiponfailure",
         "skipteardownonexit",

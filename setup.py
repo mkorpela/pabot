@@ -9,13 +9,16 @@ address = name.lower().replace(" ", ".") + chr(64) + "gmail.com"
 
 setup(
     name="robotframework-pabot",
-    version="2.5.3",
+    version="2.5.4",
     description="Parallel test runner for Robot Framework",
     long_description="A parallel executor for Robot Framework tests."
     " With Pabot you can split one execution into multiple and save test execution time.",
     author=name,
     author_email=address,
     url="https://pabot.org",
+    project_urls={
+        "Source": "https://github.com/mkorpela/pabot",
+    },
     download_url="https://pypi.python.org/pypi/robotframework-pabot",
     packages=find_packages(),
     classifiers=[
