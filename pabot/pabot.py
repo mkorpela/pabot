@@ -1278,19 +1278,27 @@ def _parallel_execute(
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
     pool = ThreadPool(processes)
     results = [pool.map_async(execute_and_wait_with, items, 1)]
-    while not all(result.ready() for result in results):
+    delayed_result_append = 0
+    new_items = []
+    while not all(result.ready() for result in results) or delayed_result_append > 0:
         # keyboard interrupt is executed in main thread
         # and needs this loop to get time to get executed
         try:
             time.sleep(0.1)
         except IOError:
             keyboard_interrupt()
-        items = _get_dynamically_created_execution_items(
+        dynamic_items = _get_dynamically_created_execution_items(
             datasources, outs_dir, opts_for_run, pabot_args
         )
-        if items:
-            _construct_last_levels([items])
-            results.append(pool.map_async(execute_and_wait_with, items, 1))
+        if dynamic_items:
+            new_items += dynamic_items
+            # Because of last level construction, wait for more.
+            delayed_result_append = 3
+        delayed_result_append = max(0, delayed_result_append - 1)
+        if new_items and delayed_result_append == 0:
+            _construct_last_levels([new_items])
+            results.append(pool.map_async(execute_and_wait_with, new_items, 1))
+            new_items = []
     pool.close()
     signal.signal(signal.SIGINT, original_signal_handler)
 
