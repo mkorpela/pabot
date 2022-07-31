@@ -1,5 +1,8 @@
 import unittest
 import os
+
+from robot.errors import RobotError
+
 from pabot import pabotlib
 from robot.running.context import EXECUTION_CONTEXTS
 from robot.running.namespace import Namespace
@@ -190,6 +193,23 @@ class PabotLibTests(unittest.TestCase):
         vals2 = lib.acquire_value_set()
         self.assertNotEqual(vals, vals2)
         lib.release_value_set()
+
+    def test_ignore_execution_will_not_run_special_keywords_after(self):
+        lib = pabotlib.PabotLib()
+        try:
+            lib.ignore_execution()
+            self.fail("Should have thrown an exception")
+        except RobotError:
+            pass
+        self.assertEqual(self._runs, 0)
+        lib.run_on_last_process("keyword")
+        self.assertEqual(self._runs, 0)
+        lib.run_only_once("keyword")
+        self.assertEqual(self._runs, 0)
+        lib.run_setup_only_once("keyword")
+        self.assertEqual(self._runs, 0)
+        lib.run_teardown_only_once("keyword")
+        self.assertEqual(self._runs, 0)
 
     def test_acquire_and_release_valueset_with_tag(self):
         lib = pabotlib.PabotLib()
