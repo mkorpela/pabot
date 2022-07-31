@@ -1289,6 +1289,7 @@ def _parallel_execute(
             datasources, outs_dir, opts_for_run, pabot_args
         )
         if items:
+            _construct_last_levels([items])
             results.append(pool.map_async(execute_and_wait_with, items, 1))
     pool.close()
     signal.signal(signal.SIGINT, original_signal_handler)
@@ -1754,17 +1755,19 @@ def _construct_last_levels(all_items):
                     names.append(suite.name)
             else:
                 names.append(item.execution_item.name)
+    index = 0
     for items in all_items:
         for item in items:
             if isinstance(item.execution_item, SuiteItems):
                 for suite in item.execution_item.suites:
                     item.last_level = _find_ending_level(
-                        suite.name, names[item.index + 1 :]
+                        suite.name, names[index + 1:]
                     )
             else:
                 item.last_level = _find_ending_level(
-                    item.execution_item.name, names[item.index + 1 :]
+                    item.execution_item.name, names[index + 1:]
                 )
+            index += 1
 
 
 def _initialize_queue_index():
@@ -1815,16 +1818,6 @@ def _get_dynamically_created_execution_items(
         for item in items:
             _NOT_COMPLETED_INDEXES.append(item.index)
     return items
-
-
-def _add_dynamically_created_execution_items(
-    execution_items, datasources, outs_dir, opts_for_run, pabot_args
-):
-    items = _get_dynamically_created_execution_items(
-        datasources, outs_dir, opts_for_run, pabot_args
-    )
-    if items:
-        execution_items.insert(0, items)
 
 
 def main(args=None):
