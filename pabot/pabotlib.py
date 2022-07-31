@@ -342,7 +342,7 @@ class PabotLib(_PabotLib):
 
     def run_teardown_only_once(self, keyword, *args):
         """
-        Runs a keyword only once after all executions have gone throught this step in the last possible moment.
+        Runs a keyword only once after all executions have gone through this step in the last possible moment.
         [https://pabot.org/PabotLib.html?ref=log#run-teardown-only-once|Open online docs.]
         """
         last_level = BuiltIn().get_variable_value("${%s}" % PABOT_LAST_LEVEL)
