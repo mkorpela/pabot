@@ -299,8 +299,6 @@ def _try_execute_and_wait(
     if plib:
         _increase_completed(plib, my_index)
         is_ignored = _is_ignored(plib, caller_id)
-        if is_ignored and os.path.isdir(outs_dir):
-            shutil.rmtree(outs_dir)
     # Thread-safe list append
     _ALL_ELAPSED.append(elapsed)
     _result_to_stdout(
@@ -316,7 +314,8 @@ def _try_execute_and_wait(
         verbose,
         show_stdout_on_failure,
     )
-
+    if is_ignored and os.path.isdir(outs_dir):
+        shutil.rmtree(outs_dir)
 
 def _result_to_stdout(
     elapsed,
