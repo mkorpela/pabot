@@ -190,6 +190,7 @@ class PabotLib(_PabotLib):
     _pollingSeconds_SetupTeardown = 0.3
     _pollingSeconds = 0.1
     _polling_logging = True
+    _execution_ignored = False
 
     def __init__(self):
         _PabotLib.__init__(self)
@@ -298,6 +299,8 @@ class PabotLib(_PabotLib):
         an execution has gone through this step.
         [https://pabot.org/PabotLib.html?ref=log#run-setup-only-once|Open online docs.]
         """
+        if self._execution_ignored:
+            return
         lock_name = "pabot_setup_%s" % self._path
         try:
             self.acquire_lock(lock_name)
@@ -323,6 +326,8 @@ class PabotLib(_PabotLib):
         results in execution of [keyword, keyword 'x', keyword 5]
         [https://pabot.org/PabotLib.html?ref=log#run-only-once|Open online docs.]
         """
+        if self._execution_ignored:
+            return
         lock_name = "pabot_run_only_once_%s_%s" % (keyword, str(args))
         try:
             self.acquire_lock(lock_name)
@@ -345,6 +350,8 @@ class PabotLib(_PabotLib):
         Runs a keyword only once after all executions have gone through this step in the last possible moment.
         [https://pabot.org/PabotLib.html?ref=log#run-teardown-only-once|Open online docs.]
         """
+        if self._execution_ignored:
+            return
         last_level = BuiltIn().get_variable_value("${%s}" % PABOT_LAST_LEVEL)
         if last_level is None:
             BuiltIn().run_keyword(keyword, *args)
@@ -379,6 +386,8 @@ class PabotLib(_PabotLib):
         Runs a keyword only on last process used by pabot.
         [https://pabot.org/PabotLib.html?ref=log#run-on-last-process|Open online docs.]
         """
+        if self._execution_ignored:
+            return
         is_last = (
             int(
                 BuiltIn().get_variable_value("${%s}" % PABOT_LAST_EXECUTION_IN_POOL)
@@ -521,6 +530,7 @@ class PabotLib(_PabotLib):
         error = RobotError("Ignore")
         error.ROBOT_EXIT_ON_FAILURE = True
         error.ROBOT_CONTINUE_ON_FAILURE = False
+        self._execution_ignored = True
         raise error
 
     def release_value_set(self):
