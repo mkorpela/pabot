@@ -94,6 +94,7 @@ from contextlib import closing
 from glob import glob
 from io import BytesIO, StringIO
 from multiprocessing.pool import ThreadPool
+from natsort import natsorted
 
 from robot import __version__ as ROBOT_VERSION
 from robot import rebot
@@ -1445,7 +1446,7 @@ def _merge_one_run(
     output_path = os.path.abspath(
         os.path.join(options.get("outputdir", "."), outputfile)
     )
-    files = sorted(glob(os.path.join(_glob_escape(outs_dir), "**/*.xml")))
+    files = natsorted(glob(os.path.join(_glob_escape(outs_dir), "**/*.xml")))
     if not files:
         _write('WARN: No output files in "%s"' % outs_dir, Color.YELLOW)
         return ""
