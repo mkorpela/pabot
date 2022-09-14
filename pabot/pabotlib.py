@@ -145,6 +145,15 @@ class _PabotLib(object):
             raise AssertionError('No value for key "%s"' % key)
         return self._owner_to_values[caller_id][key]
 
+    def add_value_to_set(self, name, content):
+        if self._TAGS_KEY in content.keys():
+            content[self._TAGS_KEY] = [
+                t.strip() for t in content[self._TAGS_KEY].split(",")
+            ]
+        if self._TAGS_KEY not in content.keys():
+            content[self._TAGS_KEY] = []
+        self._values[name] = content
+
     def import_shared_library(self, name):  # type: (str) -> int
         if name in self._remote_libraries:
             return self._remote_libraries[name][0]

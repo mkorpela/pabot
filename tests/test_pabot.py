@@ -15,8 +15,8 @@ from robot import __version__ as ROBOT_VERSION
 
 s = execution_items.SuiteItem
 t = execution_items.TestItem
-datasource_hash = "3d13347143ee36859c56438361ba8bd8299fe6d1"
-file_hash = "1054c1d4fb850dcaccbd508aec1fb84a7abf52e8"
+datasource_hash = "8bd7e5d3de0bf878df17c338ce72a5ab27575050"
+file_hash = "19488a6a4a95f5ecb935ef87e07df9d10d81e3c0"
 
 
 class PabotTests(unittest.TestCase):
@@ -59,6 +59,7 @@ class PabotTests(unittest.TestCase):
             "Fixtures.Suite With Valueset Tags.Tachyon value set",
             "Fixtures.Suite With Valueset Tags.Common value set",
             "Fixtures.Suite With Valueset Tags.None existing",
+            "Fixtures.Suite With Valueset Tags.Add value to set",
             "Fixtures.Test Copy Artifacts.Suite 1.Links to screenshot directly in output_dir",
             "Fixtures.Test Copy Artifacts.Suite 1.Links to screenshots in subfolder",
             "Fixtures.Test Copy Artifacts.Suite 1.Links to other file in subfolder",
@@ -263,7 +264,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "97d170e1550eee4afc0af065b78cda302a97674c",
             "no-suites-from-option",
-            "92b04ad0ad478de47bab54833e707447290817c4",
+            "2543f14f62afd037bd3958bb719656fc315cbc9d",
             "--suite Fixtures",
         )
         with open(".pabotsuitenames", "r") as f:
@@ -442,7 +443,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "65f95c924ba97541f47949701c4e3c51192a5b43",
             "no-suites-from-option",
-            "2e3dd316145460f6bcf2f368332c0e1f1eaf25cb",
+            "2e667c32eb50b41dffd9f3d97a5c3f442b52a1ca",
             *self._all_with_tests
         )
         with pabot._open_pabotsuitenames("r") as f:
@@ -474,7 +475,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "65f95c924ba97541f47949701c4e3c51192a5b43",
             "no-suites-from-option",
-            "2e3dd316145460f6bcf2f368332c0e1f1eaf25cb",
+            "2e667c32eb50b41dffd9f3d97a5c3f442b52a1ca",
             *self._all_with_tests
         )
         with pabot._open_pabotsuitenames("r") as f:
@@ -518,7 +519,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "65f95c924ba97541f47949701c4e3c51192a5b43",
             "no-suites-from-option",
-            "c08124c3319cbb938d12ae5da81f83ab297f7c9f",
+            "9bfb1cffcc5fe8b0dfa2ee5a1587655d5da00f53",
             *all_with
         )
         with open(".pabotsuitenames", "r") as f:
@@ -560,7 +561,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "97d170e1550eee4afc0af065b78cda302a97674c",
             "no-suites-from-option",
-            "1218033c5ef2530a0b2e678730223f312bcfa4c6",
+            "7beb0f073adfba9b7c36db527e65b3bdb3d14001",
             *all_with
         )
         with open(".pabotsuitenames", "r") as f:
@@ -586,7 +587,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "97d170e1550eee4afc0af065b78cda302a97674c",
             "f57c1949d5137773e0b9f6ca34c439a27a22bcb0",
-            "a0998a6bbc82f98052f573873101dd9fb345b4df",
+            "03b4e1ff17f3a3e4a7f5c6a1b3c480956bbd83d5",
             "--suite Fixtures.Suite Second",
             "--suite Fixtures.Suite One",
             "--suite Fixtures.Suite Special",
@@ -623,7 +624,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "97d170e1550eee4afc0af065b78cda302a97674c",
             "f57c1949d5137773e0b9f6ca34c439a27a22bcb0",
-            "a0998a6bbc82f98052f573873101dd9fb345b4df",
+            "03b4e1ff17f3a3e4a7f5c6a1b3c480956bbd83d5",
             "--suite Fixtures.Suite Second",
             "--suite Fixtures.Suite One",
             "--suite Fixtures.Suite Special",
@@ -672,7 +673,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "97d170e1550eee4afc0af065b78cda302a97674c",
             "f57c1949d5137773e0b9f6ca34c439a27a22bcb0",
-            "3847234ae935c0dc8fc72cf3f0beefb81fac79bf",
+            "e33ce1259a999afd6c09c190c717d4d98bf6d5be",
             "--suite Fixtures.Suite Second",
             "--suite Fixtures.Suite One",
             "--suite Fixtures.Suite Special",
@@ -726,7 +727,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "97d170e1550eee4afc0af065b78cda302a97674c",
             "da39a3ee5e6b4b0d3255bfef95601890afd80709",
-            "379f38d6de75f524e8e26ca9b484f4bc1aff7f47",
+            "644c540a9c30544812b1f1170635d077806a2669",
             "--suite Fixtures.Suite Second",
             "--suite Fixtures.Suite One",
             "--suite Fixtures.Suite Special",
@@ -1100,7 +1101,7 @@ class PabotTests(unittest.TestCase):
                 pabot._now(),
                 pabot._get_suite_root_name([suite_names]),
             )
-            self.assertEqual(8, result_code)
+            self.assertEqual(10, result_code)
         finally:
             pabot._stop_remote_library(lib_process)
             shutil.rmtree(dtemp)
@@ -1143,7 +1144,7 @@ class PabotTests(unittest.TestCase):
                 pabot._now(),
                 pabot._get_suite_root_name([test_names]),
             )
-            self.assertEqual(10, result_code)
+            self.assertEqual(12, result_code)
         finally:
             pabot._stop_remote_library(lib_process)
             shutil.rmtree(dtemp)
