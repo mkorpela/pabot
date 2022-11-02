@@ -1345,7 +1345,7 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
                     if not os.path.isdir(dst_folder_path):
                         os.makedirs(dst_folder_path)
                 dst_file_name = "-".join([prefix, file_name])
-                shutil.copyfile(
+                shutil.copy2(
                     os.path.join(location, file_name),
                     os.path.join(dst_folder_path, dst_file_name),
                 )
