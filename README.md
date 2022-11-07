@@ -140,6 +140,12 @@ Example usages:
      pabot --pabotlib --pabotlibhost 192.168.1.111 --pabotlibport 8272 --processes 10 tests
      pabot --artifacts png,mp4,txt --artifactsinsubfolders directory_to_tests
 
+### Environment variable
+
+The following environment variable is used by Pabot :
+
+  * PABOT_FORCE_COLOR : if set to 'true' or '1', it will force colors in the stdout messages (usefull when integrated in a CI tool such as Gitlab).
+
 ### PabotLib
 
 pabot.PabotLib provides keywords that will help communication and data sharing between the executor processes.
