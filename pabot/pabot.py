@@ -16,7 +16,7 @@
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
 """A parallel executor for Robot Framework test cases.
-Version 2.5.3
+Version 2.8.0
 
 Supports all Robot Framework command line options and also following
 options (these must be before normal RF options):
@@ -94,6 +94,7 @@ from contextlib import closing
 from glob import glob
 from io import BytesIO, StringIO
 from multiprocessing.pool import ThreadPool
+from natsort import natsorted
 
 from robot import __version__ as ROBOT_VERSION
 from robot import rebot
@@ -120,6 +121,7 @@ from .execution_items import (
     SuiteItem,
     SuiteItems,
     TestItem,
+    RunnableItem,
 )
 from .result_merger import merge
 
@@ -299,8 +301,6 @@ def _try_execute_and_wait(
     if plib:
         _increase_completed(plib, my_index)
         is_ignored = _is_ignored(plib, caller_id)
-        if is_ignored and os.path.isdir(outs_dir):
-            shutil.rmtree(outs_dir)
     # Thread-safe list append
     _ALL_ELAPSED.append(elapsed)
     _result_to_stdout(
@@ -316,7 +316,8 @@ def _try_execute_and_wait(
         verbose,
         show_stdout_on_failure,
     )
-
+    if is_ignored and os.path.isdir(outs_dir):
+        shutil.rmtree(outs_dir)
 
 def _result_to_stdout(
     elapsed,
@@ -786,7 +787,7 @@ else:
         return open(".pabotsuitenames", mode, encoding="utf-8")
 
 
-def shard_suites(suite_names, pabot_args):
+def solve_shard_suites(suite_names, pabot_args):
     if pabot_args.get("shardcount", 1) <= 1:
         return suite_names
     if "shardindex" not in pabot_args:
@@ -895,24 +896,32 @@ def _regenerate(
         and "suitesfrom" in pabot_args
         and os.path.isfile(pabot_args["suitesfrom"])
     ):
-        suites = _suites_from_outputxml(pabot_args["suitesfrom"])
-        if file_h is None or file_h.dirs != h.dirs:
-            all_suites = generate_suite_names_with_builder(
-                outs_dir, datasources, options
-            )
-        else:
-            all_suites = [suite for suite in lines if suite]
-        suites = _preserve_order(all_suites, suites)
+        suites = _suites_from_file(file_h, h, pabot_args, outs_dir, datasources, options, lines)
     else:
-        suites = _levelsplit(
-            generate_suite_names_with_builder(outs_dir, datasources, options),
-            pabot_args,
-        )
-        suites = _preserve_order(suites, [suite for suite in lines if suite])
+        suites = _suites_from_wrong_or_empty_file(pabot_args, outs_dir, datasources, options, lines)
     if suites:
         store_suite_names(h, suites)
     assert all(isinstance(s, ExecutionItem) for s in suites)
     return suites
+
+
+def _suites_from_file(file_h, h, pabot_args, outs_dir, datasources, options, lines):
+    suites = _suites_from_outputxml(pabot_args["suitesfrom"])
+    if file_h is None or file_h.dirs != h.dirs:
+        all_suites = generate_suite_names_with_builder(
+            outs_dir, datasources, options
+        )
+    else:
+        all_suites = [suite for suite in lines if suite]
+    return _preserve_order(all_suites, suites)
+
+
+def _suites_from_wrong_or_empty_file(pabot_args, outs_dir, datasources, options, lines):
+    suites = _levelsplit(
+        generate_suite_names_with_builder(outs_dir, datasources, options),
+        pabot_args,
+    )
+    return _preserve_order(suites, [suite for suite in lines if suite])
 
 
 def _contains_suite_and_test(suites):
@@ -923,6 +932,8 @@ def _contains_suite_and_test(suites):
 
 def _preserve_order(new_items, old_items):
     assert all(isinstance(s, ExecutionItem) for s in new_items)
+    if not old_items:
+        return new_items
     assert all(isinstance(s, ExecutionItem) for s in old_items)
     old_contains_tests = any(isinstance(t, TestItem) for t in old_items)
     old_contains_suites = any(isinstance(s, SuiteItem) for s in old_items)
@@ -1110,7 +1121,7 @@ def generate_suite_names_with_builder(outs_dir, datasources, options):
     settings.rpa = builder.rpa
     suite.configure(**settings.suite_config)
     if settings.pre_run_modifiers:
-        _write.error = _write
+        _write.error = _write.warn = _write.info = _write.debug = _write.trace = _write
         suite.visit(
             ModelModifier(settings.pre_run_modifiers, settings.run_empty_suite, _write)
         )
@@ -1215,6 +1226,7 @@ def _options_for_rebot(options, start_time_string, end_time_string):
         "extension",
         "listener",
         "loglevel",
+        "language",
         "maxassignlength",
         "maxerrorlines",
         "monitorcolors",
@@ -1222,6 +1234,7 @@ def _options_for_rebot(options, start_time_string, end_time_string):
         "quiet",
         "randomize",
         "runemptysuite",
+        "rerunfailed",
         "skip",
         "skiponfailure",
         "skipteardownonexit",
@@ -1277,18 +1290,27 @@ def _parallel_execute(
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
     pool = ThreadPool(processes)
     results = [pool.map_async(execute_and_wait_with, items, 1)]
-    while not all(result.ready() for result in results):
+    delayed_result_append = 0
+    new_items = []
+    while not all(result.ready() for result in results) or delayed_result_append > 0:
         # keyboard interrupt is executed in main thread
         # and needs this loop to get time to get executed
         try:
             time.sleep(0.1)
         except IOError:
             keyboard_interrupt()
-        items = _get_dynamically_created_execution_items(
+        dynamic_items = _get_dynamically_created_execution_items(
             datasources, outs_dir, opts_for_run, pabot_args
         )
-        if items:
-            results.append(pool.map_async(execute_and_wait_with, items, 1))
+        if dynamic_items:
+            new_items += dynamic_items
+            # Because of last level construction, wait for more.
+            delayed_result_append = 3
+        delayed_result_append = max(0, delayed_result_append - 1)
+        if new_items and delayed_result_append == 0:
+            _construct_last_levels([new_items])
+            results.append(pool.map_async(execute_and_wait_with, new_items, 1))
+            new_items = []
     pool.close()
     signal.signal(signal.SIGINT, original_signal_handler)
 
@@ -1424,7 +1446,7 @@ def _merge_one_run(
     output_path = os.path.abspath(
         os.path.join(options.get("outputdir", "."), outputfile)
     )
-    files = sorted(glob(os.path.join(_glob_escape(outs_dir), "**/*.xml")))
+    files = natsorted(glob(os.path.join(_glob_escape(outs_dir), "**/*.xml")))
     if not files:
         _write('WARN: No output files in "%s"' % outs_dir, Color.YELLOW)
         return ""
@@ -1621,7 +1643,7 @@ class QueueItem(object):
 
 
 def _create_execution_items(
-    suite_names, datasources, outs_dir, options, opts_for_run, pabot_args
+    suite_groups, datasources, outs_dir, options, opts_for_run, pabot_args
 ):
     is_dry_run = (
         options.get("dryrun")
@@ -1630,11 +1652,11 @@ def _create_execution_items(
     )
     if is_dry_run:
         all_items = _create_execution_items_for_dry_run(
-            suite_names, datasources, outs_dir, opts_for_run, pabot_args
+            suite_groups, datasources, outs_dir, opts_for_run, pabot_args
         )
     else:
         all_items = _create_execution_items_for_run(
-            suite_names, datasources, outs_dir, options, opts_for_run, pabot_args
+            suite_groups, datasources, outs_dir, options, opts_for_run, pabot_args
         )
     _construct_index_and_completed_index(all_items)
     _construct_last_levels(all_items)
@@ -1651,12 +1673,12 @@ def _construct_index_and_completed_index(all_items):
 
 
 def _create_execution_items_for_run(
-    suite_names, datasources, outs_dir, options, opts_for_run, pabot_args
+    suite_groups, datasources, outs_dir, options, opts_for_run, pabot_args
 ):
     global _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     all_items = []  # type: List[List[QueueItem]]
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
-    for suite_group in suite_names:
+    for suite_group in suite_groups:
         # TODO: Fix this better
         if (
             options.get("randomize") in ["all", "suites"]
@@ -1690,13 +1712,13 @@ def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group):
 
 
 def _create_execution_items_for_dry_run(
-    suite_names, datasources, outs_dir, opts_for_run, pabot_args
+    suite_groups, datasources, outs_dir, opts_for_run, pabot_args
 ):
     global _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     all_items = []  # type: List[List[QueueItem]]
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
     processes_count = pabot_args["processes"]
-    for suite_group in suite_names:
+    for suite_group in suite_groups:
         items = _create_items(
             datasources, opts_for_run, outs_dir, pabot_args, suite_group
         )
@@ -1753,17 +1775,19 @@ def _construct_last_levels(all_items):
                     names.append(suite.name)
             else:
                 names.append(item.execution_item.name)
+    index = 0
     for items in all_items:
         for item in items:
             if isinstance(item.execution_item, SuiteItems):
                 for suite in item.execution_item.suites:
                     item.last_level = _find_ending_level(
-                        suite.name, names[item.index + 1 :]
+                        suite.name, names[index + 1:]
                     )
             else:
                 item.last_level = _find_ending_level(
-                    item.execution_item.name, names[item.index + 1 :]
+                    item.execution_item.name, names[index + 1:]
                 )
+            index += 1
 
 
 def _initialize_queue_index():
@@ -1816,16 +1840,6 @@ def _get_dynamically_created_execution_items(
     return items
 
 
-def _add_dynamically_created_execution_items(
-    execution_items, datasources, outs_dir, opts_for_run, pabot_args
-):
-    items = _get_dynamically_created_execution_items(
-        datasources, outs_dir, opts_for_run, pabot_args
-    )
-    if items:
-        execution_items.insert(0, items)
-
-
 def main(args=None, exit=True):
     global _PABOTLIBPROCESS
     args = args or sys.argv[1:]
@@ -1863,18 +1877,10 @@ def main(args=None, exit=True):
         if _pabotlib_in_use():
             _initialize_queue_index()
         outs_dir = _output_dir(options)
-        suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
-        suite_names = shard_suites(suite_names, pabot_args)
+        suite_groups = _group_suites(outs_dir, datasources, options, pabot_args)
         if pabot_args["verbose"]:
             _write("Suite names resolved in %s seconds" % str(time.time() - start_time))
-        ordering = pabot_args.get("ordering")
-        if ordering:
-            suite_names = _preserve_order(suite_names, ordering)
-        if pabot_args["chunk"]:
-            suite_names = _chunked_suite_names(suite_names, pabot_args["processes"])
-        else:
-            suite_names = _group_by_wait(_group_by_groups(suite_names))
-        if not suite_names or suite_names == [[]]:
+        if not suite_groups or suite_groups == [[]]:
             _write("No tests to execute")
             if not options.get("runemptysuite", False):
                 if exit:
@@ -1882,7 +1888,7 @@ def main(args=None, exit=True):
                 else:
                     return 252
         execution_items = _create_execution_items(
-            suite_names, datasources, outs_dir, options, opts_for_run, pabot_args
+            suite_groups, datasources, outs_dir, options, opts_for_run, pabot_args
         )
         while execution_items:
             items = execution_items.pop(0)
@@ -1899,7 +1905,7 @@ def main(args=None, exit=True):
             pabot_args,
             options,
             start_time_string,
-            _get_suite_root_name(suite_names),
+            _get_suite_root_name(suite_groups),
         )
         if exit:
             sys.exit(result_code if not _ABNORMAL_EXIT_HAPPENED else 252)
@@ -1928,6 +1934,17 @@ def main(args=None, exit=True):
         _stop_message_writer()
 
 
+def _group_suites(outs_dir, datasources, options, pabot_args):
+    suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
+    _verify_depends(suite_names)
+    shard_suites = solve_shard_suites(suite_names, pabot_args)
+    ordered_suites = _preserve_order(shard_suites, pabot_args.get("ordering"))
+    grouped_suites = _chunked_suite_names(ordered_suites, pabot_args["processes"]) if pabot_args["chunk"] \
+        else _group_by_wait(_group_by_groups(ordered_suites))
+    grouped_by_depend = _all_grouped_suites_by_depend(grouped_suites)
+    return grouped_by_depend
+
+
 def _chunked_suite_names(suite_names, processes):
     q, r = divmod(len(suite_names), processes)
     result = []
@@ -1942,6 +1959,49 @@ def _chunked_suite_names(suite_names, processes):
             grouped.add(item)
         result.append(grouped)
     return [result]
+
+
+def _verify_depends(suite_names):
+    runnable_suites = list(filter(lambda suite: isinstance(suite, RunnableItem), suite_names))
+    suites_with_depends = list(filter(lambda suite: suite.depends, runnable_suites))
+    suites_with_found_dependencies = list(
+        filter(lambda suite: any(runnable_suite.name == suite.depends for runnable_suite in runnable_suites),
+               suites_with_depends))
+    if suites_with_depends != suites_with_found_dependencies:
+        raise Exception("There are unmet dependencies using #DEPENDS")
+    suites_with_circular_dependencies = list(filter(lambda suite: suite.depends == suite.name, suites_with_depends))
+    if suites_with_circular_dependencies:
+        raise Exception("There are suites with circular dependencies using #DEPENDS")
+    grouped_suites = list(filter(lambda suite: isinstance(suite, GroupItem), suite_names))
+    if grouped_suites and suites_with_depends:
+        raise Exception("#DEPENDS and grouped suites are incompatible")
+
+
+def _group_by_depend(suite_names):
+    group_items = list(filter(lambda suite: isinstance(suite, GroupItem), suite_names))
+    runnable_suites = list(filter(lambda suite: isinstance(suite, RunnableItem), suite_names))
+    if group_items or not runnable_suites:
+        return [suite_names]
+    independent_tests = list(filter(lambda suite: not suite.depends, runnable_suites))
+    dependency_tree = [independent_tests]
+    while True:
+        dependent_tests = list(filter(lambda suite: suite.depends, runnable_suites))
+        dependent_on_last_stage = list(filter(
+            lambda suite: any(test_in_tier_before.name == suite.depends for test_in_tier_before in dependency_tree[-1]),
+            dependent_tests))
+        if not dependent_on_last_stage: break
+        dependency_tree += [dependent_on_last_stage]
+    flattened_dependency_tree = sum(dependency_tree, [])
+    if len(flattened_dependency_tree) != len(runnable_suites):
+        raise Exception("There are circular or unmet dependencies using #DEPENDS")
+    return dependency_tree
+
+
+def _all_grouped_suites_by_depend(grouped_suites):
+    grouped_by_depend = []
+    for group_suite in grouped_suites:
+        grouped_by_depend += _group_by_depend(group_suite)
+    return grouped_by_depend
 
 
 if __name__ == "__main__":

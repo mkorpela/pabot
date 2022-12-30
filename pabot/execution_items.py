@@ -97,14 +97,34 @@ class GroupItem(ExecutionItem):
             options[item.type].append(opts[item.type])
 
 
-class SuiteItem(ExecutionItem):
+class RunnableItem(ExecutionItem):
+    pass
+
+    depends = None  # type: str
+    depends_keyword = "#DEPENDS"
+
+    def set_name_and_depends(self, name):
+        line_name = name.encode("utf-8") if PY2 and is_unicode(name) else name
+        depends_begin_index = line_name.find(self.depends_keyword)
+        self.name = line_name if depends_begin_index == -1 else line_name[0:depends_begin_index].strip()
+        self.depends = line_name[depends_begin_index+len(self.depends_keyword):].strip() if depends_begin_index != -1 \
+            else None
+
+    def line(self):
+        # type: () -> str
+        line_without_depends = "--" + self.type + " " + self.name
+        return line_without_depends + " " + self.depends_keyword + " " + self.depends if self.depends \
+            else line_without_depends
+
+
+class SuiteItem(RunnableItem):
 
     type = "suite"
 
     def __init__(self, name, tests=None, suites=None, dynamictests=None):
         # type: (str, Optional[List[str]], Optional[List[str]], Optional[List[str]]) -> None
         assert (PY2 and isinstance(name, basestring)) or isinstance(name, str)
-        self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
+        self.set_name_and_depends(name)
         testslist = [
             TestItem(t) for t in tests or []
         ]  # type: List[Union[TestItem, DynamicTestItem]]
@@ -113,10 +133,6 @@ class SuiteItem(ExecutionItem):
         ]  # type: List[Union[TestItem, DynamicTestItem]]
         self.tests = testslist + dynamictestslist
         self.suites = [SuiteItem(s) for s in suites or []]
-
-    def line(self):
-        # type: () -> str
-        return "--suite " + self.name
 
     def difference(self, from_items):
         # type: (List[ExecutionItem]) -> List[ExecutionItem]
@@ -137,17 +153,13 @@ class SuiteItem(ExecutionItem):
         return []
 
 
-class TestItem(ExecutionItem):
+class TestItem(RunnableItem):
 
     type = "test"
 
     def __init__(self, name):
         # type: (str) -> None
-        self.name = name.encode("utf-8") if PY2 and is_unicode(name) else name
-
-    def line(self):
-        # type: () -> str
-        return "--test " + self.name
+        self.set_name_and_depends(name)
 
     if ROBOT_VERSION >= "3.1":
 

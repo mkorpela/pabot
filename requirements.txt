@@ -4,6 +4,7 @@ isort==5.9.3
 mccabe==0.6.1
 mypy==0.901
 mypy-extensions==0.4.3
+natsort==8.2.0
 pre-commit==2.14.1
 pytest==6.2.5
 robotframework==4.0.3
