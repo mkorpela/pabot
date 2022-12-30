@@ -106,15 +106,25 @@ class RunnableItem(ExecutionItem):
     def set_name_and_depends(self, name):
         line_name = name.encode("utf-8") if PY2 and is_unicode(name) else name
         depends_begin_index = line_name.find(self.depends_keyword)
-        self.name = line_name if depends_begin_index == -1 else line_name[0:depends_begin_index].strip()
-        self.depends = line_name[depends_begin_index+len(self.depends_keyword):].strip() if depends_begin_index != -1 \
+        self.name = (
+            line_name
+            if depends_begin_index == -1
+            else line_name[0:depends_begin_index].strip()
+        )
+        self.depends = (
+            line_name[depends_begin_index + len(self.depends_keyword) :].strip()
+            if depends_begin_index != -1
             else None
+        )
 
     def line(self):
         # type: () -> str
         line_without_depends = "--" + self.type + " " + self.name
-        return line_without_depends + " " + self.depends_keyword + " " + self.depends if self.depends \
+        return (
+            line_without_depends + " " + self.depends_keyword + " " + self.depends
+            if self.depends
             else line_without_depends
+        )
 
 
 class SuiteItem(RunnableItem):

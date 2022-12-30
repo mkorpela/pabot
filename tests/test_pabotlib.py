@@ -201,9 +201,7 @@ class PabotLibTests(unittest.TestCase):
         lib.add_value_to_set("MyValueSet1", my_value_set_1)
         lib.add_value_to_set("MyValueSet2", my_value_set_2)
         vals = lib.acquire_value_set("common")
-        self.assertIn(
-            vals, ["MyValueSet1", "MyValueSet2"]
-        )
+        self.assertIn(vals, ["MyValueSet1", "MyValueSet2"])
         lib.release_value_set()
         lib.acquire_value_set("valueset1")
         self.assertEquals("someVal1", lib.get_value_from_set("key"))

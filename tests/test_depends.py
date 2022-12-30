@@ -7,7 +7,7 @@ import unittest
 
 
 def _string_convert(byte_string):
-    legacy_python = (sys.version_info < (3, 0))
+    legacy_python = sys.version_info < (3, 0)
     return byte_string.decode() if legacy_python else byte_string
 
 
@@ -67,13 +67,14 @@ class DependsTest(unittest.TestCase):
         return process.communicate()
 
     def test_dependency_ok(self):
-        stdout, stderr = self._run_tests_with(self.test_file,
-                                              """
+        stdout, stderr = self._run_tests_with(
+            self.test_file,
+            """
         --test Test.The Test S1Test 01 #DEPENDS Test.The Test S1Test 02
         --test Test.The Test S1Test 02 #DEPENDS Test.The Test S1Test 08
         --test Test.The Test S1Test 08
         """,
-                                              )
+        )
         self.assertIn(self.passed, stdout, stderr)
         self.assertNotIn(self.failed, stdout, stderr)
         self.assertEqual(stdout.count(self.passed), 12)
@@ -87,42 +88,46 @@ class DependsTest(unittest.TestCase):
         self.assertTrue(test_02_index < test_01_index)
 
     def test_circular_dependency(self):
-        stdout, stderr = self._run_tests_with(self.test_file,
-                                              """
+        stdout, stderr = self._run_tests_with(
+            self.test_file,
+            """
         --test Test.The Test S1Test 01 #DEPENDS Test.The Test S1Test 02
         --test Test.The Test S1Test 02 #DEPENDS Test.The Test S1Test 01
         --test Test.The Test S1Test 08
         """,
-                                              )
+        )
         self.assertIn(b"circular or unmet dependencies", stderr)
 
     def test_unmet_dependency(self):
-        stdout, stderr = self._run_tests_with(self.test_file,
-                                              """
+        stdout, stderr = self._run_tests_with(
+            self.test_file,
+            """
         --test Test.The Test S1Test 01
         --test Test.The Test S1Test 02 #DEPENDS Test.The Test S1Test 23
         --test Test.The Test S1Test 08
         """,
-                                              )
+        )
         self.assertIn(b"circular or unmet dependencies", stderr)
 
     def test_same_reference(self):
-        stdout, stderr = self._run_tests_with(self.test_file,
-                                              """
+        stdout, stderr = self._run_tests_with(
+            self.test_file,
+            """
         --test Test.The Test S1Test 01
         --test Test.The Test S1Test 02 #DEPENDS Test.The Test S1Test 02
         --test Test.The Test S1Test 08
         """,
-                                              )
+        )
         self.assertIn(b"circular or unmet dependencies", stderr)
 
     def test_wait(self):
-        stdout, stderr = self._run_tests_with(self.test_file,
-                                              """
+        stdout, stderr = self._run_tests_with(
+            self.test_file,
+            """
         --test Test.The Test S1Test 01
         --test Test.The Test S1Test 02 #DEPENDS Test.The Test S1Test 08
         #WAIT
         --test Test.The Test S1Test 08
         """,
-                                              )
+        )
         self.assertIn(b"circular or unmet dependencies", stderr)

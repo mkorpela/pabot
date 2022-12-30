@@ -49,7 +49,7 @@ class PabotTests(unittest.TestCase):
             "Fixtures.Suite One.1.2 Test Case Two",
             "Fixtures.Suite One.1.3 Test Value Set",
             "Fixtures.Suite One.1.4 Testing arg file",
-            u"Fixtures.Suite Second.Testing Case One of Second with Scändic Chör",
+            "Fixtures.Suite Second.Testing Case One of Second with Scändic Chör",
             "Fixtures.Suite Second.Testing Case One and a half Of Second",
             "Fixtures.Suite Second.Testing Case Two of Second",
             "Fixtures.Suite Second.Testing 1",

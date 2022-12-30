@@ -86,5 +86,5 @@ class PabotTestlevelsplitOutputTaskOrderTest(unittest.TestCase):
                 "Test 10",
                 "Test 11",
             ],
-            test_names
+            test_names,
         )
