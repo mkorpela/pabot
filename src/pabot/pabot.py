@@ -16,7 +16,7 @@
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
 """A parallel executor for Robot Framework test cases.
-Version 2.9.0
+Version [PABOT_VERSION]
 
 Supports all Robot Framework command line options and also following
 options (these must be before normal RF options):
@@ -108,7 +108,7 @@ from robot.run import USAGE
 from robot.running import TestSuiteBuilder
 from robot.utils import PY2, SYSTEM_ENCODING, ArgumentParser, is_unicode
 
-from . import pabotlib
+from . import pabotlib, __version__ as PABOT_VERSION
 from .arguments import parse_args, parse_execution_item_line
 from .clientwrapper import make_order
 from .execution_items import (
@@ -1862,7 +1862,7 @@ def main_program(args):
         _start_message_writer()
         options, datasources, pabot_args, opts_for_run = parse_args(args)
         if pabot_args["help"]:
-            print(__doc__)
+            print(__doc__.replace("[PABOT_VERSION]", PABOT_VERSION))
             return 0
         if len(datasources) == 0:
             print("[ " + _wrap_with(Color.RED, "ERROR") + " ]: No datasources given.")
@@ -1901,7 +1901,7 @@ def main_program(args):
         )
         return result_code if not _ABNORMAL_EXIT_HAPPENED else 252
     except Information as i:
-        print(__doc__)
+        print(__doc__.replace("[PABOT_VERSION]", PABOT_VERSION))
         print(i.message)
     except DataError as err:
         print(err.message)
@@ -1912,7 +1912,7 @@ def main_program(args):
             "[ERROR] PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues",
             Color.RED,
         )
-        _write("Pabot: 2.9.0")
+        _write("Pabot: %s" % PABOT_VERSION)
         _write("Python: %s" % sys.version)
         _write("Robot Framework: %s" % ROBOT_VERSION)
         raise
