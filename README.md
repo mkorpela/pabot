@@ -229,6 +229,22 @@ There are five possibilities to influence the execution:
 --test robotTest.3 Dictionary.Test with FOR loops and Dictionaries #DEPENDS robotTest.1 Scalar.Test Case with Return Values
 ```
 
+### Programmatic use
+
+Library offers an endpoint `main_program` that will not call `sys.exit`. This can help in developing your own python program around pabot.
+
+```Python
+import sys
+from pabot.pabot import main_program
+
+def amazing_new_program():
+    print("Before calling pabot")
+    exit_code = main_program(['tests'])
+    print(f"After calling pabot (return code {exit_code})")
+    sys.exit(exit_code)
+
+```
+
 ### Global variables
 
 Pabot will insert following global variables to Robot Framework namespace. These are here to enable PabotLib functionality and for custom listeners etc. to get some information on the overall execution of pabot.
