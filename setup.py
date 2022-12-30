@@ -20,7 +20,6 @@ setup(
         "Source": "https://github.com/mkorpela/pabot",
     },
     download_url="https://pypi.python.org/pypi/robotframework-pabot",
-    packages=find_packages(),
     classifiers=[
         "Intended Audience :: Developers",
         "Natural Language :: English",
@@ -30,7 +29,6 @@ setup(
         "Development Status :: 5 - Production/Stable",
         "Framework :: Robot Framework",
     ],
-    entry_points={"console_scripts": ["pabot=pabot.pabot:main"]},
     license="Apache License, Version 2.0",
     install_requires=[
         "robotframework>=3.2",
@@ -38,5 +36,4 @@ setup(
         "natsort>=8.2.0",
     ],
     python_requires=">=3.6",
-    include_package_data=True,
 )
