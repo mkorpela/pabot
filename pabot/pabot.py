@@ -1912,6 +1912,7 @@ def main_program(args):
             "[ERROR] PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues",
             Color.RED,
         )
+        _write("Pabot: 2.9.0")
         _write("Python: %s" % sys.version)
         _write("Robot Framework: %s" % ROBOT_VERSION)
         raise
