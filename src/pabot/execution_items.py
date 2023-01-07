@@ -158,6 +158,20 @@ class SuiteItem(RunnableItem):
             return True
         return other.name.startswith(self.name + ".")
 
+    def __eq__(self, other):
+        if not isinstance(other, SuiteItem):
+            return False
+        if self.name == other.name:
+            return True
+        if other.name.endswith('.'+self.name):
+            return True
+        if self.name.endswith('.'+other.name):
+            return True
+        return False
+
+    def __hash__(self):
+        return RunnableItem.__hash__(self)
+
     def tags(self):
         # TODO Make this happen
         return []
