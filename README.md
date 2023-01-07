@@ -199,14 +199,15 @@ File is created during pabot execution if not already there.
 The file is a cache that pabot uses when re-executing same tests to speed up processing. 
 This file can be partially manually edited but easier option is to use ```--ordering FILENAME```.
 First 4 rows contain information that should not be edited - pabot will edit these when something changes.
-After this come the suite names. 
+After this come the suite names.
 
 With ```--ordering FILENAME``` you can have a list that controls order also. The syntax is same as .pabotsuitenames file syntax but does not contain 4 hash rows that are present in .pabotsuitenames. 
 
-There are five possibilities to influence the execution:
+There different possibilities to influence the execution:
 
   * The order of suites can be changed.
-  * If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row.
+  * If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row as a ```--suite``` option.
+  * If the base suite name is changing with robot option [```--name / -N```](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-the-name) you can also give partial suite name without the base suite.
   * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
   * You can group suites and tests together to same executor process by adding line `{` before the group and `}`after.
   * You can introduce dependencies using the word `#DEPENDS` after a test declaration. Please take care that in case of circular dependencies an exception will be thrown. An example could be.
