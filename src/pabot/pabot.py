@@ -28,7 +28,9 @@ options (these must be before normal RF options):
   RF script for situations where pybot is not used directly
 
 --processes [NUMBER OF PROCESSES]
-  How many parallel executors to use (default max of 2 and cpu count)
+  How many parallel executors to use (default max of 2 and cpu count).
+  Special option "all" will use as many processes as there are
+  executable suites or tests.
 
 --testlevelsplit
   Split execution on test level instead of default suite level.
@@ -1290,7 +1292,7 @@ def _parallel_execute(
     items, processes, datasources, outs_dir, opts_for_run, pabot_args
 ):
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
-    pool = ThreadPool(processes)
+    pool = ThreadPool(len(items) if processes is None else processes)
     results = [pool.map_async(execute_and_wait_with, items, 1)]
     delayed_result_append = 0
     new_items = []

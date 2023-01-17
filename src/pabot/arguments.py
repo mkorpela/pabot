@@ -114,7 +114,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
             args = args[end_index + 1 :]
             continue
         if args[0] == "--processes":
-            pabot_args["processes"] = int(args[1])
+            pabot_args["processes"] = int(args[1]) if args[1] != 'all' else None
             args = args[2:]
             continue
         if args[0] == "--verbose":

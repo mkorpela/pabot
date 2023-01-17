@@ -79,7 +79,9 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   RF script for situations where robot is not used directly
 
 --processes   [NUMBER OF PROCESSES]          
-  How many parallel executors to use (default max of 2 and cpu count)
+  How many parallel executors to use (default max of 2 and cpu count).
+  Special option "all" will use as many processes as there are
+  executable suites or tests.
 
 --pabotlib          
   Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
