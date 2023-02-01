@@ -296,7 +296,7 @@ def _try_execute_and_wait(
         with open(os.path.join(outs_dir, cmd[0] + "_stdout.out"), "w") as stdout:
             with open(os.path.join(outs_dir, cmd[0] + "_stderr.out"), "w") as stderr:
                 process, (rc, elapsed) = _run(
-                    cmd, stderr, stdout, item_name, verbose, pool_id, my_index
+                    cmd, stderr, stdout, item_name, verbose, pool_id, my_index, outs_dir
                 )
     except:
         _write(traceback.format_exc())
@@ -469,15 +469,19 @@ def _increase_completed(plib, my_index):
             )
 
 
-def _run(command, stderr, stdout, item_name, verbose, pool_id, item_index):
-    # type: (List[str], IO[Any], IO[Any], str, bool, int, int) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
+def _run(command, stderr, stdout, item_name, verbose, pool_id, item_index, outs_dir):
+    # type: (List[str], IO[Any], IO[Any], str, bool, int, int, str) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
     timestamp = datetime.datetime.now()
     cmd = " ".join(command)
     if PY2:
         cmd = cmd.decode("utf-8").encode(SYSTEM_ENCODING)
     # avoid hitting https://bugs.python.org/issue10394
     with POPEN_LOCK:
-        process = subprocess.Popen(cmd, shell=True, stderr=stderr, stdout=stdout)
+        my_env = os.environ.copy()
+        syslog_file = my_env.get('ROBOT_SYSLOG_FILE', None)
+        if syslog_file:
+            my_env['ROBOT_SYSLOG_FILE'] = os.path.join(outs_dir, os.path.basename(syslog_file))
+        process = subprocess.Popen(cmd, shell=True, stderr=stderr, stdout=stdout, env=my_env)
     if verbose:
         _write_with_id(
             process,
