@@ -13,7 +13,7 @@ class SharedLibrary(object):
 
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
-    def __init__(self, name):
+    def __init__(self, name, args=None):
         """
         Import a library so that the library instance is shared between executions.
         [https://pabot.org/PabotLib.html?ref=log#import-shared-library|Open online docs.]
@@ -24,14 +24,14 @@ class SharedLibrary(object):
             logger.debug(
                 "Not currently running pabot. Importing library for this process."
             )
-            self._lib = RemoteLibraryFactory(TestLibrary(name).get_instance())
+            self._lib = RemoteLibraryFactory(TestLibrary(name, args=args).get_instance())
             return
         uri = BuiltIn().get_variable_value("${PABOTLIBURI}")
         logger.debug("PabotLib URI %r" % uri)
         remotelib = Remote(uri) if uri else None
         if remotelib:
             try:
-                port = remotelib.run_keyword("import_shared_library", [name], {})
+                port = remotelib.run_keyword("import_shared_library", [name], {"args": args})
             except RuntimeError:
                 logger.error("No connection - is pabot called with --pabotlib option?")
                 raise
