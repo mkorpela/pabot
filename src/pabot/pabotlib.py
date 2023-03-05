@@ -26,7 +26,7 @@ except:
 
 import threading
 import time
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
@@ -154,10 +154,10 @@ class _PabotLib(object):
             content[self._TAGS_KEY] = []
         self._values[name] = content
 
-    def import_shared_library(self, name):  # type: (str) -> int
+    def import_shared_library(self, name, args=None):  # type: (str, Iterable[Any]|None) -> int
         if name in self._remote_libraries:
             return self._remote_libraries[name][0]
-        imported = TestLibrary(name)
+        imported = TestLibrary(name, args=args)
         server = RobotRemoteServer(
             imported.get_instance(), port=0, serve=False, allow_stop=True
         )
