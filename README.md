@@ -57,6 +57,7 @@ There are several ways you can help in improving this tool:
 
     pabot [--verbose|--testlevelsplit|--command .. --end-command|
            --processes num|--pabotlib|--pabotlibhost host|--pabotlibport port|
+           --processtimeout num|
            --shard i/n|
            --artifacts extensions|--artifactsinsubfolders|
            --resourcefile file|--argumentfile[num] file|--suitesfrom file] 
@@ -99,6 +100,9 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
 --pabotlibport   [PORT]          
   Port number of the PabotLib remote server (default is 8270)
   See --pabotlibhost for more information
+
+--processtimeout   [TIMEOUT]          
+  Maximum time in seconds to wait for a process before killing it. If not set, there's no timeout.
 
 --resourcefile   [FILEPATH]          
   Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with pabotlib option. Resource file syntax is same as Windows ini files. Where a section is a shared set of variables.
