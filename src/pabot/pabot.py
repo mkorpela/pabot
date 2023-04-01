@@ -54,6 +54,9 @@ options (these must be before normal RF options):
 --pabotlibport [PORT]
   Port number of the PabotLib remote server (default is 8270)
 
+--processtimeout [TIMEOUT]
+  Maximum time in seconds to wait for a process before killing it. If not set, there's no timeout.
+
 --ordering [FILE PATH]
   Optionally give execution order from a file.
 
