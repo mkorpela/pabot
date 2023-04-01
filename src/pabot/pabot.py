@@ -229,6 +229,7 @@ def execute_and_wait_with(item):
                 caller_id,
                 item.index,
                 item.execution_item.type != "test",
+                process_timeout=item.timeout
             )
         outputxml_preprocessing(
             item.options, outs_dir, name, item.verbose, _make_id(), caller_id
@@ -286,8 +287,9 @@ def _try_execute_and_wait(
     caller_id,
     my_index=-1,
     show_stdout_on_failure=False,
+    process_timeout=None
 ):
-    # type: (List[str], str, str, bool, int, str, int, bool) -> None
+    # type: (List[str], str, str, bool, int, str, int, bool, Optional[int]) -> None
     plib = None
     is_ignored = False
     if _pabotlib_in_use():
@@ -296,7 +298,7 @@ def _try_execute_and_wait(
         with open(os.path.join(outs_dir, cmd[0] + "_stdout.out"), "w") as stdout:
             with open(os.path.join(outs_dir, cmd[0] + "_stderr.out"), "w") as stderr:
                 process, (rc, elapsed) = _run(
-                    cmd, stderr, stdout, item_name, verbose, pool_id, my_index, outs_dir
+                    cmd, stderr, stdout, item_name, verbose, pool_id, my_index, outs_dir, process_timeout
                 )
     except:
         _write(traceback.format_exc())
@@ -469,8 +471,8 @@ def _increase_completed(plib, my_index):
             )
 
 
-def _run(command, stderr, stdout, item_name, verbose, pool_id, item_index, outs_dir):
-    # type: (List[str], IO[Any], IO[Any], str, bool, int, int, str) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
+def _run(command, stderr, stdout, item_name, verbose, pool_id, item_index, outs_dir, process_timeout):
+    # type: (List[str], IO[Any], IO[Any], str, bool, int, int, str, Optional[int]) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
     timestamp = datetime.datetime.now()
     cmd = " ".join(command)
     if PY2:
@@ -498,10 +500,10 @@ def _run(command, stderr, stdout, item_name, verbose, pool_id, item_index, outs_
             "EXECUTING %s" % item_name,
             timestamp=timestamp,
         )
-    return process, _wait_for_return_code(process, item_name, pool_id, item_index)
+    return process, _wait_for_return_code(process, item_name, pool_id, item_index, process_timeout)
 
 
-def _wait_for_return_code(process, item_name, pool_id, item_index):
+def _wait_for_return_code(process, item_name, pool_id, item_index, process_timeout):
     rc = None
     elapsed = 0
     ping_time = ping_interval = 150
@@ -509,6 +511,19 @@ def _wait_for_return_code(process, item_name, pool_id, item_index):
         rc = process.poll()
         time.sleep(0.1)
         elapsed += 1
+
+        if process_timeout and elapsed / 10.0 >= process_timeout:
+            process.terminate()
+            process.wait()
+            rc = -1  # Set a return code indicating that the process was killed due to timeout
+            _write_with_id(
+                process,
+                pool_id,
+                item_index,
+                "Process %s killed due to exceeding the maximum timeout of %s seconds" % (item_name, process_timeout),
+            )
+            break
+
         if elapsed == ping_time:
             ping_interval += 50
             ping_time += ping_interval
@@ -518,7 +533,9 @@ def _wait_for_return_code(process, item_name, pool_id, item_index):
                 item_index,
                 "still running %s after %s seconds" % (item_name, elapsed / 10.0),
             )
+
     return rc, elapsed / 10.0
+
 
 
 def _read_file(file_handle):
@@ -1617,8 +1634,9 @@ class QueueItem(object):
         argfile,
         hive=None,
         processes=0,
+        timeout=None
     ):
-        # type: (List[str], str, Dict[str, object], ExecutionItem, List[str], bool, Tuple[str, Optional[str]], Optional[str], int) -> None
+        # type: (List[str], str, Dict[str, object], ExecutionItem, List[str], bool, Tuple[str, Optional[str]], Optional[str], int, Optional[int]) -> None
         self.datasources = datasources
         self.outs_dir = (
             outs_dir.encode("utf-8") if PY2 and is_unicode(outs_dir) else outs_dir
@@ -1636,6 +1654,7 @@ class QueueItem(object):
         self.last_level = None
         self.hive = hive
         self.processes = processes
+        self.timeout = timeout
 
     @property
     def index(self):
@@ -1713,6 +1732,7 @@ def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group):
             argfile,
             pabot_args.get("hive"),
             pabot_args["processes"],
+            pabot_args["processtimeout"]
         )
         for suite in suite_group
         for argfile in pabot_args["argumentfiles"] or [("", None)]
@@ -1757,6 +1777,7 @@ def _chunk_items(items, chunk_size):
             base_item.verbose,
             (base_item.argfile_index, base_item.argfile),
             processes=base_item.processes,
+            timeout=base_item.timeout
         )
         yield chunked_item
 
@@ -1836,6 +1857,7 @@ def _get_dynamically_created_execution_items(
             ("", None),
             pabot_args.get("hive"),
             pabot_args["processes"],
+            pabot_args["processtimeout"]
         )
         for suite in suite_group
     ]

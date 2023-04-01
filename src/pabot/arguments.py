@@ -72,6 +72,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "pabotlibhost": "127.0.0.1",
         "pabotlibport": 8270,
         "processes": _processes_count(),
+        "processtimeout": None,
         "artifacts": ["png"],
         "artifactsinsubfolders": False,
         "shardindex": 0,
@@ -93,6 +94,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                 "pabotlib",
                 "pabotlibhost",
                 "pabotlibport",
+                "processtimeout",
                 "ordering",
                 "suitesfrom",
                 "artifacts",
@@ -147,6 +149,10 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
             continue
         if args[0] == "--pabotlibport":
             pabot_args["pabotlibport"] = int(args[1])
+            args = args[2:]
+            continue
+        if args[0] == "--processtimeout":
+            pabot_args["processtimeout"] = int(args[1])
             args = args[2:]
             continue
         if args[0] == "--suitesfrom":
