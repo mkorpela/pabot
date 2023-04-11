@@ -72,6 +72,8 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "pabotlibhost": "127.0.0.1",
         "pabotlibport": 8270,
         "processes": _processes_count(),
+        "tags": None,
+        "runnonespecifiedtags": False,
         "processtimeout": None,
         "artifacts": ["png"],
         "artifactsinsubfolders": False,
@@ -88,6 +90,8 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                 "hive",
                 "command",
                 "processes",
+                "tags",
+                "runnonespecifiedtags",
                 "verbose",
                 "resourcefile",
                 "testlevelsplit",
@@ -118,6 +122,14 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         if args[0] == "--processes":
             pabot_args["processes"] = int(args[1]) if args[1] != 'all' else None
             args = args[2:]
+            continue
+        if args[0] == "--tags":
+            pabot_args["tags"] = args[1].split(',')
+            args = args[2:]
+            continue
+        if args[0] == "--runnonespecifiedtags":
+            pabot_args["runnonespecifiedtags"] = True
+            args = args[1:]
             continue
         if args[0] == "--verbose":
             pabot_args["verbose"] = True

@@ -57,7 +57,7 @@ There are several ways you can help in improving this tool:
 
     pabot [--verbose|--testlevelsplit|--command .. --end-command|
            --processes num|--pabotlib|--pabotlibhost host|--pabotlibport port|
-           --processtimeout num|
+           --processtimeout num|--tags tags| --runnonespecifiedtags
            --shard i/n|
            --artifacts extensions|--artifactsinsubfolders|
            --resourcefile file|--argumentfile[num] file|--suitesfrom file] 
@@ -83,6 +83,13 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   How many parallel executors to use (default max of 2 and cpu count).
   Special option "all" will use as many processes as there are
   executable suites or tests.
+
+--tags   [TAGS SEPARATED BY COMMA]          
+  Divides the processes by tag. 
+  If used with --processes option, will ignore the number of processes and create a process for each tag.
+
+--runnonespecifiedtags          
+  If --tags was used, will create a process to run all tests without the especified tags
 
 --pabotlib          
   Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
@@ -145,6 +152,7 @@ Example usages:
      pabot --pabotlibhost 192.168.1.123 --pabotlibport 8271 --processes 10 tests
      pabot --pabotlib --pabotlibhost 192.168.1.111 --pabotlibport 8272 --processes 10 tests
      pabot --artifacts png,mp4,txt --artifactsinsubfolders directory_to_tests
+     pabot --tags tag1,tag2,tag3 --runnonespecifiedtags tests 
 
 ### PabotLib
 

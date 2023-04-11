@@ -40,7 +40,8 @@ OR clone this repository and run:
 ## Параметры командной строки
 
     pabot [--verbose|--testlevelsplit|--command .. --end-command|
-           --processes num|--pabotlib|--pabotlibhost host|--pabotlibport port|
+           --processes num|--tags tags|--runnonespecifiedtags|--pabotlib|
+           --pabotlibhost host|--pabotlibport port|
            --artifacts extensions|--artifactsinsubfolders|
            --resourcefile file|--argumentfile[num] file|--suitesfrom file] 
           [robot options] [path ...]
@@ -64,6 +65,13 @@ OR clone this repository and run:
 
 --processes   [NUMBER OF PROCESSES]          
   Сколько параллельных исполнителей использовать (по умолчанию максимум 2 и количество процессоров).
+
+--tags  [TAGS SEPARATED BY COMMA]  
+   Разделяет процессы по тегам.
+   Если используется с параметром --processes, количество процессов будет игнорироваться, и для каждого тега будет создан процесс.
+
+--runnonespecifiedtags
+   Если был использован параметр --tags, будет создан процесс для запуска всех тестов без указанных тегов.
 
 --pabotlib          
   Запустите PabotLib удаленный сервер. Это позволяет блокировать и распределять ресурсы между параллельными выполнениями теста.
@@ -116,7 +124,7 @@ Example usages:
      pabot --pabotlibhost 192.168.1.123 --pabotlibport 8271 --processes 10 tests
      pabot --pabotlib --pabotlibhost 192.168.1.111 --pabotlibport 8272 --processes 10 tests
      pabot --artifacts png,mp4,txt --artifactsinsubfolders directory_to_tests
-
+     pabot --tags tag1,tag2,tag3 --runnonespecifiedtags tests 
 ### PabotLib
 
 pabot.PabotLib предоставляет ключевые слова, которые помогут коммуникации и обмену данными между процессами исполнителя.

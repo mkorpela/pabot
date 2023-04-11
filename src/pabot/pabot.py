@@ -32,6 +32,13 @@ options (these must be before normal RF options):
   Special option "all" will use as many processes as there are
   executable suites or tests.
 
+--tags   [TAGS SEPARATED BY COMMA]          
+  Divides the processes by tag. 
+  If not used with --processes option, will create a process for each tag.
+
+--runnonespecifiedtags          
+  If --tags was used, will create a process to run all tests without the especified tags
+
 --testlevelsplit
   Split execution on test level instead of default suite level.
   If .pabotsuitenames contains both tests and suites then this
@@ -190,6 +197,30 @@ def _mapOptionalQuote(command_args):
         for arg in command_args
     ]
 
+def execute_tests(item, cmd, outs_dir, name, caller_id):
+    if item.hive:
+            _hived_execute(
+                item.hive,
+                cmd,
+                outs_dir,
+                name,
+                item.verbose,
+                _make_id(),
+                caller_id,
+                item.index,
+            )
+    else:
+        _try_execute_and_wait(
+            cmd,
+            outs_dir,
+            name,
+            item.verbose,
+            _make_id(),
+            caller_id,
+            item.index,
+            item.execution_item.type != "test",
+            process_timeout=item.timeout
+        )
 
 def execute_and_wait_with(item):
     # type: ('QueueItem') -> None
@@ -208,32 +239,25 @@ def execute_and_wait_with(item):
         name = item.display_name
         outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
         os.makedirs(outs_dir)
-        cmd = _create_command_for_execution(
-            caller_id, datasources, is_last, item, outs_dir
-        )
-        if item.hive:
-            _hived_execute(
-                item.hive,
-                cmd,
-                outs_dir,
-                name,
-                item.verbose,
-                _make_id(),
-                caller_id,
-                item.index,
-            )
+        if item.tags:
+            for tag in item.tags:
+                item.tag = tag
+                cmd = _create_command_for_execution(
+                    caller_id, datasources, is_last, item, outs_dir
+                )
+                execute_tests(item, cmd, outs_dir, name, caller_id)
+            if item.runnonespecifiedtags:
+                item.tag = None
+                item.tagsToExclude = ','.join(item.tags)
+                cmd = _create_command_for_execution(
+                    caller_id, datasources, is_last, item, outs_dir
+                )
+                execute_tests(item, cmd, outs_dir, name, caller_id)
         else:
-            _try_execute_and_wait(
-                cmd,
-                outs_dir,
-                name,
-                item.verbose,
-                _make_id(),
-                caller_id,
-                item.index,
-                item.execution_item.type != "test",
-                process_timeout=item.timeout
+            cmd = _create_command_for_execution(
+                caller_id, datasources, is_last, item, outs_dir
             )
+            execute_tests(item, cmd, outs_dir, name, caller_id)
         outputxml_preprocessing(
             item.options, outs_dir, name, item.verbose, _make_id(), caller_id
         )
@@ -257,6 +281,8 @@ def _create_command_for_execution(caller_id, datasources, is_last, item, outs_di
             item.index,
             item.last_level,
             item.processes,
+            item.tag,
+            item.tagsToExclude
         )
         + datasources
     )
@@ -598,6 +624,8 @@ def _options_for_executor(
     queueIndex,
     last_level,
     processes,
+    tag,
+    tagsToExclude
 ):
     options = options.copy()
     options["log"] = "NONE"
@@ -610,6 +638,10 @@ def _options_for_executor(
     options["variable"] = options.get("variable", [])[:]
     options["variable"].append("CALLER_ID:%s" % caller_id)
     pabotLibURIVar = "PABOTLIBURI:%s" % _PABOTLIBURI
+    if tag:
+        options["include"] = tag
+    if tagsToExclude:
+        options["exclude"] = tagsToExclude
     # Prevent multiple appending of PABOTLIBURI variable setting
     if pabotLibURIVar not in options["variable"]:
         options["variable"].append(pabotLibURIVar)
@@ -1316,6 +1348,10 @@ def _parallel_execute(
     items, processes, datasources, outs_dir, opts_for_run, pabot_args
 ):
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
+    if pabot_args["tags"]:
+        processes = len(pabot_args["tags"])
+        if pabot_args["runnonespecifiedtags"]:
+            processes = processes+1
     pool = ThreadPool(len(items) if processes is None else processes)
     results = [pool.map_async(execute_and_wait_with, items, 1)]
     delayed_result_append = 0
@@ -1637,7 +1673,9 @@ class QueueItem(object):
         argfile,
         hive=None,
         processes=0,
-        timeout=None
+        timeout=None,
+        tags=None,
+        runnonespecifiedtags= False
     ):
         # type: (List[str], str, Dict[str, object], ExecutionItem, List[str], bool, Tuple[str, Optional[str]], Optional[str], int, Optional[int]) -> None
         self.datasources = datasources
@@ -1658,6 +1696,9 @@ class QueueItem(object):
         self.hive = hive
         self.processes = processes
         self.timeout = timeout
+        self.tags = tags
+        self.runnonespecifiedtags = runnonespecifiedtags
+        self.tagsToExclude = None
 
     @property
     def index(self):
@@ -1735,7 +1776,9 @@ def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group):
             argfile,
             pabot_args.get("hive"),
             pabot_args["processes"],
-            pabot_args["processtimeout"]
+            pabot_args["processtimeout"],
+            pabot_args["tags"],
+            pabot_args["runnonespecifiedtags"]
         )
         for suite in suite_group
         for argfile in pabot_args["argumentfiles"] or [("", None)]

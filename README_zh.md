@@ -58,6 +58,13 @@
 --processes   [进程数]          
   要使用多少个并行执行程序（默认最大值为2和cpu计数）
 
+--tags [逗号分隔的标签]
+   按标签划分进程。
+   如果与 --processes 选项一起使用，将忽略进程数并为每个标记创建一个进程。
+
+--runnonespecifiedtags
+   如果使用了 --tags，将创建一个进程来运行所有没有指定标签的测试
+   
 --pabotlib          
   启动PabotLib远程服务器。 这样可以在并行测试执行之间进行锁定和资源分配。
 
@@ -96,7 +103,7 @@
      pabot --processes 10 tests
      pabot --pabotlibhost 192.168.1.123 --pabotlibport 8271 --processes 10 tests
      pabot --pabotlib --pabotlibhost 192.168.1.111 --pabotlibport 8272 --processes 10 tests
-
+     pabot --tags tag1,tag2,tag3 --runnonespecifiedtags tests 
 ### PabotLib
 
 pabot.PabotLib提供的关键字有助于执行程序进程之间的通信和数据共享。
