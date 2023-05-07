@@ -1258,6 +1258,7 @@ def _options_for_rebot(options, start_time_string, end_time_string):
         "maxassignlength",
         "maxerrorlines",
         "monitorcolors",
+        "parser",
         "prerunmodifier",
         "quiet",
         "randomize",

@@ -1045,6 +1045,7 @@ class PabotTests(unittest.TestCase):
                 "prerunmodifier",
                 "monitorcolors",
                 "language",
+                "parser",
             ]:
                 self.assertFalse(key in options, "%s should not be in options" % key)
             else:
