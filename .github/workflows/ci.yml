@@ -9,6 +9,12 @@ jobs:
     strategy:
       matrix:
         python: [3.8, 3.9, 3.11]
+        robotframework:
+          - "3.2.0"
+          - "4.1.0"
+          - "5.0.0"
+          - "6.0.0"
+          - "6.1.0"
 
     steps:
       - uses: actions/checkout@v4
@@ -20,6 +26,7 @@ jobs:
         run: |
          pip install tox
          pip install -r ./requirements.txt
+         pip install "robotframework~=${{ matrix.robotframework }}"
 
       - name: Run Tox
         # Run tox using the version of Python in `PATH`
