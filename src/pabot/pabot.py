@@ -114,7 +114,11 @@ from robot.running import TestSuiteBuilder
 from robot.utils import PY2, SYSTEM_ENCODING, ArgumentParser, is_unicode
 
 from . import pabotlib, __version__ as PABOT_VERSION
-from .arguments import parse_args, parse_execution_item_line
+from .arguments import (
+    parse_args,
+    parse_execution_item_line,
+    _filter_argument_parser_options,
+)
 from .clientwrapper import make_order
 from .execution_items import (
     DynamicSuiteItem,
@@ -638,9 +642,11 @@ def _options_for_executor(
 def _modify_options_for_argfile_use(argfile, options, root_name):
     argfile_opts, _ = ArgumentParser(
         USAGE,
-        auto_pythonpath=False,
-        auto_argumentfile=True,
-        env_options="ROBOT_OPTIONS",
+        **_filter_argument_parser_options(
+            auto_pythonpath=False,
+            auto_argumentfile=True,
+            env_options="ROBOT_OPTIONS",
+        ),
     ).parse_args(["--argumentfile", argfile])
     old_name = options.get("name", root_name)
     if argfile_opts["name"]:
@@ -1142,9 +1148,16 @@ def generate_suite_names_with_builder(outs_dir, datasources, options):
     if "pythonpath" in opts:
         del opts["pythonpath"]
     settings = RobotSettings(opts)
-    builder = TestSuiteBuilder(
-        settings["SuiteNames"], settings.extension, rpa=settings.rpa
-    )
+
+    # Note: first argument (included_suites) is deprecated from RobotFramework 6.1
+    if ROBOT_VERSION < "6.1":
+        builder = TestSuiteBuilder(
+            settings["SuiteNames"], settings.extension, rpa=settings.rpa
+        )
+    else:
+        builder = TestSuiteBuilder(
+            included_extensions=settings.extension, rpa=settings.rpa
+        )
     suite = builder.build(*datasources)
     settings.rpa = builder.rpa
     suite.configure(**settings.suite_config)
