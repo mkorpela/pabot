@@ -32,6 +32,7 @@ from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from robot.libraries.Remote import Remote
 from robot.utils.importer import Importer
+from robot.libraries import STDLIBS
 
 from .robotremoteserver import RobotRemoteServer
 
@@ -157,9 +158,13 @@ class _PabotLib(object):
     def import_shared_library(self, name, args=None):  # type: (str, Iterable[Any]|None) -> int
         if name in self._remote_libraries:
             return self._remote_libraries[name][0]
-        imported = Importer().import_class_or_module(name_or_path=name, instantiate_with_args=args)
+        if name in STDLIBS:
+            import_name = 'robot.libraries.' + name
+        else:
+            import_name = name
+        imported = Importer('library').import_class_or_module(name_or_path=import_name, instantiate_with_args=args)
         server = RobotRemoteServer(
-            imported.get_instance(), port=0, serve=False, allow_stop=True
+            imported, port=0, serve=False, allow_stop=True
         )
         server_thread = threading.Thread(target=server.serve)
         server_thread.start()
