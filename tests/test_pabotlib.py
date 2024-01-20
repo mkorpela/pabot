@@ -204,10 +204,10 @@ class PabotLibTests(unittest.TestCase):
         self.assertIn(vals, ["MyValueSet1", "MyValueSet2"])
         lib.release_value_set()
         lib.acquire_value_set("valueset1")
-        self.assertEquals("someVal1", lib.get_value_from_set("key"))
+        self.assertEqual("someVal1", lib.get_value_from_set("key"))
         lib.release_value_set()
         lib.acquire_value_set("valueset2")
-        self.assertEquals("someVal2", lib.get_value_from_set("key"))
+        self.assertEqual("someVal2", lib.get_value_from_set("key"))
         lib.release_value_set()
 
     def test_ignore_execution_will_not_run_special_keywords_after(self):
