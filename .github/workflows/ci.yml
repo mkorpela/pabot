@@ -1,25 +1,31 @@
 name: CI
 
-on: [push, pull_request]
+on: [ push ]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: [3.8, 3.9, 3.11]
+        python: [ 3.8, 3.9, 3.11 ]
+        robotframework:
+          - "3.2.0"
+          - "4.1.0"
+          - "5.0.0"
+          - "6.0.0"
+          - "6.1.0"
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
       - name: Install Tox and any other packages
         run: |
          pip install tox
          pip install -r ./requirements.txt
+         pip install "robotframework~=${{ matrix.robotframework }}"
 
       - name: Run Tox
         # Run tox using the version of Python in `PATH`
