@@ -27,6 +27,7 @@ jobs:
           pip install pytest
           pip install -r ./requirements.txt
           pip install "robotframework~=${{ matrix.robotframework }}"
+          pip install -e .
 
       - name: Run Pytest
         run: pytest tests
