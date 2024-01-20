@@ -31,7 +31,7 @@ from typing import Any, Dict, Iterable, List, Optional, Set, Tuple
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from robot.libraries.Remote import Remote
-from robot.running import TestLibrary
+from robot.utils.importer import Importer
 
 from .robotremoteserver import RobotRemoteServer
 
@@ -157,7 +157,7 @@ class _PabotLib(object):
     def import_shared_library(self, name, args=None):  # type: (str, Iterable[Any]|None) -> int
         if name in self._remote_libraries:
             return self._remote_libraries[name][0]
-        imported = TestLibrary(name, args=args)
+        imported = Importer().import_class_or_module(name_or_path=name, instantiate_with_args=args)
         server = RobotRemoteServer(
             imported.get_instance(), port=0, serve=False, allow_stop=True
         )
