@@ -18,11 +18,7 @@ A parallel executor for [Robot Framework](http://www.robotframework.org) tests. 
 
 From PyPi:
 
-     pip install -U robotframework-pabot
-
-OR clone this repository and run:
-
-     setup.py  install
+     pipx install robotframework-pabot
 
 ## Basic use
 
