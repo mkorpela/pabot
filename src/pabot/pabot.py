@@ -609,8 +609,6 @@ def _options_for_executor(
     options["xunit"] = "NONE"
     options["test"] = options.get("test", [])[:]
     options["suite"] = options.get("suite", [])[:]
-    if (options["test"] or options["suite"]) and "include" in options:
-        del options["include"]
     execution_item.modify_options_for_executor(options)
     options["outputdir"] = "%OUTPUTDIR%" if execution_item.type == "hived" else outs_dir
     options["variable"] = options.get("variable", [])[:]
@@ -638,6 +636,8 @@ def _options_for_executor(
     if argfile:
         _modify_options_for_argfile_use(argfile, options, execution_item.top_name())
         options["argumentfile"] = argfile
+    if options.get("test", False) and options.get("include", []):
+        del options["include"]
     return _set_terminal_coloring_options(options)
 
 
