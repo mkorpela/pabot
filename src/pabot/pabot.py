@@ -609,6 +609,8 @@ def _options_for_executor(
     options["xunit"] = "NONE"
     options["test"] = options.get("test", [])[:]
     options["suite"] = options.get("suite", [])[:]
+    if (options["test"] or options["suite"]) and "include" in options:
+        del options["include"]
     execution_item.modify_options_for_executor(options)
     options["outputdir"] = "%OUTPUTDIR%" if execution_item.type == "hived" else outs_dir
     options["variable"] = options.get("variable", [])[:]
