@@ -5,8 +5,9 @@ import os
 import sys
 import tempfile
 
-profile_results = tempfile.mktemp(suffix=".out", prefix="pybot-profile", dir=".")
+fd, profile_results = tempfile.mkstemp(suffix=".out", prefix="pybot-profile", dir=".")
 cProfile.run("main(sys.argv[1:])", profile_results)
 stats = pstats.Stats(profile_results)
 stats.sort_stats("cumulative").print_stats(50)
+os.close(fd)
 os.remove(profile_results)
