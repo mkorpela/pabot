@@ -136,6 +136,9 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
 --chunk
   Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same setups and teardowns.
 
+--sysexecutable
+  Changes how pabot calls robot/rebot from their executable wrappers into `python -m`  calls using the currently used python interpreter.
+
 Example usages:
 
      pabot test_directory

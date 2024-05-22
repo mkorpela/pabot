@@ -6,6 +6,7 @@ import os
 import tempfile
 import shutil
 import random
+import sys
 
 import pabot.execution_items as execution_items
 from pabot import pabot, arguments
@@ -115,6 +116,29 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(options["outputdir"], "myoutputdir")
         self.assertFalse("outputdir" in options_for_subprocesses)
         self.assertTrue(pabot_args["testlevelsplit"])
+        self.assertEqual(datasources, ["suite"])
+
+
+    def test_sys_executable(self):
+        (
+            options,
+            datasources,
+            pabot_args,
+            options_for_subprocesses,
+        ) = arguments.parse_args(
+            [
+                "--verbose",
+                "--sysexecutable",
+                "--removekeywords",
+                "WUKS",
+                "suite"
+            ]
+        )
+        self.assertEqual(pabot_args["command"], [sys.executable, "-m", "robot"])
+        # NOTE: calling rebot is quite deep on the call chain and command is
+        # constructed just before the call so that is not covered. But verified
+        # it via verbose logging when running manually.
+        self.assertEqual(pabot_args["verbose"], True)
         self.assertEqual(datasources, ["suite"])
 
     def test_start_and_stop_remote_library(self):

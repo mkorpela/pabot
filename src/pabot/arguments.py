@@ -1,5 +1,6 @@
 import multiprocessing
 import re
+import sys
 from typing import Dict, List, Optional, Tuple
 
 from robot import __version__ as ROBOT_VERSION
@@ -90,7 +91,9 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "shardindex": 0,
         "shardcount": 1,
         "chunk": False,
+        "sysexecutable": False,
     }
+
     argumentfiles = []
     while args and (
         args[0]
@@ -114,6 +117,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                 "help",
                 "shard",
                 "chunk",
+                "sysexecutable",
             ]
         ]
         or ARGSMATCHER.match(args[0])
@@ -182,6 +186,11 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         if args[0] == "--shard":
             pabot_args["shardindex"], pabot_args["shardcount"] = _parse_shard(args[1])
             args = args[2:]
+            continue
+        if args[0] == "--sysexecutable":
+            pabot_args["command"] = [sys.executable, "-m", "robot"]
+            pabot_args["sysexecutable"] = True
+            args = args[1:]
             continue
         match = ARGSMATCHER.match(args[0])
         if match:

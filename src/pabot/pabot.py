@@ -79,7 +79,6 @@ Copyright 2022 Mikko Korpela - Apache 2 License
 """
 
 from __future__ import absolute_import, print_function
-
 import datetime
 import hashlib
 import os
@@ -239,7 +238,7 @@ def execute_and_wait_with(item):
                 process_timeout=item.timeout
             )
         outputxml_preprocessing(
-            item.options, outs_dir, name, item.verbose, _make_id(), caller_id
+            item.options, outs_dir, name, item.verbose, _make_id(), caller_id, item.sysexecutable
         )
     except:
         _write(traceback.format_exc())
@@ -247,7 +246,7 @@ def execute_and_wait_with(item):
 
 def _create_command_for_execution(caller_id, datasources, is_last, item, outs_dir):
     options = item.options.copy()
-    if item.command == ["robot"] and not options["listener"]:
+    if item.command in [["robot"], [sys.executable, "-m", "robot"]] and not options["listener"]:
         options["listener"] = ["RobotStackTracer"]
     cmd = (
         item.command
@@ -377,7 +376,7 @@ def _is_ignored(plib, caller_id):  # type: (Remote, str) -> bool
 
 # optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords
 # and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
-def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, caller_id):
+def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, caller_id, sysexecutable):
     # type: (Dict[str, Any], str, str, bool, int, str) -> None
     try:
         remove_keywords = options["removekeywords"]
@@ -393,9 +392,12 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
             flatten_keywords_args += ["--flattenkeywords", k]
         outputxmlfile = os.path.join(outs_dir, "output.xml")
         oldsize = os.path.getsize(outputxmlfile)
+        rebot_invoke = ["rebot"]
+        if sysexecutable:
+          rebot_invoke = [sys.executable, "-m", "robot.rebot"]
         cmd = (
-            [
-                "rebot",
+            rebot_invoke
+            + [
                 "--log",
                 "NONE",
                 "--report",
@@ -1653,7 +1655,8 @@ class QueueItem(object):
         argfile,
         hive=None,
         processes=0,
-        timeout=None
+        timeout=None,
+        sysexecutable=False
     ):
         # type: (List[str], str, Dict[str, object], ExecutionItem, List[str], bool, Tuple[str, Optional[str]], Optional[str], int, Optional[int]) -> None
         self.datasources = datasources
@@ -1674,6 +1677,7 @@ class QueueItem(object):
         self.hive = hive
         self.processes = processes
         self.timeout = timeout
+        self.sysexecutable = sysexecutable
 
     @property
     def index(self):
@@ -1751,7 +1755,8 @@ def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group):
             argfile,
             pabot_args.get("hive"),
             pabot_args["processes"],
-            pabot_args["processtimeout"]
+            pabot_args["processtimeout"],
+            pabot_args["sysexecutable"]
         )
         for suite in suite_group
         for argfile in pabot_args["argumentfiles"] or [("", None)]
