@@ -1772,7 +1772,7 @@ def _create_execution_items_for_dry_run(
         chunk_size = (
             round(len(items) / processes_count)
             if len(items) > processes_count
-            else len(items)
+            else 1
         )
         chunked_items = list(_chunk_items(items, chunk_size))
         _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(chunked_items)
