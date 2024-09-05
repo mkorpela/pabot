@@ -5,6 +5,7 @@ from robot import __version__ as ROBOT_VERSION
 from robot.errors import DataError
 from robot.utils import PY2, is_unicode
 
+import re
 
 @total_ordering
 class ExecutionItem(object):
@@ -100,28 +101,42 @@ class GroupItem(ExecutionItem):
 class RunnableItem(ExecutionItem):
     pass
 
-    depends = None  # type: str
+    depends = None  # type: List[str]
     depends_keyword = "#DEPENDS"
 
     def set_name_and_depends(self, name):
         line_name = name.encode("utf-8") if PY2 and is_unicode(name) else name
-        depends_begin_index = line_name.find(self.depends_keyword)
+        depends_indexes = [d.start() for d in re.finditer(self.depends_keyword, line_name)]
         self.name = (
             line_name
-            if depends_begin_index == -1
-            else line_name[0:depends_begin_index].strip()
+            if len(depends_indexes) == 0
+            else line_name[0:depends_indexes[0]].strip()
         )
+        def split_dependencies():
+            out = []
+            if len(depends_indexes) >= 2:
+                for i, j in zip(depends_indexes, depends_indexes[1:]):
+                    out.append(line_name[i + len(self.depends_keyword) : j].strip())
+            out.append(line_name[depends_indexes[-1] + len(self.depends_keyword) : ].strip())
+            return out
+
         self.depends = (
-            line_name[depends_begin_index + len(self.depends_keyword) :].strip()
-            if depends_begin_index != -1
+            split_dependencies()
+            if len(depends_indexes) != 0
             else None
         )
 
     def line(self):
         # type: () -> str
         line_without_depends = "--" + self.type + " " + self.name
+
+        def merge_dependencies(line_start):
+            output_line = line_start
+            for d in self.depends:
+                output_line = output_line + " " + self.depends_keyword + " " + d
+
         return (
-            line_without_depends + " " + self.depends_keyword + " " + self.depends
+            merge_dependencies(line_without_depends)
             if self.depends
             else line_without_depends
         )

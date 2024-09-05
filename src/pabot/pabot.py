@@ -2037,20 +2037,33 @@ def _group_by_depend(suite_names):
         return [suite_names]
     independent_tests = list(filter(lambda suite: not suite.depends, runnable_suites))
     dependency_tree = [independent_tests]
-    while True:
-        dependent_tests = list(filter(lambda suite: suite.depends, runnable_suites))
-        dependent_on_last_stage = list(
-            filter(
-                lambda suite: any(
-                    test_in_tier_before.name == suite.depends
-                    for test_in_tier_before in dependency_tree[-1]
-                ),
-                dependent_tests,
-            )
-        )
-        if not dependent_on_last_stage:
-            break
-        dependency_tree += [dependent_on_last_stage]
+    dependent_tests = list(filter(lambda suite: suite.depends, runnable_suites))
+    unknown_dependent_tests = dependent_tests
+    #tree_stage = 1
+    while len(unknown_dependent_tests) > 0:
+        run_in_this_stage, run_later = [], []
+        for d in unknown_dependent_tests:
+            stage_indexes = []
+            for i, stage in enumerate(dependency_tree):
+                for test in stage:
+                    if test.name in d.depends:
+                        stage_indexes.append(i)
+            # All #DEPENDS test are already run:
+            if len(stage_indexes) == len(d.depends):
+                #print(tree_stage, "add", d)
+                run_in_this_stage.append(d)
+            else:
+                run_later.append(d)
+                #print(tree_stage, "later", d)
+        unknown_dependent_tests = run_later
+        if len(run_in_this_stage) == 0:
+            text = "There are circular or unmet dependencies using #DEPENDS. Check this/these test(s): " + str(run_later)
+            raise Exception(text)
+        else:
+            dependency_tree.append(run_in_this_stage)
+            #tree_stage += 1
+    # Debug print
+    #print("Dependency Tree", dependency_tree)
     flattened_dependency_tree = sum(dependency_tree, [])
     if len(flattened_dependency_tree) != len(runnable_suites):
         raise Exception("There are circular or unmet dependencies using #DEPENDS")
