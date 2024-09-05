@@ -86,7 +86,7 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
 PabotLib remote server is started by default to enable locking and resource distribution 
 between parallel test executions.
 
---no-pabotlib
+--no-pabotlib  
   Disable the PabotLib remote server if you don't need locking or resource distribution features.
 
 --pabotlibhost   [HOSTNAME]          
@@ -131,12 +131,15 @@ between parallel test executions.
   Optionally read suites from output.xml file. Failed suites will run
   first and longer running ones will be executed before shorter ones.
 
---shard [INDEX]/[TOTAL]
+--shard [INDEX]/[TOTAL]   
   Optionally split execution into smaller pieces. This can
   be used for distributing testing to multiple machines.
 
---chunk
+--chunk   
   Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same setups and teardowns.
+
+--pabotprerunmodifier [PRERUNMODIFIER MODULE OR CLASS]   
+  Like Robot Framework's --prerunmodifier, but executed only once in the pabot's main process after all other --prerunmodifiers. But unlike the regular --prerunmodifier command, --pabotprerunmodifier is not executed again in each pabot subprocesses. Depending on the intended use, this may be desirable as well as more efficient. Can be used, for example, to modify the list of tests to be performed.
 
 Example usages:
 
@@ -219,7 +222,7 @@ There different possibilities to influence the execution:
   * If the base suite name is changing with robot option [```--name / -N```](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-the-name) you can also give partial suite name without the base suite.
   * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
   * You can group suites and tests together to same executor process by adding line `{` before the group and `}`after.
-  * You can introduce dependencies using the word `#DEPENDS` after a test declaration. Please take care that in case of circular dependencies an exception will be thrown. An example could be.
+  * You can introduce dependencies using the word `#DEPENDS` after a test declaration. Can be used several times if it is necessary to refer to several different tests. Please take care that in case of circular dependencies an exception will be thrown. An example could be.
 
 ```
 --test robotTest.1 Scalar.Test With Environment Variables #DEPENDS robotTest.1 Scalar.Test with BuiltIn Variables of Robot Framework

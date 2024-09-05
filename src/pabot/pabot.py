@@ -880,6 +880,8 @@ def solve_shard_suites(suite_names, pabot_args):
 
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
+    if pabot_args.get("pabotprerunmodifier"):
+        options['prerunmodifier'].append(pabot_args['pabotprerunmodifier'])
     h = Hashes(
         dirs=get_hash_of_dirs(datasources),
         cmd=get_hash_of_command(options, pabot_args),
@@ -915,7 +917,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                 for l in lines[4:]
             )
             execution_item_lines = [parse_execution_item_line(l) for l in lines[4:]]
-            if corrupted or h != file_h or file_hash != hash_of_file:
+            if corrupted or h != file_h or file_hash != hash_of_file or pabot_args.get("pabotprerunmodifier"):
                 return _regenerate(
                     file_h,
                     h,
@@ -2010,10 +2012,24 @@ def main_program(args):
         _stop_message_writer()
 
 
+def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
+    try:
+        with open(filename, "r") as orderingfile:
+            return [
+                parse_execution_item_line(line.strip())
+                for line in orderingfile.readlines()
+            ]
+    except FileNotFoundError:
+        raise DataError("Error: File '%s' not found." % filename)
+    except:
+        raise DataError("Error parsing ordering file '%s'" % filename)
+
+
 def _group_suites(outs_dir, datasources, options, pabot_args):
     suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
     _verify_depends(suite_names)
-    ordered_suites = _preserve_order(suite_names, pabot_args.get("ordering"))
+    ordering_arg = _parse_ordering(pabot_args.get("ordering")) if (pabot_args.get("ordering")) is not None else None
+    ordered_suites = _preserve_order(suite_names, ordering_arg)
     shard_suites = solve_shard_suites(ordered_suites, pabot_args)
     grouped_suites = (
         _chunked_suite_names(shard_suites, pabot_args["processes"])
@@ -2083,20 +2099,27 @@ def _group_by_depend(suite_names):
         return [suite_names]
     independent_tests = list(filter(lambda suite: not suite.depends, runnable_suites))
     dependency_tree = [independent_tests]
-    while True:
-        dependent_tests = list(filter(lambda suite: suite.depends, runnable_suites))
-        dependent_on_last_stage = list(
-            filter(
-                lambda suite: any(
-                    test_in_tier_before.name == suite.depends
-                    for test_in_tier_before in dependency_tree[-1]
-                ),
-                dependent_tests,
-            )
-        )
-        if not dependent_on_last_stage:
-            break
-        dependency_tree += [dependent_on_last_stage]
+    dependent_tests = list(filter(lambda suite: suite.depends, runnable_suites))
+    unknown_dependent_tests = dependent_tests
+    while len(unknown_dependent_tests) > 0:
+        run_in_this_stage, run_later = [], []
+        for d in unknown_dependent_tests:
+            stage_indexes = []
+            for i, stage in enumerate(dependency_tree):
+                for test in stage:
+                    if test.name in d.depends:
+                        stage_indexes.append(i)
+            # All #DEPENDS test are already run:
+            if len(stage_indexes) == len(d.depends):
+                run_in_this_stage.append(d)
+            else:
+                run_later.append(d)
+        unknown_dependent_tests = run_later
+        if len(run_in_this_stage) == 0:
+            text = "There are circular or unmet dependencies using #DEPENDS. Check this/these test(s): " + str(run_later)
+            raise Exception(text)
+        else:
+            dependency_tree.append(run_in_this_stage)
     flattened_dependency_tree = sum(dependency_tree, [])
     if len(flattened_dependency_tree) != len(runnable_suites):
         raise DataError(
