@@ -104,6 +104,17 @@ class RunnableItem(ExecutionItem):
     depends = None  # type: List[str]
     depends_keyword = "#DEPENDS"
 
+    def _split_dependencies(self, line_name, depends_indexes):
+        depends_lst = [] if len(depends_indexes) < 2 else [line_name[i + len(self.depends_keyword) : j].strip() for i, j in zip(depends_indexes, depends_indexes[1:])]
+        depends_lst.append(line_name[depends_indexes[-1] + len(self.depends_keyword) : ].strip())
+        return depends_lst
+
+    def _merge_dependencies(self, line_start):
+        output_line = line_start
+        for d in self.depends:
+            output_line = output_line + " " + self.depends_keyword + " " + d
+        return output_line
+
     def set_name_and_depends(self, name):
         line_name = name.encode("utf-8") if PY2 and is_unicode(name) else name
         depends_indexes = [d.start() for d in re.finditer(self.depends_keyword, line_name)]
@@ -112,16 +123,8 @@ class RunnableItem(ExecutionItem):
             if len(depends_indexes) == 0
             else line_name[0:depends_indexes[0]].strip()
         )
-        def split_dependencies():
-            out = []
-            if len(depends_indexes) >= 2:
-                for i, j in zip(depends_indexes, depends_indexes[1:]):
-                    out.append(line_name[i + len(self.depends_keyword) : j].strip())
-            out.append(line_name[depends_indexes[-1] + len(self.depends_keyword) : ].strip())
-            return out
-
         self.depends = (
-            split_dependencies()
+            self._split_dependencies(line_name, depends_indexes)
             if len(depends_indexes) != 0
             else None
         )
@@ -129,14 +132,8 @@ class RunnableItem(ExecutionItem):
     def line(self):
         # type: () -> str
         line_without_depends = "--" + self.type + " " + self.name
-
-        def merge_dependencies(line_start):
-            output_line = line_start
-            for d in self.depends:
-                output_line = output_line + " " + self.depends_keyword + " " + d
-
         return (
-            merge_dependencies(line_without_depends)
+            self._merge_dependencies(line_without_depends)
             if self.depends
             else line_without_depends
         )
