@@ -250,19 +250,19 @@ def _create_command_for_execution(caller_id, datasources, is_last, item, outs_di
     if item.command == ["robot"] and not options["listener"]:
         options["listener"] = ["RobotStackTracer"]
     cmd = (
-        item.command
-        + _options_for_custom_executor(
-            options,
-            outs_dir,
-            item.execution_item,
-            item.argfile,
-            caller_id,
-            is_last,
-            item.index,
-            item.last_level,
-            item.processes,
-        )
-        + datasources
+            item.command
+            + _options_for_custom_executor(
+        options,
+        outs_dir,
+        item.execution_item,
+        item.argfile,
+        caller_id,
+        is_last,
+        item.index,
+        item.last_level,
+        item.processes,
+    )
+            + datasources
     )
     return _mapOptionalQuote(cmd)
 
@@ -272,7 +272,7 @@ def _pabotlib_in_use():
 
 
 def _hived_execute(
-    hive, cmd, outs_dir, item_name, verbose, pool_id, caller_id, my_index=-1
+        hive, cmd, outs_dir, item_name, verbose, pool_id, caller_id, my_index=-1
 ):
     plib = None
     if _pabotlib_in_use():
@@ -286,15 +286,15 @@ def _hived_execute(
 
 
 def _try_execute_and_wait(
-    cmd,
-    outs_dir,
-    item_name,
-    verbose,
-    pool_id,
-    caller_id,
-    my_index=-1,
-    show_stdout_on_failure=False,
-    process_timeout=None
+        cmd,
+        outs_dir,
+        item_name,
+        verbose,
+        pool_id,
+        caller_id,
+        my_index=-1,
+        show_stdout_on_failure=False,
+        process_timeout=None
 ):
     # type: (List[str], str, str, bool, int, str, int, bool, Optional[int]) -> None
     plib = None
@@ -332,17 +332,17 @@ def _try_execute_and_wait(
 
 
 def _result_to_stdout(
-    elapsed,
-    is_ignored,
-    item_name,
-    my_index,
-    pool_id,
-    process,
-    rc,
-    stderr,
-    stdout,
-    verbose,
-    show_stdout_on_failure,
+        elapsed,
+        is_ignored,
+        item_name,
+        my_index,
+        pool_id,
+        process,
+        rc,
+        stderr,
+        stdout,
+        verbose,
+        show_stdout_on_failure,
 ):
     if is_ignored:
         _write_with_id(
@@ -394,21 +394,21 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
         outputxmlfile = os.path.join(outs_dir, "output.xml")
         oldsize = os.path.getsize(outputxmlfile)
         cmd = (
-            [
-                "rebot",
-                "--log",
-                "NONE",
-                "--report",
-                "NONE",
-                "--xunit",
-                "NONE",
-                "--consolecolors",
-                "off",
-                "--NoStatusRC",
-            ]
-            + remove_keywords_args
-            + flatten_keywords_args
-            + ["--output", outputxmlfile, outputxmlfile]
+                [
+                    "rebot",
+                    "--log",
+                    "NONE",
+                    "--report",
+                    "NONE",
+                    "--xunit",
+                    "NONE",
+                    "--consolecolors",
+                    "off",
+                    "--NoStatusRC",
+                ]
+                + remove_keywords_args
+                + flatten_keywords_args
+                + ["--output", outputxmlfile, outputxmlfile]
         )
         cmd = _mapOptionalQuote(cmd)
         _try_execute_and_wait(
@@ -544,7 +544,6 @@ def _wait_for_return_code(process, item_name, pool_id, item_index, process_timeo
     return rc, elapsed / 10.0
 
 
-
 def _read_file(file_handle):
     try:
         with open(file_handle.name, "r") as content_file:
@@ -593,15 +592,15 @@ def _options_for_custom_executor(*args):
 
 
 def _options_for_executor(
-    options,
-    outs_dir,
-    execution_item,
-    argfile,
-    caller_id,
-    is_last,
-    queueIndex,
-    last_level,
-    processes,
+        options,
+        outs_dir,
+        execution_item,
+        argfile,
+        caller_id,
+        is_last,
+        queueIndex,
+        last_level,
+        processes,
 ):
     options = options.copy()
     options["log"] = "NONE"
@@ -662,9 +661,9 @@ def _modify_options_for_argfile_use(argfile, options, root_name):
 
 def _replace_base_name(new_name, old_name, options, key):
     if isinstance(options.get(key, None), str):
-        options[key] = new_name + options[key][len(old_name) :]
+        options[key] = new_name + options[key][len(old_name):]
     elif key in options:
-        options[key] = [new_name + s[len(old_name) :] for s in options.get(key, [])]
+        options[key] = [new_name + s[len(old_name):] for s in options.get(key, [])]
 
 
 def _set_terminal_coloring_options(options):
@@ -731,7 +730,7 @@ def hash_directory(digest, path):
         for name in sorted(files):
             file_path = os.path.join(root, name)
             if os.path.isfile(file_path) and any(
-                file_path.endswith(p) for p in _ROBOT_EXTENSIONS
+                    file_path.endswith(p) for p in _ROBOT_EXTENSIONS
             ):
                 # DO NOT ALLOW CHANGE TO FILE LOCATION
                 digest.update(_digest(_norm_path(root)))
@@ -839,10 +838,10 @@ def solve_shard_suites(suite_names, pabot_args):
         )
     q, r = divmod(items_count, shard_count)
     return suite_names[
-        (shard_index - 1) * q
-        + min(shard_index - 1, r) : shard_index * q
-        + min(shard_index, r)
-    ]
+           (shard_index - 1) * q
+           + min(shard_index - 1, r): shard_index * q
+                                      + min(shard_index, r)
+           ]
 
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
@@ -866,11 +865,11 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
             hash_of_file = None  # type: Optional[str]
             if not corrupted:
                 file_h = Hashes(
-                    dirs=lines[0][len("datasources:") :],
-                    cmd=lines[1][len("commandlineoptions:") :],
-                    suitesfrom=lines[2][len("suitesfrom:") :],
+                    dirs=lines[0][len("datasources:"):],
+                    cmd=lines[1][len("commandlineoptions:"):],
+                    suitesfrom=lines[2][len("suitesfrom:"):],
                 )
-                file_hash = lines[3][len("file:") :]
+                file_hash = lines[3][len("file:"):]
                 hash_of_file = _file_hash(lines)
             corrupted = corrupted or any(
                 not l.startswith("--suite ")
@@ -900,7 +899,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
 
 
 def _levelsplit(
-    suites, pabot_args
+        suites, pabot_args
 ):  # type: (List[SuiteItem], Dict[str, str]) -> List[ExecutionItem]
     if pabot_args.get("testlevelsplit"):
         tests = []  # type: List[ExecutionItem]
@@ -922,13 +921,13 @@ def _group_by_wait(lines):
 
 
 def _regenerate(
-    file_h, h, pabot_args, outs_dir, datasources, options, lines
+        file_h, h, pabot_args, outs_dir, datasources, options, lines
 ):  # type: (Optional[Hashes], Hashes, Dict[str, str], str, List[str], Dict[str, str], List[ExecutionItem]) -> List[ExecutionItem]
     assert all(isinstance(s, ExecutionItem) for s in lines)
     if (
-        (file_h is None or file_h.suitesfrom != h.suitesfrom)
-        and "suitesfrom" in pabot_args
-        and os.path.isfile(pabot_args["suitesfrom"])
+            (file_h is None or file_h.suitesfrom != h.suitesfrom)
+            and "suitesfrom" in pabot_args
+            and os.path.isfile(pabot_args["suitesfrom"])
     ):
         suites = _suites_from_file(
             file_h, h, pabot_args, outs_dir, datasources, options, lines
@@ -1025,16 +1024,16 @@ def _get_preserve_and_ignore(new_items, old_items, old_contains_suites_and_tests
     for old_item in old_items:
         for new_item in new_items:
             if (
-                old_item.contains(new_item)
-                and new_item != old_item
-                and (isinstance(new_item, SuiteItem) or old_contains_suites_and_tests)
+                    old_item.contains(new_item)
+                    and new_item != old_item
+                    and (isinstance(new_item, SuiteItem) or old_contains_suites_and_tests)
             ):
                 preserve.append(old_item)
                 ignorable.append(new_item)
         if (
-            old_item.isWait
-            or isinstance(old_item, GroupStartItem)
-            or isinstance(old_item, GroupEndItem)
+                old_item.isWait
+                or isinstance(old_item, GroupStartItem)
+                or isinstance(old_item, GroupEndItem)
         ):
             preserve.append(old_item)
     preserve = [
@@ -1064,7 +1063,7 @@ def _remove_empty_groups(exists_in_old_and_new):  # type: (List[ExecutionItem]) 
 
 
 def _split_partially_to_tests(
-    new_suites, old_suites
+        new_suites, old_suites
 ):  # type: (List[SuiteItem], List[ExecutionItem]) -> List[ExecutionItem]
     suits = []  # type: List[ExecutionItem]
     for s in new_suites:
@@ -1130,7 +1129,7 @@ def store_suite_names(hashes, suite_names):
 
 
 def generate_suite_names(
-    outs_dir, datasources, options, pabot_args
+        outs_dir, datasources, options, pabot_args
 ):  # type: (object, object, object, Dict[str, str]) -> List[ExecutionItem]
     suites = []  # type: List[SuiteItem]
     if "suitesfrom" in pabot_args and os.path.isfile(pabot_args["suitesfrom"]):
@@ -1329,7 +1328,7 @@ def keyboard_interrupt(*args):
 
 
 def _parallel_execute(
-    items, processes, datasources, outs_dir, opts_for_run, pabot_args
+        items, processes, datasources, outs_dir, opts_for_run, pabot_args
 ):
     original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
     pool = ThreadPool(len(items) if processes is None else processes)
@@ -1384,7 +1383,7 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
                     if not include_subfolders:
                         continue
                     # create destination sub-folder
-                    subfolder_path = rel_path[rel_path.index(os.sep) + 1 :]
+                    subfolder_path = rel_path[rel_path.index(os.sep) + 1:]
                     dst_folder_path = os.path.join(outputdir, subfolder_path)
                     if not os.path.isdir(dst_folder_path):
                         os.makedirs(dst_folder_path)
@@ -1459,7 +1458,7 @@ def _write_stats(stats):
 
 
 def _report_results_for_one_run(
-    outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
+        outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
 ):
     copied_artifacts = _copy_output_artifacts(
         options, pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
@@ -1469,10 +1468,10 @@ def _report_results_for_one_run(
     )
     _write_stats(stats)
     if (
-        "report" in options
-        and options["report"] == "NONE"
-        and "log" in options
-        and options["log"] == "NONE"
+            "report" in options
+            and options["report"] == "NONE"
+            and "log" in options
+            and options["log"] == "NONE"
     ):
         options[
             "output"
@@ -1484,7 +1483,7 @@ def _report_results_for_one_run(
 
 
 def _merge_one_run(
-    outs_dir, options, tests_root_name, stats, copied_artifacts, outputfile=None
+        outs_dir, options, tests_root_name, stats, copied_artifacts, outputfile=None
 ):
     outputfile = outputfile or options.get("output", "output.xml")
     output_path = os.path.abspath(
@@ -1589,7 +1588,7 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Po
     if not pabot_args["pabotlib"]:
         return None
     if pabot_args.get("resourcefile") and not os.path.exists(
-        pabot_args["resourcefile"]
+            pabot_args["resourcefile"]
     ):
         _write(
             "Warning: specified resource file doesn't exist."
@@ -1643,17 +1642,17 @@ class QueueItem(object):
     _queue_index = 0
 
     def __init__(
-        self,
-        datasources,
-        outs_dir,
-        options,
-        execution_item,
-        command,
-        verbose,
-        argfile,
-        hive=None,
-        processes=0,
-        timeout=None
+            self,
+            datasources,
+            outs_dir,
+            options,
+            execution_item,
+            command,
+            verbose,
+            argfile,
+            hive=None,
+            processes=0,
+            timeout=None
     ):
         # type: (List[str], str, Dict[str, object], ExecutionItem, List[str], bool, Tuple[str, Optional[str]], Optional[str], int, Optional[int]) -> None
         self.datasources = datasources
@@ -1689,7 +1688,7 @@ class QueueItem(object):
 
 
 def _create_execution_items(
-    suite_groups, datasources, outs_dir, options, opts_for_run, pabot_args
+        suite_groups, datasources, outs_dir, options, opts_for_run, pabot_args
 ):
     is_dry_run = (
         options.get("dryrun")
@@ -1719,7 +1718,7 @@ def _construct_index_and_completed_index(all_items):
 
 
 def _create_execution_items_for_run(
-    suite_groups, datasources, outs_dir, options, opts_for_run, pabot_args
+        suite_groups, datasources, outs_dir, options, opts_for_run, pabot_args
 ):
     global _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     all_items = []  # type: List[List[QueueItem]]
@@ -1727,8 +1726,8 @@ def _create_execution_items_for_run(
     for suite_group in suite_groups:
         # TODO: Fix this better
         if (
-            options.get("randomize") in ["all", "suites"]
-            and "suitesfrom" not in pabot_args
+                options.get("randomize") in ["all", "suites"]
+                and "suitesfrom" not in pabot_args
         ):
             random.shuffle(suite_group)
         items = _create_items(
@@ -1759,7 +1758,7 @@ def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group):
 
 
 def _create_execution_items_for_dry_run(
-    suite_groups, datasources, outs_dir, opts_for_run, pabot_args
+        suite_groups, datasources, outs_dir, opts_for_run, pabot_args
 ):
     global _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     all_items = []  # type: List[List[QueueItem]]
@@ -1772,7 +1771,7 @@ def _create_execution_items_for_dry_run(
         chunk_size = (
             round(len(items) / processes_count)
             if len(items) > processes_count
-            else 1
+            else 1  # when the processes number is greater than items, each item should be assigned one process.
         )
         chunked_items = list(_chunk_items(items, chunk_size))
         _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(chunked_items)
@@ -1782,7 +1781,7 @@ def _create_execution_items_for_dry_run(
 
 def _chunk_items(items, chunk_size):
     for i in range(0, len(items), chunk_size):
-        chunked_items = items[i : i + chunk_size]
+        chunked_items = items[i: i + chunk_size]
         base_item = chunked_items[0]
         if not base_item:
             continue
@@ -1828,10 +1827,10 @@ def _construct_last_levels(all_items):
         for item in items:
             if isinstance(item.execution_item, SuiteItems):
                 for suite in item.execution_item.suites:
-                    item.last_level = _find_ending_level(suite.name, names[index + 1 :])
+                    item.last_level = _find_ending_level(suite.name, names[index + 1:])
             else:
                 item.last_level = _find_ending_level(
-                    item.execution_item.name, names[index + 1 :]
+                    item.execution_item.name, names[index + 1:]
                 )
             index += 1
 
@@ -1855,7 +1854,7 @@ def _initialize_queue_index():
 
 
 def _get_dynamically_created_execution_items(
-    datasources, outs_dir, opts_for_run, pabot_args
+        datasources, outs_dir, opts_for_run, pabot_args
 ):
     global _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     if not _pabotlib_in_use():
@@ -1989,8 +1988,8 @@ def _chunked_suite_names(suite_names, processes):
     result = []
     for index in range(processes):
         chunk = suite_names[
-            (index) * q + min(index, r) : (index + 1) * q + min((index + 1), r)
-        ]
+                (index) * q + min(index, r): (index + 1) * q + min((index + 1), r)
+                ]
         if len(chunk) == 0:
             continue
         grouped = GroupItem()
