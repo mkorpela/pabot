@@ -90,6 +90,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "shardindex": 0,
         "shardcount": 1,
         "chunk": False,
+        "_testdependencies": False,
     }
     argumentfiles = []
     while args and (

@@ -118,6 +118,7 @@ from .arguments import (
     parse_args,
     parse_execution_item_line,
     _filter_argument_parser_options,
+    _parse_ordering,
 )
 from .clientwrapper import make_order
 from .execution_items import (
@@ -174,6 +175,8 @@ _ROBOT_EXTENSIONS = [
     ".robot",
 ]
 _ALL_ELAPSED = []  # type: List[Union[int, float]]
+DEPENDENCY_SOLVER_NAME = "DependencyLibrary.DependencySolver"
+DEPENDENCY_SOLVER_ORDERING_FILE = "DependencySolver.pabot.txt"
 
 
 class Color:
@@ -249,6 +252,8 @@ def _create_command_for_execution(caller_id, datasources, is_last, item, outs_di
     options = item.options.copy()
     if item.command == ["robot"] and not options["listener"]:
         options["listener"] = ["RobotStackTracer"]
+    if options.get("prerunmodifier"):
+        options["prerunmodifier"] = [p for p in options["prerunmodifier"] if not p.startswith(DEPENDENCY_SOLVER_NAME)]
     cmd = (
         item.command
         + _options_for_custom_executor(
@@ -881,7 +886,11 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                 for l in lines[4:]
             )
             execution_item_lines = [parse_execution_item_line(l) for l in lines[4:]]
-            if corrupted or h != file_h or file_hash != hash_of_file:
+            for prerunmodifier in options['prerunmodifier']:
+                if prerunmodifier.startswith(DEPENDENCY_SOLVER_NAME):
+                    pabot_args["_testdependencies"] = True
+                    pabot_args["testlevelsplit"] = True
+            if corrupted or h != file_h or file_hash != hash_of_file or pabot_args.get("_testdependencies"):
                 return _regenerate(
                     file_h,
                     h,
@@ -957,6 +966,10 @@ def _suites_from_wrong_or_empty_file(pabot_args, outs_dir, datasources, options,
         generate_suite_names_with_builder(outs_dir, datasources, options),
         pabot_args,
     )
+    if pabot_args.get('_testdependencies'):
+        if pabot_args.get('ordering'):
+            print("--ordering file ignored because of you used", repr(DEPENDENCY_SOLVER_NAME), "as --prerunmodifier option")
+        pabot_args["ordering"] = _parse_ordering(DEPENDENCY_SOLVER_ORDERING_FILE)
     return _preserve_order(suites, [suite for suite in lines if suite])
 
 
