@@ -24,7 +24,7 @@ class SharedLibrary(object):
             logger.debug(
                 "Not currently running pabot. Importing library for this process."
             )
-            self._lib = RemoteLibraryFactory(TestLibrary.from_name(name, args=args))
+            self._lib = RemoteLibraryFactory(TestLibrary.from_name(name, args=args).instance)
             return
         uri = BuiltIn().get_variable_value("${PABOTLIBURI}")
         logger.debug("PabotLib URI %r" % uri)
