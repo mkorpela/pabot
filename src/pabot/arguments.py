@@ -28,21 +28,33 @@ def _processes_count():  # type: () -> int
         return 2
 
 
+def _filter_argument_parser_options(**options):
+    # Note: auto_pythonpath is deprecated since RobotFramework 5.0, but only
+    # communicated to users from 6.1
+    if ROBOT_VERSION >= "5.0" and "auto_pythonpath" in options:
+        del options["auto_pythonpath"]
+    return options
+
+
 def parse_args(
     args,
 ):  # type: (List[str]) -> Tuple[Dict[str, object], List[str], Dict[str, object], Dict[str, object]]
     args, pabot_args = _parse_pabot_args(args)
     options, datasources = ArgumentParser(
         USAGE,
-        auto_pythonpath=False,
-        auto_argumentfile=True,
-        env_options="ROBOT_OPTIONS",
+        **_filter_argument_parser_options(
+            auto_pythonpath=False,
+            auto_argumentfile=True,
+            env_options="ROBOT_OPTIONS",
+        ),
     ).parse_args(args)
     options_for_subprocesses, sources_without_argfile = ArgumentParser(
         USAGE,
-        auto_pythonpath=False,
-        auto_argumentfile=False,
-        env_options="ROBOT_OPTIONS",
+        **_filter_argument_parser_options(
+            auto_pythonpath=False,
+            auto_argumentfile=False,
+            env_options="ROBOT_OPTIONS",
+        ),
     ).parse_args(args)
     if len(datasources) != len(sources_without_argfile):
         raise DataError(
