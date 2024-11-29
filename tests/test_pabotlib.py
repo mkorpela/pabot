@@ -28,10 +28,10 @@ class PabotLibTests(unittest.TestCase):
     def test_shared_library_with_args(self):
         try:
             self._create_ctx()  # Set up Robot Framework context
-            lib = SharedLibrary("Process", ["some_arg"]) 
+            lib = SharedLibrary("mylib", ["2"]) 
             self.assertIsNotNone(lib)
             lib._remote = None
-            lib._lib.run_keyword("some_keyword", ["arg"], {})
+            lib._lib.run_keyword("mykeyword", ["arg"], {})
         except Exception as e:
             self.fail(f"SharedLibrary initialization failed: {str(e)}")
 
