@@ -8,6 +8,4 @@ natsort==8.2.0
 pre-commit==2.14.1
 pytest==6.2.5
 robotframework==4.0.3
-tox==3.24.3
-virtualenv==20.4.4
 robotframework-stacktrace==0.4.1

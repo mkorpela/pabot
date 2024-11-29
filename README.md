@@ -1,6 +1,5 @@
 # Pabot
 
-[Русская версия](README_ru.md)
 [中文版](README_zh.md)
 
 [![Version](https://img.shields.io/pypi/v/robotframework-pabot.svg)](https://pypi.python.org/pypi/robotframework-pabot)
