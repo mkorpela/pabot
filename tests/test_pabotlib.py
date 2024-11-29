@@ -9,6 +9,7 @@ from robot.running.context import EXECUTION_CONTEXTS
 from robot.running.namespace import Namespace
 from robot.running.model import TestSuite
 from robot.variables import Variables
+from robot import __version__ as ROBOT_VERSION
 
 
 class PabotLibTests(unittest.TestCase):
@@ -300,9 +301,14 @@ class PabotLibTests(unittest.TestCase):
         suite = TestSuite()
         variables = Variables()
         EXECUTION_CONTEXTS._contexts = []
-        EXECUTION_CONTEXTS.start_suite(
-            suite, Namespace(variables, suite, suite.resource, []), self._output()
-        )
+        if ROBOT_VERSION >= "6.0":
+            EXECUTION_CONTEXTS.start_suite(
+                suite, Namespace(variables, suite, suite.resource, []), self._output()
+            )
+        else:
+            EXECUTION_CONTEXTS.start_suite(
+                suite, Namespace(variables, suite, suite.resource), self._output()
+            )
 
 
 if __name__ == "__main__":
