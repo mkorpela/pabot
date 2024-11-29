@@ -301,7 +301,7 @@ class PabotLibTests(unittest.TestCase):
         variables = Variables()
         EXECUTION_CONTEXTS._contexts = []
         EXECUTION_CONTEXTS.start_suite(
-            suite, Namespace(variables, suite, suite.resource), self._output()
+            suite, Namespace(variables, suite, suite.resource, []), self._output()
         )
 
 
