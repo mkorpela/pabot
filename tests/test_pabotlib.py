@@ -4,6 +4,7 @@ import os
 from robot.errors import RobotError
 
 from pabot import pabotlib
+from pabot.SharedLibrary import SharedLibrary
 from robot.running.context import EXECUTION_CONTEXTS
 from robot.running.namespace import Namespace
 from robot.running.model import TestSuite
@@ -22,6 +23,16 @@ class PabotLibTests(unittest.TestCase):
         builtinmock.run_keyword = runned
         pabotlib.BuiltIn = lambda: builtinmock
         self.builtinmock = builtinmock
+
+    def test_shared_library_with_args(self):
+        try:
+            self._create_ctx()  # Set up Robot Framework context
+            lib = SharedLibrary("Process", ["some_arg"]) 
+            self.assertIsNotNone(lib)
+            lib._remote = None
+            lib._lib.run_keyword("some_keyword", ["arg"], {})
+        except Exception as e:
+            self.fail(f"SharedLibrary initialization failed: {str(e)}")
 
     def test_pabotlib_listener_path(self):
         lib = pabotlib.PabotLib()
