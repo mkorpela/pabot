@@ -96,7 +96,7 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"circular or unmet dependencies", stderr)
+        self.assertIn(b"Invalid test configuration: Circular or unmet dependencies detected between test suites", stderr)
 
     def test_unmet_dependency(self):
         stdout, stderr = self._run_tests_with(
@@ -107,7 +107,7 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"circular or unmet dependencies", stderr)
+        self.assertIn(b"Invalid test configuration: Some test suites have dependencies (#DEPENDS) that cannot be found", stderr)
 
     def test_same_reference(self):
         stdout, stderr = self._run_tests_with(
@@ -118,7 +118,7 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"circular or unmet dependencies", stderr)
+        self.assertIn(b"Invalid test configuration: Test suites cannot depend on themselves", stderr)
 
     def test_wait(self):
         stdout, stderr = self._run_tests_with(
@@ -130,4 +130,4 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"circular or unmet dependencies", stderr)
+        self.assertIn(b"Invalid test configuration: Circular or unmet dependencies detected between test suites", stderr)
