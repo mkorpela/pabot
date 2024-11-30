@@ -55,7 +55,7 @@ There are several ways you can help in improving this tool:
 ## Command-line options
 
     pabot [--verbose|--testlevelsplit|--command .. --end-command|
-           --processes num|--pabotlib|--pabotlibhost host|--pabotlibport port|
+           --processes num|--no-pabotlib|--pabotlibhost host|--pabotlibport port|
            --processtimeout num|
            --shard i/n|
            --artifacts extensions|--artifactsinsubfolders|
@@ -83,8 +83,11 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   Special option "all" will use as many processes as there are
   executable suites or tests.
 
---pabotlib          
-  Start PabotLib remote server. This enables locking and resource distribution between parallel test executions.
+PabotLib remote server is started by default to enable locking and resource distribution 
+between parallel test executions.
+
+--no-pabotlib
+  Disable the PabotLib remote server if you don't need locking or resource distribution features.
 
 --pabotlibhost   [HOSTNAME]          
   Host name of the PabotLib remote server (default is 127.0.0.1)
@@ -142,8 +145,9 @@ Example usages:
      pabot --command java -jar robotframework.jar --end-command --include SMOKE tests
      pabot --processes 10 tests     
      pabot --pabotlibhost 192.168.1.123 --pabotlibport 8271 --processes 10 tests
-     pabot --pabotlib --pabotlibhost 192.168.1.111 --pabotlibport 8272 --processes 10 tests
      pabot --artifacts png,mp4,txt --artifactsinsubfolders directory_to_tests
+     # To disable PabotLib:
+     pabot --no-pabotlib tests
 
 ### PabotLib
 

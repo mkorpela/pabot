@@ -1372,6 +1372,25 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(pabot_args["command"], ["script.sh", "--processes", "5"])
         self.assertEqual(pabot_args["verbose"], True)
 
+    def test_pabotlib_defaults_to_enabled(self):
+        options, _, pabot_args, _ = arguments.parse_args(["suite"])
+        self.assertTrue(pabot_args["pabotlib"])
+        self.assertFalse("no_pabotlib" in pabot_args)  # Ensure internal flag not leaked
+
+    def test_no_pabotlib_disables_pabotlib(self):
+        options, _, pabot_args, _ = arguments.parse_args(["--no-pabotlib", "suite"])
+        self.assertFalse(pabot_args["pabotlib"])
+        self.assertFalse("no_pabotlib" in pabot_args)  # Ensure internal flag not leaked
+
+    def test_pabotlib_option_shows_warning(self):
+        options, _, pabot_args, _ = arguments.parse_args(["--pabotlib", "suite"])
+        self.assertTrue(pabot_args["pabotlib"])
+        self.assertFalse("no_pabotlib" in pabot_args)  # Ensure internal flag not leaked
+
+    def test_conflicting_pabotlib_options_raise_error(self):
+        with self.assertRaises(DataError) as context:
+            arguments.parse_args(["--pabotlib", "--no-pabotlib", "suite"])
+        self.assertIn("Cannot use both --pabotlib and --no-pabotlib", str(context.exception))
 
 if __name__ == "__main__":
     unittest.main()

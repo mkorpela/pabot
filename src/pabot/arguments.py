@@ -80,7 +80,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "verbose": False,
         "help": False,
         "testlevelsplit": False,
-        "pabotlib": False,
+        "pabotlib": True,
         "pabotlibhost": "127.0.0.1",
         "pabotlibport": 8270,
         "processes": _processes_count(),
@@ -113,6 +113,10 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
     remaining_args = []
     i = 0
 
+    # Track conflicting options during parsing
+    saw_pabotlib_flag = False
+    saw_no_pabotlib = False
+
     while i < len(args):
         arg = args[i]
         if not arg.startswith('--'):
@@ -121,6 +125,16 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
             continue
             
         arg_name = arg[2:]  # Strip '--'
+
+        if arg_name == "no-pabotlib":
+            saw_no_pabotlib = True
+            pabot_args["pabotlib"] = False  # Just set the main flag
+            args = args[1:]
+            continue
+        if arg_name == "pabotlib":
+            saw_pabotlib_flag = True
+            args = args[1:]
+            continue
         
         # Special case for command
         if arg_name == "command":
@@ -165,6 +179,9 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         # If we get here, it's a non-pabot argument
         remaining_args.append(arg)
         i += 1
+    
+    if saw_pabotlib_flag and saw_no_pabotlib:
+        raise DataError("Cannot use both --pabotlib and --no-pabotlib options together")
     
     pabot_args["argumentfiles"] = argumentfiles
     return remaining_args, pabot_args
