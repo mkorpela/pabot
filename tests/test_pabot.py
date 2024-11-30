@@ -1329,6 +1329,48 @@ class PabotTests(unittest.TestCase):
                 self.assertNotIn('schemaversion="4"', content)
         finally:
             shutil.rmtree(dtemp) 
+    
+    def test_parse_args_mixed_order(self):
+        options, datasources, pabot_args, options_for_subprocesses = arguments.parse_args([
+            "--legacyoutput",
+            "--processes", "12", 
+            "--outputdir", "mydir",
+            "--verbose",
+            "--pabotlib",
+            "suite"
+        ])
+        self.assertEqual(pabot_args["processes"], 12)
+        self.assertEqual(pabot_args["verbose"], True)
+        self.assertEqual(pabot_args["pabotlib"], True)
+        self.assertEqual(options["outputdir"], "mydir")
+        self.assertEqual(options["legacyoutput"], True)
+        self.assertEqual(datasources, ["suite"])
+
+    def test_parse_args_error_handling(self):
+        with self.assertRaises(DataError) as cm:
+            arguments.parse_args(["--processes"])
+        self.assertIn("requires a value", str(cm.exception))
+
+        with self.assertRaises(DataError) as cm:
+            arguments.parse_args(["--processes", "invalid"])
+        self.assertIn("Invalid value for --processes", str(cm.exception))
+
+        with self.assertRaises(DataError) as cm:
+            arguments.parse_args(["--command", "echo", "hello"])
+        self.assertIn("requires matching --end-command", str(cm.exception))
+
+    def test_parse_args_command_with_pabot_args(self):
+        options, datasources, pabot_args, _ = arguments.parse_args([
+            "--command",
+            "script.sh",
+            "--processes",
+            "5",
+            "--end-command",
+            "--verbose",
+            "suite"
+        ])
+        self.assertEqual(pabot_args["command"], ["script.sh", "--processes", "5"])
+        self.assertEqual(pabot_args["verbose"], True)
 
 
 if __name__ == "__main__":

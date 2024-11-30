@@ -130,7 +130,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                 i = end_index + 1
                 continue
             except ValueError:
-                raise DataError("--command requires --end-command")
+                raise DataError("--command requires matching --end-command")
                 
         # Handle flag arguments
         if arg_name in flag_args:
