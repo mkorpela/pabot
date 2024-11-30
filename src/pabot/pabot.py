@@ -1152,14 +1152,15 @@ def generate_suite_names_with_builder(outs_dir, datasources, options):
     settings = RobotSettings(opts)
 
     # Note: first argument (included_suites) is deprecated from RobotFramework 6.1
-    if ROBOT_VERSION < "6.1":
+    if ROBOT_VERSION >= "6.1":
         builder = TestSuiteBuilder(
-            settings["SuiteNames"], settings.extension, rpa=settings.rpa
+            included_extensions=settings.extension, rpa=settings.rpa, lang=opts.get("language")
         )
     else:
         builder = TestSuiteBuilder(
-            included_extensions=settings.extension, rpa=settings.rpa
-        )
+            settings["SuiteNames"], settings.extension, rpa=settings.rpa
+        ) 
+
     suite = builder.build(*datasources)
     settings.rpa = builder.rpa
     suite.configure(**settings.suite_config)
