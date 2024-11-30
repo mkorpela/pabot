@@ -1505,7 +1505,10 @@ def _merge_one_run(
         files, options, tests_root_name, copied_artifacts, invalid_xml_callback
     )
     _update_stats(resu, stats)
-    resu.save(output_path)
+    if ROBOT_VERSION >= "7.0" and options.get("legacyoutput"):
+        resu.save(output_path, legacy_output=True)
+    else:
+        resu.save(output_path)
     return output_path
 
 
