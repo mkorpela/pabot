@@ -1304,6 +1304,8 @@ class PabotTests(unittest.TestCase):
                 content = f.read()
                 if ROBOT_VERSION >= "6.0":
                     self.assertIn('schemaversion="4"', content)
+                elif ROBOT_VERSION >= "5.0":
+                    self.assertIn('schemaversion="3"', content)
                 elif ROBOT_VERSION >= "4.0":
                     self.assertIn('schemaversion="2"', content)
             if ROBOT_VERSION >= "7.0":
