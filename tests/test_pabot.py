@@ -1284,7 +1284,8 @@ class PabotTests(unittest.TestCase):
 </robot>""")
             
         self._options['outputdir'] = dtemp
-        self._options['legacyoutput'] = True
+        if ROBOT_VERSION >= "7.0":
+            self._options['legacyoutput'] = True
         try:
             output = pabot._merge_one_run(
                 outs_dir=dtemp,
@@ -1301,29 +1302,29 @@ class PabotTests(unittest.TestCase):
             self.assertTrue(output, "merge_one_run returned empty string")  # Verify we got output path
             with open(output, 'r') as f:
                 content = f.read()
-                self.assertIn('schemaversion="4"', content)
-                self.assertNotIn('schemaversion="5"', content)
-            del self._options['legacyoutput']
-            output = pabot._merge_one_run(
-                outs_dir=dtemp,
-                options=self._options,
-                tests_root_name='Test',  # Should match suite name in XML
-                stats={
-                    "total": 0,
-                    "passed": 0,
-                    "failed": 0,
-                    "skipped": 0,
-                },
-                copied_artifacts=[],
-                outputfile='merged_2_output.xml')  # Use different name to avoid confusion
-            self.assertTrue(output, "merge_one_run returned empty string")  # Verify we got output path
-            with open(output, 'r') as f:
-               content = f.read()
+                if ROBOT_VERSION >= "6.0":
+                    self.assertIn('schemaversion="4"', content)
+                elif ROBOT_VERSION >= "4.0":
+                    self.assertIn('schemaversion="2"', content)
             if ROBOT_VERSION >= "7.0":
+                del self._options['legacyoutput']
+                output = pabot._merge_one_run(
+                    outs_dir=dtemp,
+                    options=self._options,
+                    tests_root_name='Test',  # Should match suite name in XML
+                    stats={
+                        "total": 0,
+                        "passed": 0,
+                        "failed": 0,
+                        "skipped": 0,
+                    },
+                    copied_artifacts=[],
+                    outputfile='merged_2_output.xml')  # Use different name to avoid confusion
+                self.assertTrue(output, "merge_one_run returned empty string")  # Verify we got output path
+                with open(output, 'r') as f:
+                    content = f.read()
                 self.assertIn('schemaversion="5"', content)
                 self.assertNotIn('schemaversion="4"', content)
-            else:
-                self.assertIn('schemaversion="4"', content)
         finally:
             shutil.rmtree(dtemp) 
 
