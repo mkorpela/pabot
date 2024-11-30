@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+from robot import __version__ as ROBOT_VERSION
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 from robot.libraries.Remote import Remote
@@ -24,7 +25,11 @@ class SharedLibrary(object):
             logger.debug(
                 "Not currently running pabot. Importing library for this process."
             )
-            self._lib = RemoteLibraryFactory(TestLibrary(name, args=args).get_instance())
+            self._lib = RemoteLibraryFactory(
+                TestLibrary.from_name(name, args=args, variables=None, create_keywords=True).instance 
+                if ROBOT_VERSION >= "7.0" 
+                else TestLibrary(name, args=args).get_instance()
+            )
             return
         uri = BuiltIn().get_variable_value("${PABOTLIBURI}")
         logger.debug("PabotLib URI %r" % uri)

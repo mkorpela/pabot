@@ -1226,6 +1226,109 @@ class PabotTests(unittest.TestCase):
             file_path = os.path.join(_opts["outputdir"], f)
             self.assertTrue(os.path.isfile(file_path), "file not copied: {}".format(f))
             os.remove(file_path)  # clean up
+    
+    def test_merge_one_run_with_and_without_legacyoutput(self):
+        dtemp = tempfile.mkdtemp()
+        # Create the same directory structure as pabot
+        test_outputs = os.path.join(dtemp, 'outputs')
+        os.makedirs(test_outputs)
+        test_output = os.path.join(test_outputs, 'output.xml')
+        # Create a minimal but valid output.xml
+        with open(test_output, 'w') as f:
+            f.write("""<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Rebot 7.1.1 (Python 3.11.7 on darwin)" generated="20241130 11:19:45.235" rpa="false" schemaversion="4">
+<suite id="s1" name="Suites">
+<suite id="s1-s1" name="Test" source="/Users/mkorpela/workspace/pabot/test.robot">
+<test id="s1-s1-t1" name="Testing" line="5">
+<kw name="Log" library="BuiltIn">
+<msg timestamp="20241130 11:19:44.911" level="INFO">hello</msg>
+<arg>hello</arg>
+<doc>Logs the given message with the given level.</doc>
+<status status="PASS" starttime="20241130 11:19:44.911" endtime="20241130 11:19:44.911"/>
+</kw>
+<status status="PASS" starttime="20241130 11:19:44.910" endtime="20241130 11:19:44.911"/>
+</test>
+<status status="PASS" starttime="20241130 11:19:44.909" endtime="20241130 11:19:44.914"/>
+</suite>
+<suite id="s1-s2" name="Test" source="/Users/mkorpela/workspace/pabot/test.robot">
+<test id="s1-s2-t1" name="Testing" line="5">
+<kw name="Log" library="BuiltIn">
+<msg timestamp="20241130 11:19:44.913" level="INFO">hello</msg>
+<arg>hello</arg>
+<doc>Logs the given message with the given level.</doc>
+<status status="PASS" starttime="20241130 11:19:44.913" endtime="20241130 11:19:44.913"/>
+</kw>
+<status status="PASS" starttime="20241130 11:19:44.913" endtime="20241130 11:19:44.913"/>
+</test>
+<status status="PASS" starttime="20241130 11:19:44.912" endtime="20241130 11:19:44.914"/>
+</suite>
+<doc>[https://pabot.org/?ref=log|Pabot] result from 1 executions.</doc>
+<status status="PASS" starttime="20241130 11:19:44.893" endtime="20241130 11:19:44.914"/>
+</suite>
+<statistics>
+<total>
+<stat pass="2" fail="0" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat pass="2" fail="0" skip="0" id="s1" name="Suites">Suites</stat>
+<stat pass="1" fail="0" skip="0" id="s1-s1" name="Test">Suites.Test</stat>
+<stat pass="1" fail="0" skip="0" id="s1-s2" name="Test">Suites.Test</stat>
+</suite>
+</statistics>
+<errors>
+<msg timestamp="20241130 11:19:44.910" level="ERROR">Error in file '/Users/mkorpela/workspace/pabot/test.robot' on line 2: Library 'Easter' expected 0 arguments, got 1.</msg>
+<msg timestamp="20241130 11:19:44.913" level="ERROR">Error in file '/Users/mkorpela/workspace/pabot/test.robot' on line 2: Library 'Easter' expected 0 arguments, got 1.</msg>
+</errors>
+</robot>""")
+            
+        self._options['outputdir'] = dtemp
+        if ROBOT_VERSION >= "7.0":
+            self._options['legacyoutput'] = True
+        try:
+            output = pabot._merge_one_run(
+                outs_dir=dtemp,
+                options=self._options,
+                tests_root_name='Test',  # Should match suite name in XML
+                stats={
+                    "total": 0,
+                    "passed": 0,
+                    "failed": 0,
+                    "skipped": 0,
+                },
+                copied_artifacts=[],
+                outputfile='merged_output.xml')  # Use different name to avoid confusion
+            self.assertTrue(output, "merge_one_run returned empty string")  # Verify we got output path
+            with open(output, 'r') as f:
+                content = f.read()
+                if ROBOT_VERSION >= "6.1":
+                    self.assertIn('schemaversion="4"', content)
+                elif ROBOT_VERSION >= "5.0":
+                    self.assertIn('schemaversion="3"', content)
+                elif ROBOT_VERSION >= "4.0":
+                    self.assertIn('schemaversion="2"', content)
+            if ROBOT_VERSION >= "7.0":
+                del self._options['legacyoutput']
+                output = pabot._merge_one_run(
+                    outs_dir=dtemp,
+                    options=self._options,
+                    tests_root_name='Test',  # Should match suite name in XML
+                    stats={
+                        "total": 0,
+                        "passed": 0,
+                        "failed": 0,
+                        "skipped": 0,
+                    },
+                    copied_artifacts=[],
+                    outputfile='merged_2_output.xml')  # Use different name to avoid confusion
+                self.assertTrue(output, "merge_one_run returned empty string")  # Verify we got output path
+                with open(output, 'r') as f:
+                    content = f.read()
+                self.assertIn('schemaversion="5"', content)
+                self.assertNotIn('schemaversion="4"', content)
+        finally:
+            shutil.rmtree(dtemp) 
 
 
 if __name__ == "__main__":
