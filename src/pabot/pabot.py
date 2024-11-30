@@ -1509,7 +1509,10 @@ def _merge_one_run(
         files, options, tests_root_name, copied_artifacts, invalid_xml_callback
     )
     _update_stats(resu, stats)
-    resu.save(output_path)
+    if ROBOT_VERSION >= "7.0" and options.get("legacyoutput"):
+        resu.save(output_path, legacy_output=True)
+    else:
+        resu.save(output_path)
     return output_path
 
 
@@ -1776,7 +1779,7 @@ def _create_execution_items_for_dry_run(
         chunk_size = (
             round(len(items) / processes_count)
             if len(items) > processes_count
-            else len(items)
+            else 1
         )
         chunked_items = list(_chunk_items(items, chunk_size))
         _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(chunked_items)
@@ -1977,10 +1980,10 @@ def main_program(args):
 def _group_suites(outs_dir, datasources, options, pabot_args):
     suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
     _verify_depends(suite_names)
-    shard_suites = solve_shard_suites(suite_names, pabot_args)
-    ordered_suites = _preserve_order(shard_suites, pabot_args.get("ordering"))
+    ordered_suites = _preserve_order(suite_names, pabot_args.get("ordering"))
+    shard_suites = solve_shard_suites(ordered_suites, pabot_args)
     grouped_suites = (
-        _chunked_suite_names(ordered_suites, pabot_args["processes"])
+        _chunked_suite_names(shard_suites, pabot_args["processes"])
         if pabot_args["chunk"]
         else _group_by_wait(_group_by_groups(ordered_suites))
     )
