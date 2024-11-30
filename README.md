@@ -62,7 +62,7 @@ There are several ways you can help in improving this tool:
            --resourcefile file|--argumentfile[num] file|--suitesfrom file] 
           [robot options] [path ...]
 
-Supports all [Robot Framework command line options](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options) and also following options (these must be before RF options):
+Supports all [Robot Framework command line options](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options) and also following pabot options:
 
 --verbose     
   more output from the parallel execution
