@@ -1302,7 +1302,7 @@ class PabotTests(unittest.TestCase):
             self.assertTrue(output, "merge_one_run returned empty string")  # Verify we got output path
             with open(output, 'r') as f:
                 content = f.read()
-                if ROBOT_VERSION >= "6.0":
+                if ROBOT_VERSION >= "7.0":
                     self.assertIn('schemaversion="4"', content)
                 elif ROBOT_VERSION >= "5.0":
                     self.assertIn('schemaversion="3"', content)
