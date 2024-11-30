@@ -2019,17 +2019,17 @@ def _verify_depends(suite_names):
         )
     )
     if suites_with_depends != suites_with_found_dependencies:
-        raise Exception("There are unmet dependencies using #DEPENDS")
+        raise DataError("Invalid test configuration: Some test suites have dependencies (#DEPENDS) that cannot be found.")
     suites_with_circular_dependencies = list(
         filter(lambda suite: suite.depends == suite.name, suites_with_depends)
     )
     if suites_with_circular_dependencies:
-        raise Exception("There are suites with circular dependencies using #DEPENDS")
+        raise DataError("Invalid test configuration: Test suites cannot depend on themselves.")
     grouped_suites = list(
         filter(lambda suite: isinstance(suite, GroupItem), suite_names)
     )
     if grouped_suites and suites_with_depends:
-        raise Exception("#DEPENDS and grouped suites are incompatible")
+        raise DataError("Invalid test configuration: Cannot use both #DEPENDS and grouped suites.")
 
 
 def _group_by_depend(suite_names):
@@ -2057,7 +2057,7 @@ def _group_by_depend(suite_names):
         dependency_tree += [dependent_on_last_stage]
     flattened_dependency_tree = sum(dependency_tree, [])
     if len(flattened_dependency_tree) != len(runnable_suites):
-        raise Exception("There are circular or unmet dependencies using #DEPENDS")
+        raise DataError("Invalid test configuration: Circular or unmet dependencies detected between test suites. Please check your #DEPENDS definitions.")
     return dependency_tree
 
 
