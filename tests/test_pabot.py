@@ -1332,7 +1332,7 @@ class PabotTests(unittest.TestCase):
     
     def test_parse_args_mixed_order(self):
         options, datasources, pabot_args, options_for_subprocesses = arguments.parse_args([
-            "--legacyoutput",
+            "--exitonfailure",
             "--processes", "12", 
             "--outputdir", "mydir",
             "--verbose",
@@ -1343,7 +1343,7 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(pabot_args["verbose"], True)
         self.assertEqual(pabot_args["pabotlib"], True)
         self.assertEqual(options["outputdir"], "mydir")
-        self.assertEqual(options["legacyoutput"], True)
+        self.assertEqual(options["exitonfailure"], True)
         self.assertEqual(datasources, ["suite"])
 
     def test_parse_args_error_handling(self):
