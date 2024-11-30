@@ -89,9 +89,8 @@ class GroupItem(ExecutionItem):
         self._items.append(item)
 
     def modify_options_for_executor(self, options):
+        options[self._element_type] = []
         for item in self._items:
-            if item.type not in options:
-                options[item.type] = []
             opts = {}
             item.modify_options_for_executor(opts)
             options[item.type].append(opts[item.type])
