@@ -90,9 +90,9 @@ between parallel test executions.
   Disable the PabotLib remote server if you don't need locking or resource distribution features.
 
 --pabotlibhost   [HOSTNAME]          
-  Host name of the PabotLib remote server (default is 127.0.0.1)
-  If used with --pabotlib option, will change the host listen address of the created remote server (see https://github.com/robotframework/PythonRemoteServer)
-  If used without the --pabotlib option, will connect to already running instance of the PabotLib remote server in the given host. The remote server can be also started and executed separately from pabot instances:
+  Connect to an already running instance of the PabotLib remote server at the given host
+  (disables the local PabotLib server start). 
+  The remote server can be also started and executed separately from pabot instances:
   
       python -m pabot.pabotlib <path_to_resourcefile> <host> <port>
       python -m pabot.pabotlib resource.txt 192.168.1.123 8271
