@@ -86,7 +86,6 @@ class PabotTests(unittest.TestCase):
                 "--resourcefile",
                 "resourcefile.ini",
                 "--testlevelsplit",
-                "--pabotlib",
                 "--pabotlibhost",
                 "123.123.233.123",
                 "--pabotlibport",
@@ -105,7 +104,7 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(pabot_args["command"], ["my_own_command.sh"])
         self.assertEqual(pabot_args["processes"], 12)
         self.assertEqual(pabot_args["resourcefile"], "resourcefile.ini")
-        self.assertEqual(pabot_args["pabotlib"], True)
+        self.assertEqual(pabot_args["pabotlib"], False)
         self.assertEqual(pabot_args["pabotlibhost"], "123.123.233.123")
         self.assertEqual(pabot_args["pabotlibport"], 4562)
         self.assertEqual(pabot_args["suitesfrom"], "some.xml")
