@@ -1982,7 +1982,7 @@ def _group_suites(outs_dir, datasources, options, pabot_args):
     grouped_suites = (
         _chunked_suite_names(shard_suites, pabot_args["processes"])
         if pabot_args["chunk"]
-        else _group_by_wait(_group_by_groups(ordered_suites))
+        else _group_by_wait(_group_by_groups(shard_suites))
     )
     grouped_by_depend = _all_grouped_suites_by_depend(grouped_suites)
     return grouped_by_depend
