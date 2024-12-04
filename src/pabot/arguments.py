@@ -164,6 +164,9 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                 value = value_args[arg_name](args[i + 1])
                 if arg_name == "shard":
                     pabot_args["shardindex"], pabot_args["shardcount"] = value
+                elif arg_name == "pabotlibhost":
+                    pabot_args["pabotlib"] = False
+                    pabot_args[arg_name] = value
                 else:
                     pabot_args[arg_name] = value
                 i += 2
@@ -188,6 +191,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         raise DataError("Cannot use both --pabotlib and --no-pabotlib options together")
 
     pabot_args["argumentfiles"] = argumentfiles
+
     return remaining_args, pabot_args
 
 
