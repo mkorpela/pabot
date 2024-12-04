@@ -96,7 +96,10 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"Invalid test configuration: Circular or unmet dependencies detected between test suites", stdout)
+        self.assertIn(
+            b"Invalid test configuration: Circular or unmet dependencies detected between test suites",
+            stdout,
+        )
 
     def test_unmet_dependency(self):
         stdout, stderr = self._run_tests_with(
@@ -107,7 +110,10 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"Invalid test configuration: Circular or unmet dependencies detected between test suites. Please check your #DEPENDS definitions.", stdout)
+        self.assertIn(
+            b"Invalid test configuration: Circular or unmet dependencies detected between test suites. Please check your #DEPENDS definitions.",
+            stdout,
+        )
 
     def test_same_reference(self):
         stdout, stderr = self._run_tests_with(
@@ -118,7 +124,10 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"Invalid test configuration: Circular or unmet dependencies detected between test suites. Please check your #DEPENDS definitions.", stdout)
+        self.assertIn(
+            b"Invalid test configuration: Circular or unmet dependencies detected between test suites. Please check your #DEPENDS definitions.",
+            stdout,
+        )
 
     def test_wait(self):
         stdout, stderr = self._run_tests_with(
@@ -130,4 +139,7 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"Invalid test configuration: Circular or unmet dependencies detected between test suites", stdout)
+        self.assertIn(
+            b"Invalid test configuration: Circular or unmet dependencies detected between test suites",
+            stdout,
+        )

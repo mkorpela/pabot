@@ -93,12 +93,16 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
     }
     # Explicitly define argument types for validation
     flag_args = {
-        "verbose", "help", "testlevelsplit", "pabotlib", 
-        "artifactsinsubfolders", "chunk"
+        "verbose",
+        "help",
+        "testlevelsplit",
+        "pabotlib",
+        "artifactsinsubfolders",
+        "chunk",
     }
     value_args = {
         "hive": str,
-        "processes": lambda x: int(x) if x != 'all' else None,
+        "processes": lambda x: int(x) if x != "all" else None,
         "resourcefile": str,
         "pabotlibhost": str,
         "pabotlibport": int,
@@ -106,7 +110,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "ordering": _parse_ordering,
         "suitesfrom": str,
         "artifacts": lambda x: x.split(","),
-        "shard": _parse_shard
+        "shard": _parse_shard,
     }
 
     argumentfiles = []
@@ -119,11 +123,11 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
 
     while i < len(args):
         arg = args[i]
-        if not arg.startswith('--'):
+        if not arg.startswith("--"):
             remaining_args.append(arg)
             i += 1
             continue
-            
+
         arg_name = arg[2:]  # Strip '--'
 
         if arg_name == "no-pabotlib":
@@ -135,23 +139,23 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
             saw_pabotlib_flag = True
             args = args[1:]
             continue
-        
+
         # Special case for command
         if arg_name == "command":
             try:
                 end_index = args.index("--end-command", i)
-                pabot_args["command"] = args[i+1:end_index]
+                pabot_args["command"] = args[i + 1 : end_index]
                 i = end_index + 1
                 continue
             except ValueError:
                 raise DataError("--command requires matching --end-command")
-                
+
         # Handle flag arguments
         if arg_name in flag_args:
             pabot_args[arg_name] = True
             i += 1
             continue
-            
+
         # Handle value arguments
         if arg_name in value_args:
             if i + 1 >= len(args):
@@ -166,7 +170,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                 continue
             except (ValueError, TypeError) as e:
                 raise DataError(f"Invalid value for --{arg_name}: {args[i + 1]}")
-                
+
         # Handle argument files
         match = ARGSMATCHER.match(arg)
         if match:
@@ -175,14 +179,14 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
             argumentfiles.append((match.group(1), args[i + 1]))
             i += 2
             continue
-            
+
         # If we get here, it's a non-pabot argument
         remaining_args.append(arg)
         i += 1
-    
+
     if saw_pabotlib_flag and saw_no_pabotlib:
         raise DataError("Cannot use both --pabotlib and --no-pabotlib options together")
-    
+
     pabot_args["argumentfiles"] = argumentfiles
     return remaining_args, pabot_args
 

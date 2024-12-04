@@ -34,7 +34,6 @@ def get(sock) -> str:
 
 
 class Message:
-
     _type: Optional[int]
     _length: int
     _data: Optional[str]

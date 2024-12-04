@@ -11,7 +11,6 @@ from .robotremoteserver import RemoteLibraryFactory
 
 
 class SharedLibrary(object):
-
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
 
     def __init__(self, name, args=None):
@@ -26,8 +25,10 @@ class SharedLibrary(object):
                 "Not currently running pabot. Importing library for this process."
             )
             self._lib = RemoteLibraryFactory(
-                TestLibrary.from_name(name, args=args, variables=None, create_keywords=True).instance 
-                if ROBOT_VERSION >= "7.0" 
+                TestLibrary.from_name(
+                    name, args=args, variables=None, create_keywords=True
+                ).instance
+                if ROBOT_VERSION >= "7.0"
                 else TestLibrary(name, args=args).get_instance()
             )
             return
@@ -36,7 +37,9 @@ class SharedLibrary(object):
         remotelib = Remote(uri) if uri else None
         if remotelib:
             try:
-                port = remotelib.run_keyword("import_shared_library", [name], {"args": args})
+                port = remotelib.run_keyword(
+                    "import_shared_library", [name], {"args": args}
+                )
             except RuntimeError:
                 logger.error("No connection - is pabot called with --pabotlib option?")
                 raise

@@ -1226,16 +1226,17 @@ class PabotTests(unittest.TestCase):
             file_path = os.path.join(_opts["outputdir"], f)
             self.assertTrue(os.path.isfile(file_path), "file not copied: {}".format(f))
             os.remove(file_path)  # clean up
-    
+
     def test_merge_one_run_with_and_without_legacyoutput(self):
         dtemp = tempfile.mkdtemp()
         # Create the same directory structure as pabot
-        test_outputs = os.path.join(dtemp, 'outputs')
+        test_outputs = os.path.join(dtemp, "outputs")
         os.makedirs(test_outputs)
-        test_output = os.path.join(test_outputs, 'output.xml')
+        test_output = os.path.join(test_outputs, "output.xml")
         # Create a minimal but valid output.xml
-        with open(test_output, 'w') as f:
-            f.write("""<?xml version="1.0" encoding="UTF-8"?>
+        with open(test_output, "w") as f:
+            f.write(
+                """<?xml version="1.0" encoding="UTF-8"?>
 <robot generator="Rebot 7.1.1 (Python 3.11.7 on darwin)" generated="20241130 11:19:45.235" rpa="false" schemaversion="4">
 <suite id="s1" name="Suites">
 <suite id="s1-s1" name="Test" source="/Users/mkorpela/workspace/pabot/test.robot">
@@ -1281,16 +1282,17 @@ class PabotTests(unittest.TestCase):
 <msg timestamp="20241130 11:19:44.910" level="ERROR">Error in file '/Users/mkorpela/workspace/pabot/test.robot' on line 2: Library 'Easter' expected 0 arguments, got 1.</msg>
 <msg timestamp="20241130 11:19:44.913" level="ERROR">Error in file '/Users/mkorpela/workspace/pabot/test.robot' on line 2: Library 'Easter' expected 0 arguments, got 1.</msg>
 </errors>
-</robot>""")
-            
-        self._options['outputdir'] = dtemp
+</robot>"""
+            )
+
+        self._options["outputdir"] = dtemp
         if ROBOT_VERSION >= "7.0":
-            self._options['legacyoutput'] = True
+            self._options["legacyoutput"] = True
         try:
             output = pabot._merge_one_run(
                 outs_dir=dtemp,
                 options=self._options,
-                tests_root_name='Test',  # Should match suite name in XML
+                tests_root_name="Test",  # Should match suite name in XML
                 stats={
                     "total": 0,
                     "passed": 0,
@@ -1298,9 +1300,12 @@ class PabotTests(unittest.TestCase):
                     "skipped": 0,
                 },
                 copied_artifacts=[],
-                outputfile='merged_output.xml')  # Use different name to avoid confusion
-            self.assertTrue(output, "merge_one_run returned empty string")  # Verify we got output path
-            with open(output, 'r') as f:
+                outputfile="merged_output.xml",
+            )  # Use different name to avoid confusion
+            self.assertTrue(
+                output, "merge_one_run returned empty string"
+            )  # Verify we got output path
+            with open(output, "r") as f:
                 content = f.read()
                 if ROBOT_VERSION >= "6.1":
                     self.assertIn('schemaversion="4"', content)
@@ -1309,11 +1314,11 @@ class PabotTests(unittest.TestCase):
                 elif ROBOT_VERSION >= "4.0":
                     self.assertIn('schemaversion="2"', content)
             if ROBOT_VERSION >= "7.0":
-                del self._options['legacyoutput']
+                del self._options["legacyoutput"]
                 output = pabot._merge_one_run(
                     outs_dir=dtemp,
                     options=self._options,
-                    tests_root_name='Test',  # Should match suite name in XML
+                    tests_root_name="Test",  # Should match suite name in XML
                     stats={
                         "total": 0,
                         "passed": 0,
@@ -1321,24 +1326,36 @@ class PabotTests(unittest.TestCase):
                         "skipped": 0,
                     },
                     copied_artifacts=[],
-                    outputfile='merged_2_output.xml')  # Use different name to avoid confusion
-                self.assertTrue(output, "merge_one_run returned empty string")  # Verify we got output path
-                with open(output, 'r') as f:
+                    outputfile="merged_2_output.xml",
+                )  # Use different name to avoid confusion
+                self.assertTrue(
+                    output, "merge_one_run returned empty string"
+                )  # Verify we got output path
+                with open(output, "r") as f:
                     content = f.read()
                 self.assertIn('schemaversion="5"', content)
                 self.assertNotIn('schemaversion="4"', content)
         finally:
-            shutil.rmtree(dtemp) 
-    
+            shutil.rmtree(dtemp)
+
     def test_parse_args_mixed_order(self):
-        options, datasources, pabot_args, options_for_subprocesses = arguments.parse_args([
-            "--exitonfailure",
-            "--processes", "12", 
-            "--outputdir", "mydir",
-            "--verbose",
-            "--pabotlib",
-            "suite"
-        ])
+        (
+            options,
+            datasources,
+            pabot_args,
+            options_for_subprocesses,
+        ) = arguments.parse_args(
+            [
+                "--exitonfailure",
+                "--processes",
+                "12",
+                "--outputdir",
+                "mydir",
+                "--verbose",
+                "--pabotlib",
+                "suite",
+            ]
+        )
         self.assertEqual(pabot_args["processes"], 12)
         self.assertEqual(pabot_args["verbose"], True)
         self.assertEqual(pabot_args["pabotlib"], True)
@@ -1360,15 +1377,17 @@ class PabotTests(unittest.TestCase):
         self.assertIn("requires matching --end-command", str(cm.exception))
 
     def test_parse_args_command_with_pabot_args(self):
-        options, datasources, pabot_args, _ = arguments.parse_args([
-            "--command",
-            "script.sh",
-            "--processes",
-            "5",
-            "--end-command",
-            "--verbose",
-            "suite"
-        ])
+        options, datasources, pabot_args, _ = arguments.parse_args(
+            [
+                "--command",
+                "script.sh",
+                "--processes",
+                "5",
+                "--end-command",
+                "--verbose",
+                "suite",
+            ]
+        )
         self.assertEqual(pabot_args["command"], ["script.sh", "--processes", "5"])
         self.assertEqual(pabot_args["verbose"], True)
 
@@ -1390,7 +1409,10 @@ class PabotTests(unittest.TestCase):
     def test_conflicting_pabotlib_options_raise_error(self):
         with self.assertRaises(DataError) as context:
             arguments.parse_args(["--pabotlib", "--no-pabotlib", "suite"])
-        self.assertIn("Cannot use both --pabotlib and --no-pabotlib", str(context.exception))
+        self.assertIn(
+            "Cannot use both --pabotlib and --no-pabotlib", str(context.exception)
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

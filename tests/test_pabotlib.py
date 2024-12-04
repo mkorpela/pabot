@@ -28,7 +28,7 @@ class PabotLibTests(unittest.TestCase):
     def test_shared_library_with_args(self):
         try:
             self._create_ctx()  # Set up Robot Framework context
-            lib = SharedLibrary("mylib", ["2"]) 
+            lib = SharedLibrary("mylib", ["2"])
             self.assertIsNotNone(lib)
             lib._remote = None
             lib._lib.run_keyword("mykeyword", ["arg"], {})

@@ -8,7 +8,6 @@ from robot.utils import PY2, is_unicode
 
 @total_ordering
 class ExecutionItem(object):
-
     isWait = False
     type = None  # type: str
     name = None  # type: str
@@ -51,7 +50,6 @@ class ExecutionItem(object):
 
 
 class HivedItem(ExecutionItem):
-
     type = "hived"
 
     def __init__(self, item, hive):
@@ -67,7 +65,6 @@ class HivedItem(ExecutionItem):
 
 
 class GroupItem(ExecutionItem):
-
     type = "group"
 
     def __init__(self):
@@ -128,7 +125,6 @@ class RunnableItem(ExecutionItem):
 
 
 class SuiteItem(RunnableItem):
-
     type = "suite"
 
     def __init__(self, name, tests=None, suites=None, dynamictests=None):
@@ -163,9 +159,9 @@ class SuiteItem(RunnableItem):
             return False
         if self.name == other.name:
             return True
-        if other.name.endswith('.'+self.name):
+        if other.name.endswith("." + self.name):
             return True
-        if self.name.endswith('.'+other.name):
+        if self.name.endswith("." + other.name):
             return True
         return False
 
@@ -178,7 +174,6 @@ class SuiteItem(RunnableItem):
 
 
 class TestItem(RunnableItem):
-
     type = "test"
 
     def __init__(self, name):
@@ -229,7 +224,6 @@ class DynamicSuiteItem(SuiteItem):
 
 
 class DynamicTestItem(ExecutionItem):
-
     type = "dynamictest"
 
     def __init__(self, name, suite):
@@ -258,7 +252,6 @@ class DynamicTestItem(ExecutionItem):
 
 
 class WaitItem(ExecutionItem):
-
     type = "wait"
     isWait = True
 
@@ -270,7 +263,6 @@ class WaitItem(ExecutionItem):
 
 
 class GroupStartItem(ExecutionItem):
-
     type = "group"
 
     def __init__(self):
@@ -281,7 +273,6 @@ class GroupStartItem(ExecutionItem):
 
 
 class GroupEndItem(ExecutionItem):
-
     type = "group"
 
     def __init__(self):
@@ -292,7 +283,6 @@ class GroupEndItem(ExecutionItem):
 
 
 class IncludeItem(ExecutionItem):
-
     type = "include"
 
     def __init__(self, tag):
@@ -309,7 +299,6 @@ class IncludeItem(ExecutionItem):
 
 
 class SuiteItems(ExecutionItem):
-
     type = "suite"
 
     def __init__(self, suites):
