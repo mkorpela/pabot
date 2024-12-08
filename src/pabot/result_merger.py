@@ -150,6 +150,8 @@ class ResultMerger(SuiteVisitor):
 
     def merge_time(self, suite):
         cur = self.current
+        if ROBOT_VERSION >= "7.0":
+            cur.elapsed_time = None
         cur.endtime = max([cur.endtime, suite.endtime])
         cur.starttime = min([cur.starttime, suite.starttime])
 
