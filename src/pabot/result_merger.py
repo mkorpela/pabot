@@ -35,7 +35,7 @@ from robot.model import SuiteVisitor
 
 
 class ResultMerger(SuiteVisitor):
-    def __init__(self, result, tests_root_name, out_dir, copied_artifacts):
+    def __init__(self, result, tests_root_name, out_dir, copied_artifacts, legacy_output):
         self.root = result.suite
         self.errors = result.errors
         self.current = None
@@ -43,6 +43,7 @@ class ResultMerger(SuiteVisitor):
         self._tests_root_name = tests_root_name
         self._prefix = ""
         self._out_dir = out_dir
+        self.legacy_output = legacy_output
 
         self._patterns = []
         regexp_template = (
@@ -150,7 +151,7 @@ class ResultMerger(SuiteVisitor):
 
     def merge_time(self, suite):
         cur = self.current
-        if ROBOT_VERSION >= "7.0":
+        if ROBOT_VERSION >= "7.0" and not self.legacy_output:
             cur.elapsed_time = None
         cur.endtime = max([cur.endtime, suite.endtime])
         cur.starttime = min([cur.starttime, suite.starttime])
@@ -224,13 +225,14 @@ def merge_groups(
     invalid_xml_callback,
     out_dir,
     copied_artifacts,
+    legacy_output
 ):
     merged = []
     for group in group_by_root(
         results, critical_tags, non_critical_tags, invalid_xml_callback
     ).values():
         base = group[0]
-        merger = ResultMerger(base, tests_root_name, out_dir, copied_artifacts)
+        merger = ResultMerger(base, tests_root_name, out_dir, copied_artifacts, legacy_output)
         for out in group:
             merger.merge(out)
         merged.append(base)
@@ -261,6 +263,7 @@ def merge(
         invalid_xml_callback,
         settings.output_directory,
         copied_artifacts,
+        rebot_options.get('legacyoutput')
     )
     if len(merged) == 1:
         if not merged[0].suite.doc:

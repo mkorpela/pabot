@@ -66,8 +66,9 @@ class ResultMergerTests(unittest.TestCase):
         self.assertEqual(result_merger.prefix("hui.txt"), "")
 
     def test_elapsed_time(self):
+        # output.xml generated based on robotframework >= 7.0 without --legacyoutput option
         if ROBOT_VERSION >= "7.0":
-            result = result_merger.merge(
+            result_1 = result_merger.merge(
                 [
                     "tests/outputs/output_with_latest_robot/first.xml",
                     "tests/outputs/output_with_latest_robot/second.xml",
@@ -77,13 +78,32 @@ class ResultMergerTests(unittest.TestCase):
                 "root",
                 [],
             )
-            visitor = ResultStats()
-            result.visit(visitor)
-            self.assertEqual("Tmp", result.suite.name)
-            self.assertEqual(1573, result.suite.elapsedtime)
-            self.assertEqual("Tests", result.suite.suites[0].name)
-            self.assertEqual(1474, result.suite.suites[0].elapsedtime)
+            visitor_1 = ResultStats()
+            result_1.visit(visitor_1)
+            self.assertEqual("Tmp", result_1.suite.name)
+            self.assertEqual(1573, result_1.suite.elapsedtime)
+            self.assertEqual("Tests", result_1.suite.suites[0].name)
+            self.assertEqual(1474, result_1.suite.suites[0].elapsedtime)
+
+            # output.xml generated based on robotframework >=7.0 with --legacyoutput option
+            result_2 = result_merger.merge(
+                [
+                    "tests/outputs/first.xml",
+                    "tests/outputs/second.xml",
+                    "tests/outputs/third.xml",
+                ],
+                {'legacyoutput': True},
+                "root",
+                [],
+            )
+            visitor_2 = ResultStats()
+            result_2.visit(visitor_2)
+            self.assertEqual("Tmp", result_2.suite.name)
+            self.assertEqual(1036, result_2.suite.elapsedtime)
+            self.assertEqual("Tests", result_2.suite.suites[0].name)
+            self.assertEqual(1010, result_2.suite.suites[0].elapsedtime)
         else:
+            # output.xml generated based on robotframework < 7.0
             result = result_merger.merge(
                 [
                     "tests/outputs/first.xml",
@@ -93,6 +113,7 @@ class ResultMergerTests(unittest.TestCase):
                 {},
                 "root",
                 [],
+                True
             )
             visitor = ResultStats()
             result.visit(visitor)
