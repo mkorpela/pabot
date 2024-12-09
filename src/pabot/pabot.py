@@ -1197,13 +1197,16 @@ def generate_suite_names_with_builder(outs_dir, datasources, options):
         )
 
     suite = builder.build(*datasources)
-    settings.rpa = builder.rpa
-    suite.configure(**settings.suite_config)
+
     if settings.pre_run_modifiers:
         _write.error = _write.warn = _write.info = _write.debug = _write.trace = _write
         suite.visit(
             ModelModifier(settings.pre_run_modifiers, settings.run_empty_suite, _write)
         )
+
+    settings.rpa = builder.rpa
+    suite.configure(**settings.suite_config)
+
     all_suites = (
         get_all_suites_from_main_suite(suite.suites) if suite.suites else [suite]
     )
