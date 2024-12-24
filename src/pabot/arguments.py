@@ -80,7 +80,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "verbose": False,
         "help": False,
         "testlevelsplit": False,
-        "pabotlib": False,
+        "pabotlib": True,
         "pabotlibhost": "127.0.0.1",
         "pabotlibport": 8270,
         "processes": _processes_count(),
@@ -92,108 +92,108 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "chunk": False,
         "_testdependencies": False,
     }
+    # Explicitly define argument types for validation
+    flag_args = {
+        "verbose",
+        "help",
+        "testlevelsplit",
+        "pabotlib",
+        "artifactsinsubfolders",
+        "chunk",
+    }
+    value_args = {
+        "hive": str,
+        "processes": lambda x: int(x) if x != "all" else None,
+        "resourcefile": str,
+        "pabotlibhost": str,
+        "pabotlibport": int,
+        "processtimeout": int,
+        "ordering": _parse_ordering,
+        "suitesfrom": str,
+        "artifacts": lambda x: x.split(","),
+        "shard": _parse_shard,
+    }
+
     argumentfiles = []
-    while args and (
-        args[0]
-        in [
-            "--" + param
-            for param in [
-                "hive",
-                "command",
-                "processes",
-                "verbose",
-                "resourcefile",
-                "testlevelsplit",
-                "pabotlib",
-                "pabotlibhost",
-                "pabotlibport",
-                "processtimeout",
-                "ordering",
-                "suitesfrom",
-                "artifacts",
-                "artifactsinsubfolders",
-                "help",
-                "shard",
-                "chunk",
-            ]
-        ]
-        or ARGSMATCHER.match(args[0])
-    ):
-        if args[0] == "--hive":
-            pabot_args["hive"] = args[1]
-            args = args[2:]
+    remaining_args = []
+    i = 0
+
+    # Track conflicting options during parsing
+    saw_pabotlib_flag = False
+    saw_no_pabotlib = False
+
+    while i < len(args):
+        arg = args[i]
+        if not arg.startswith("--"):
+            remaining_args.append(arg)
+            i += 1
             continue
-        if args[0] == "--command":
-            end_index = args.index("--end-command")
-            pabot_args["command"] = args[1:end_index]
-            args = args[end_index + 1 :]
-            continue
-        if args[0] == "--processes":
-            pabot_args["processes"] = int(args[1]) if args[1] != 'all' else None
-            args = args[2:]
-            continue
-        if args[0] == "--verbose":
-            pabot_args["verbose"] = True
+
+        arg_name = arg[2:]  # Strip '--'
+
+        if arg_name == "no-pabotlib":
+            saw_no_pabotlib = True
+            pabot_args["pabotlib"] = False  # Just set the main flag
             args = args[1:]
             continue
-        if args[0] == "--chunk":
-            pabot_args["chunk"] = True
+        if arg_name == "pabotlib":
+            saw_pabotlib_flag = True
             args = args[1:]
             continue
-        if args[0] == "--resourcefile":
-            pabot_args["resourcefile"] = args[1]
-            args = args[2:]
+
+        # Special case for command
+        if arg_name == "command":
+            try:
+                end_index = args.index("--end-command", i)
+                pabot_args["command"] = args[i + 1 : end_index]
+                i = end_index + 1
+                continue
+            except ValueError:
+                raise DataError("--command requires matching --end-command")
+
+        # Handle flag arguments
+        if arg_name in flag_args:
+            pabot_args[arg_name] = True
+            i += 1
             continue
-        if args[0] == "--pabotlib":
-            pabot_args["pabotlib"] = True
-            args = args[1:]
-            continue
-        if args[0] == "--ordering":
-            pabot_args["ordering"] = _parse_ordering(args[1])
-            args = args[2:]
-            continue
-        if args[0] == "--testlevelsplit":
-            pabot_args["testlevelsplit"] = True
-            args = args[1:]
-            continue
-        if args[0] == "--pabotlibhost":
-            pabot_args["pabotlibhost"] = args[1]
-            args = args[2:]
-            continue
-        if args[0] == "--pabotlibport":
-            pabot_args["pabotlibport"] = int(args[1])
-            args = args[2:]
-            continue
-        if args[0] == "--processtimeout":
-            pabot_args["processtimeout"] = int(args[1])
-            args = args[2:]
-            continue
-        if args[0] == "--suitesfrom":
-            pabot_args["suitesfrom"] = args[1]
-            args = args[2:]
-            continue
-        if args[0] == "--artifacts":
-            pabot_args["artifacts"] = args[1].split(",")
-            args = args[2:]
-            continue
-        if args[0] == "--artifactsinsubfolders":
-            pabot_args["artifactsinsubfolders"] = True
-            args = args[1:]
-            continue
-        if args[0] == "--shard":
-            pabot_args["shardindex"], pabot_args["shardcount"] = _parse_shard(args[1])
-            args = args[2:]
-            continue
-        match = ARGSMATCHER.match(args[0])
+
+        # Handle value arguments
+        if arg_name in value_args:
+            if i + 1 >= len(args):
+                raise DataError(f"--{arg_name} requires a value")
+            try:
+                value = value_args[arg_name](args[i + 1])
+                if arg_name == "shard":
+                    pabot_args["shardindex"], pabot_args["shardcount"] = value
+                elif arg_name == "pabotlibhost":
+                    pabot_args["pabotlib"] = False
+                    pabot_args[arg_name] = value
+                else:
+                    pabot_args[arg_name] = value
+                i += 2
+                continue
+            except (ValueError, TypeError) as e:
+                raise DataError(f"Invalid value for --{arg_name}: {args[i + 1]}")
+
+        # Handle argument files
+        match = ARGSMATCHER.match(arg)
         if match:
-            argumentfiles += [(match.group(1), args[1])]
-            args = args[2:]
+            if i + 1 >= len(args):
+                raise DataError(f"{arg} requires a value")
+            argumentfiles.append((match.group(1), args[i + 1]))
+            i += 2
             continue
-        if args and args[0] == "--help":
-            pabot_args["help"] = True
-            args = args[1:]
+
+        # If we get here, it's a non-pabot argument
+        remaining_args.append(arg)
+        i += 1
+
+    if saw_pabotlib_flag and saw_no_pabotlib:
+        raise DataError("Cannot use both --pabotlib and --no-pabotlib options together")
+
     pabot_args["argumentfiles"] = argumentfiles
-    return args, pabot_args
+
+    return remaining_args, pabot_args
 
 
 def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]

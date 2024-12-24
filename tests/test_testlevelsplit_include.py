@@ -7,14 +7,14 @@ import shutil
 import subprocess
 
 
-
 class PabotPassJsonUsingVariableOptionTests(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
         file_path = f"{self.tmpdir}/test.robot"
         with open(file_path, "w") as robot_file:
             robot_file.write(
-                textwrap.dedent("""
+                textwrap.dedent(
+                    """
 *** Test Cases ***
 Testing 1
    [Tags]  tag
@@ -23,8 +23,10 @@ Testing 1
 Testing 2
    [Tags]  tag
    Log  world
-"""))
-        
+"""
+                )
+            )
+
         process = subprocess.Popen(
             [
                 sys.executable,

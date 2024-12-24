@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Robot 7.0.1 (Python 3.11.1 on darwin)" generated="2024-12-06T09:41:12.426434" rpa="false" schemaversion="5">
+<suite id="s1" name="Tmp" source="/Users/mkorpela/workspace/pabot/tmp">
+<suite id="s1-s1" name="Tests" source="/Users/mkorpela/workspace/pabot/tmp/tests.robot">
+<test id="s1-s1-t1" name="Third" line="14">
+<kw name="Log" owner="BuiltIn">
+<msg time="2024-12-06T09:41:12.584151" level="INFO">this is third</msg>
+<arg>this is third</arg>
+<doc>Logs the given message with the given level.</doc>
+<status status="PASS" start="2024-12-06T09:41:12.583145" elapsed="0.001006"/>
+</kw>
+<kw name="Sleep" owner="BuiltIn">
+<msg time="2024-12-06T09:41:13.639363" level="INFO">Slept 1 second.</msg>
+<arg>1s</arg>
+<doc>Pauses the test executed for the given time.</doc>
+<status status="PASS" start="2024-12-06T09:41:12.585379" elapsed="1.072033"/>
+</kw>
+<kw name="Log" owner="BuiltIn">
+<msg time="2024-12-06T09:41:13.660512" level="INFO">bruut</msg>
+<arg>bruut</arg>
+<doc>Logs the given message with the given level.</doc>
+<status status="PASS" start="2024-12-06T09:41:13.659485" elapsed="0.002028"/>
+</kw>
+<status status="PASS" start="2024-12-06T09:41:12.579960" elapsed="1.081553"/>
+</test>
+<status status="PASS" start="2024-12-06T09:41:12.572945" elapsed="1.109641"/>
+</suite>
+<status status="PASS" start="2024-12-06T09:41:12.481972" elapsed="1.206628"/>
+</suite>
+<statistics>
+<total>
+<stat pass="1" fail="0" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat pass="1" fail="0" skip="0" id="s1" name="Tmp">Tmp</stat>
+<stat pass="1" fail="0" skip="0" id="s1-s1" name="Tests">Tmp.Tests</stat>
+</suite>
+</statistics>
+<errors>
+</errors>
+</robot>

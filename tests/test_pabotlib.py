@@ -4,10 +4,12 @@ import os
 from robot.errors import RobotError
 
 from pabot import pabotlib
+from pabot.SharedLibrary import SharedLibrary
 from robot.running.context import EXECUTION_CONTEXTS
 from robot.running.namespace import Namespace
 from robot.running.model import TestSuite
 from robot.variables import Variables
+from robot import __version__ as ROBOT_VERSION
 
 
 class PabotLibTests(unittest.TestCase):
@@ -22,6 +24,16 @@ class PabotLibTests(unittest.TestCase):
         builtinmock.run_keyword = runned
         pabotlib.BuiltIn = lambda: builtinmock
         self.builtinmock = builtinmock
+
+    def test_shared_library_with_args(self):
+        try:
+            self._create_ctx()  # Set up Robot Framework context
+            lib = SharedLibrary("mylib", ["2"])
+            self.assertIsNotNone(lib)
+            lib._remote = None
+            lib._lib.run_keyword("mykeyword", ["arg"], {})
+        except Exception as e:
+            self.fail(f"SharedLibrary initialization failed: {str(e)}")
 
     def test_pabotlib_listener_path(self):
         lib = pabotlib.PabotLib()
@@ -289,9 +301,14 @@ class PabotLibTests(unittest.TestCase):
         suite = TestSuite()
         variables = Variables()
         EXECUTION_CONTEXTS._contexts = []
-        EXECUTION_CONTEXTS.start_suite(
-            suite, Namespace(variables, suite, suite.resource), self._output()
-        )
+        if ROBOT_VERSION >= "6.0":
+            EXECUTION_CONTEXTS.start_suite(
+                suite, Namespace(variables, suite, suite.resource, []), self._output()
+            )
+        else:
+            EXECUTION_CONTEXTS.start_suite(
+                suite, Namespace(variables, suite, suite.resource), self._output()
+            )
 
 
 if __name__ == "__main__":

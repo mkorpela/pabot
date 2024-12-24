@@ -86,7 +86,6 @@ class PabotTests(unittest.TestCase):
                 "--resourcefile",
                 "resourcefile.ini",
                 "--testlevelsplit",
-                "--pabotlib",
                 "--pabotlibhost",
                 "123.123.233.123",
                 "--pabotlibport",
@@ -105,7 +104,7 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(pabot_args["command"], ["my_own_command.sh"])
         self.assertEqual(pabot_args["processes"], 12)
         self.assertEqual(pabot_args["resourcefile"], "resourcefile.ini")
-        self.assertEqual(pabot_args["pabotlib"], True)
+        self.assertEqual(pabot_args["pabotlib"], False)
         self.assertEqual(pabot_args["pabotlibhost"], "123.123.233.123")
         self.assertEqual(pabot_args["pabotlibport"], 4562)
         self.assertEqual(pabot_args["suitesfrom"], "some.xml")
@@ -1226,6 +1225,192 @@ class PabotTests(unittest.TestCase):
             file_path = os.path.join(_opts["outputdir"], f)
             self.assertTrue(os.path.isfile(file_path), "file not copied: {}".format(f))
             os.remove(file_path)  # clean up
+
+    def test_merge_one_run_with_and_without_legacyoutput(self):
+        dtemp = tempfile.mkdtemp()
+        # Create the same directory structure as pabot
+        test_outputs = os.path.join(dtemp, "outputs")
+        os.makedirs(test_outputs)
+        test_output = os.path.join(test_outputs, "output.xml")
+        # Create a minimal but valid output.xml
+        with open(test_output, "w") as f:
+            f.write(
+                """<?xml version="1.0" encoding="UTF-8"?>
+<robot generator="Rebot 7.1.1 (Python 3.11.7 on darwin)" generated="20241130 11:19:45.235" rpa="false" schemaversion="4">
+<suite id="s1" name="Suites">
+<suite id="s1-s1" name="Test" source="/Users/mkorpela/workspace/pabot/test.robot">
+<test id="s1-s1-t1" name="Testing" line="5">
+<kw name="Log" library="BuiltIn">
+<msg timestamp="20241130 11:19:44.911" level="INFO">hello</msg>
+<arg>hello</arg>
+<doc>Logs the given message with the given level.</doc>
+<status status="PASS" starttime="20241130 11:19:44.911" endtime="20241130 11:19:44.911"/>
+</kw>
+<status status="PASS" starttime="20241130 11:19:44.910" endtime="20241130 11:19:44.911"/>
+</test>
+<status status="PASS" starttime="20241130 11:19:44.909" endtime="20241130 11:19:44.914"/>
+</suite>
+<suite id="s1-s2" name="Test" source="/Users/mkorpela/workspace/pabot/test.robot">
+<test id="s1-s2-t1" name="Testing" line="5">
+<kw name="Log" library="BuiltIn">
+<msg timestamp="20241130 11:19:44.913" level="INFO">hello</msg>
+<arg>hello</arg>
+<doc>Logs the given message with the given level.</doc>
+<status status="PASS" starttime="20241130 11:19:44.913" endtime="20241130 11:19:44.913"/>
+</kw>
+<status status="PASS" starttime="20241130 11:19:44.913" endtime="20241130 11:19:44.913"/>
+</test>
+<status status="PASS" starttime="20241130 11:19:44.912" endtime="20241130 11:19:44.914"/>
+</suite>
+<doc>[https://pabot.org/?ref=log|Pabot] result from 1 executions.</doc>
+<status status="PASS" starttime="20241130 11:19:44.893" endtime="20241130 11:19:44.914"/>
+</suite>
+<statistics>
+<total>
+<stat pass="2" fail="0" skip="0">All Tests</stat>
+</total>
+<tag>
+</tag>
+<suite>
+<stat pass="2" fail="0" skip="0" id="s1" name="Suites">Suites</stat>
+<stat pass="1" fail="0" skip="0" id="s1-s1" name="Test">Suites.Test</stat>
+<stat pass="1" fail="0" skip="0" id="s1-s2" name="Test">Suites.Test</stat>
+</suite>
+</statistics>
+<errors>
+<msg timestamp="20241130 11:19:44.910" level="ERROR">Error in file '/Users/mkorpela/workspace/pabot/test.robot' on line 2: Library 'Easter' expected 0 arguments, got 1.</msg>
+<msg timestamp="20241130 11:19:44.913" level="ERROR">Error in file '/Users/mkorpela/workspace/pabot/test.robot' on line 2: Library 'Easter' expected 0 arguments, got 1.</msg>
+</errors>
+</robot>"""
+            )
+
+        self._options["outputdir"] = dtemp
+        if ROBOT_VERSION >= "7.0":
+            self._options["legacyoutput"] = True
+        try:
+            output = pabot._merge_one_run(
+                outs_dir=dtemp,
+                options=self._options,
+                tests_root_name="Test",  # Should match suite name in XML
+                stats={
+                    "total": 0,
+                    "passed": 0,
+                    "failed": 0,
+                    "skipped": 0,
+                },
+                copied_artifacts=[],
+                outputfile="merged_output.xml",
+            )  # Use different name to avoid confusion
+            self.assertTrue(
+                output, "merge_one_run returned empty string"
+            )  # Verify we got output path
+            with open(output, "r") as f:
+                content = f.read()
+                if ROBOT_VERSION >= "6.1":
+                    self.assertIn('schemaversion="4"', content)
+                elif ROBOT_VERSION >= "5.0":
+                    self.assertIn('schemaversion="3"', content)
+                elif ROBOT_VERSION >= "4.0":
+                    self.assertIn('schemaversion="2"', content)
+            if ROBOT_VERSION >= "7.0":
+                del self._options["legacyoutput"]
+                output = pabot._merge_one_run(
+                    outs_dir=dtemp,
+                    options=self._options,
+                    tests_root_name="Test",  # Should match suite name in XML
+                    stats={
+                        "total": 0,
+                        "passed": 0,
+                        "failed": 0,
+                        "skipped": 0,
+                    },
+                    copied_artifacts=[],
+                    outputfile="merged_2_output.xml",
+                )  # Use different name to avoid confusion
+                self.assertTrue(
+                    output, "merge_one_run returned empty string"
+                )  # Verify we got output path
+                with open(output, "r") as f:
+                    content = f.read()
+                self.assertIn('schemaversion="5"', content)
+                self.assertNotIn('schemaversion="4"', content)
+        finally:
+            shutil.rmtree(dtemp)
+
+    def test_parse_args_mixed_order(self):
+        (
+            options,
+            datasources,
+            pabot_args,
+            options_for_subprocesses,
+        ) = arguments.parse_args(
+            [
+                "--exitonfailure",
+                "--processes",
+                "12",
+                "--outputdir",
+                "mydir",
+                "--verbose",
+                "--pabotlib",
+                "suite",
+            ]
+        )
+        self.assertEqual(pabot_args["processes"], 12)
+        self.assertEqual(pabot_args["verbose"], True)
+        self.assertEqual(pabot_args["pabotlib"], True)
+        self.assertEqual(options["outputdir"], "mydir")
+        self.assertEqual(options["exitonfailure"], True)
+        self.assertEqual(datasources, ["suite"])
+
+    def test_parse_args_error_handling(self):
+        with self.assertRaises(DataError) as cm:
+            arguments.parse_args(["--processes"])
+        self.assertIn("requires a value", str(cm.exception))
+
+        with self.assertRaises(DataError) as cm:
+            arguments.parse_args(["--processes", "invalid"])
+        self.assertIn("Invalid value for --processes", str(cm.exception))
+
+        with self.assertRaises(DataError) as cm:
+            arguments.parse_args(["--command", "echo", "hello"])
+        self.assertIn("requires matching --end-command", str(cm.exception))
+
+    def test_parse_args_command_with_pabot_args(self):
+        options, datasources, pabot_args, _ = arguments.parse_args(
+            [
+                "--command",
+                "script.sh",
+                "--processes",
+                "5",
+                "--end-command",
+                "--verbose",
+                "suite",
+            ]
+        )
+        self.assertEqual(pabot_args["command"], ["script.sh", "--processes", "5"])
+        self.assertEqual(pabot_args["verbose"], True)
+
+    def test_pabotlib_defaults_to_enabled(self):
+        options, _, pabot_args, _ = arguments.parse_args(["suite"])
+        self.assertTrue(pabot_args["pabotlib"])
+        self.assertFalse("no_pabotlib" in pabot_args)  # Ensure internal flag not leaked
+
+    def test_no_pabotlib_disables_pabotlib(self):
+        options, _, pabot_args, _ = arguments.parse_args(["--no-pabotlib", "suite"])
+        self.assertFalse(pabot_args["pabotlib"])
+        self.assertFalse("no_pabotlib" in pabot_args)  # Ensure internal flag not leaked
+
+    def test_pabotlib_option_shows_warning(self):
+        options, _, pabot_args, _ = arguments.parse_args(["--pabotlib", "suite"])
+        self.assertTrue(pabot_args["pabotlib"])
+        self.assertFalse("no_pabotlib" in pabot_args)  # Ensure internal flag not leaked
+
+    def test_conflicting_pabotlib_options_raise_error(self):
+        with self.assertRaises(DataError) as context:
+            arguments.parse_args(["--pabotlib", "--no-pabotlib", "suite"])
+        self.assertIn(
+            "Cannot use both --pabotlib and --no-pabotlib", str(context.exception)
+        )
 
 
 if __name__ == "__main__":

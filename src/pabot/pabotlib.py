@@ -43,7 +43,6 @@ PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE = "pabot_min_queue_index_executin
 
 
 class _PabotLib(object):
-
     _TAGS_KEY = "tags"
 
     def __init__(self, resourcefile=None):  # type: (Optional[str]) -> None
@@ -155,17 +154,19 @@ class _PabotLib(object):
             content[self._TAGS_KEY] = []
         self._values[name] = content
 
-    def import_shared_library(self, name, args=None):  # type: (str, Iterable[Any]|None) -> int
+    def import_shared_library(
+        self, name, args=None
+    ):  # type: (str, Iterable[Any]|None) -> int
         if name in self._remote_libraries:
             return self._remote_libraries[name][0]
         if name in STDLIBS:
-            import_name = 'robot.libraries.' + name
+            import_name = "robot.libraries." + name
         else:
             import_name = name
-        imported = Importer('library').import_class_or_module(name_or_path=import_name, instantiate_with_args=args)
-        server = RobotRemoteServer(
-            imported, port=0, serve=False, allow_stop=True
+        imported = Importer("library").import_class_or_module(
+            name_or_path=import_name, instantiate_with_args=args
         )
+        server = RobotRemoteServer(imported, port=0, serve=False, allow_stop=True)
         server_thread = threading.Thread(target=server.serve)
         server_thread.start()
         time.sleep(1)
@@ -197,7 +198,6 @@ class _PabotLib(object):
 
 
 class PabotLib(_PabotLib):
-
     __version__ = 0.67
     ROBOT_LIBRARY_SCOPE = "GLOBAL"
     ROBOT_LISTENER_API_VERSION = 2

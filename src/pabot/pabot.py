@@ -44,12 +44,20 @@ options (these must be before normal RF options):
   Indicator for a file that can contain shared variables for
   distributing resources.
 
---pabotlib
-  Start PabotLib remote server. This enables locking and resource
-  distribution between parallel test executions.
+--no-pabotlib
+  Disable the PabotLib remote server if you don't need locking or resource distribution features.
+  PabotLib remote server is started by default.
 
---pabotlibhost [HOSTNAME]
-  Host name of the PabotLib remote server (default is 127.0.0.1)
+--pabotlibhost [HOSTNAME]          
+  Connect to an already running instance of the PabotLib remote server at the given host
+  (disables the local PabotLib server start). For example, to connect to a 
+  remote PabotLib server running on another machine:
+  
+      pabot --pabotlibhost 192.168.1.123 --pabotlibport 8271 tests/
+
+  The remote PabotLib server can be started separately using:
+      python -m pabot.pabotlib <path_to_resourcefile> <host> <port>
+      python -m pabot.pabotlib resource.txt 192.168.1.123 8271
 
 --pabotlibport [PORT]
   Port number of the PabotLib remote server (default is 8270)
@@ -239,7 +247,7 @@ def execute_and_wait_with(item):
                 caller_id,
                 item.index,
                 item.execution_item.type != "test",
-                process_timeout=item.timeout
+                process_timeout=item.timeout,
             )
         outputxml_preprocessing(
             item.options, outs_dir, name, item.verbose, _make_id(), caller_id
@@ -299,7 +307,7 @@ def _try_execute_and_wait(
     caller_id,
     my_index=-1,
     show_stdout_on_failure=False,
-    process_timeout=None
+    process_timeout=None,
 ):
     # type: (List[str], str, str, bool, int, str, int, bool, Optional[int]) -> None
     plib = None
@@ -310,7 +318,15 @@ def _try_execute_and_wait(
         with open(os.path.join(outs_dir, cmd[0] + "_stdout.out"), "w") as stdout:
             with open(os.path.join(outs_dir, cmd[0] + "_stderr.out"), "w") as stderr:
                 process, (rc, elapsed) = _run(
-                    cmd, stderr, stdout, item_name, verbose, pool_id, my_index, outs_dir, process_timeout
+                    cmd,
+                    stderr,
+                    stdout,
+                    item_name,
+                    verbose,
+                    pool_id,
+                    my_index,
+                    outs_dir,
+                    process_timeout,
                 )
     except:
         _write(traceback.format_exc())
@@ -483,7 +499,17 @@ def _increase_completed(plib, my_index):
             )
 
 
-def _run(command, stderr, stdout, item_name, verbose, pool_id, item_index, outs_dir, process_timeout):
+def _run(
+    command,
+    stderr,
+    stdout,
+    item_name,
+    verbose,
+    pool_id,
+    item_index,
+    outs_dir,
+    process_timeout,
+):
     # type: (List[str], IO[Any], IO[Any], str, bool, int, int, str, Optional[int]) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
     timestamp = datetime.datetime.now()
     cmd = " ".join(command)
@@ -492,10 +518,14 @@ def _run(command, stderr, stdout, item_name, verbose, pool_id, item_index, outs_
     # avoid hitting https://bugs.python.org/issue10394
     with POPEN_LOCK:
         my_env = os.environ.copy()
-        syslog_file = my_env.get('ROBOT_SYSLOG_FILE', None)
+        syslog_file = my_env.get("ROBOT_SYSLOG_FILE", None)
         if syslog_file:
-            my_env['ROBOT_SYSLOG_FILE'] = os.path.join(outs_dir, os.path.basename(syslog_file))
-        process = subprocess.Popen(cmd, shell=True, stderr=stderr, stdout=stdout, env=my_env)
+            my_env["ROBOT_SYSLOG_FILE"] = os.path.join(
+                outs_dir, os.path.basename(syslog_file)
+            )
+        process = subprocess.Popen(
+            cmd, shell=True, stderr=stderr, stdout=stdout, env=my_env
+        )
     if verbose:
         _write_with_id(
             process,
@@ -512,7 +542,9 @@ def _run(command, stderr, stdout, item_name, verbose, pool_id, item_index, outs_
             "EXECUTING %s" % item_name,
             timestamp=timestamp,
         )
-    return process, _wait_for_return_code(process, item_name, pool_id, item_index, process_timeout)
+    return process, _wait_for_return_code(
+        process, item_name, pool_id, item_index, process_timeout
+    )
 
 
 def _wait_for_return_code(process, item_name, pool_id, item_index, process_timeout):
@@ -527,12 +559,15 @@ def _wait_for_return_code(process, item_name, pool_id, item_index, process_timeo
         if process_timeout and elapsed / 10.0 >= process_timeout:
             process.terminate()
             process.wait()
-            rc = -1  # Set a return code indicating that the process was killed due to timeout
+            rc = (
+                -1
+            )  # Set a return code indicating that the process was killed due to timeout
             _write_with_id(
                 process,
                 pool_id,
                 item_index,
-                "Process %s killed due to exceeding the maximum timeout of %s seconds" % (item_name, process_timeout),
+                "Process %s killed due to exceeding the maximum timeout of %s seconds"
+                % (item_name, process_timeout),
             )
             break
 
@@ -547,7 +582,6 @@ def _wait_for_return_code(process, item_name, pool_id, item_index, process_timeo
             )
 
     return rc, elapsed / 10.0
-
 
 
 def _read_file(file_handle):
@@ -1134,7 +1168,6 @@ def store_suite_names(hashes, suite_names):
                 for d in suite_lines
             )
     except IOError:
-
         _write(
             "[ "
             + _wrap_with(Color.YELLOW, "WARNING")
@@ -1165,22 +1198,28 @@ def generate_suite_names_with_builder(outs_dir, datasources, options):
     settings = RobotSettings(opts)
 
     # Note: first argument (included_suites) is deprecated from RobotFramework 6.1
-    if ROBOT_VERSION < "6.1":
+    if ROBOT_VERSION >= "6.1":
         builder = TestSuiteBuilder(
-            settings["SuiteNames"], settings.extension, rpa=settings.rpa
+            included_extensions=settings.extension,
+            rpa=settings.rpa,
+            lang=opts.get("language"),
         )
     else:
         builder = TestSuiteBuilder(
-            included_extensions=settings.extension, rpa=settings.rpa
+            settings["SuiteNames"], settings.extension, rpa=settings.rpa
         )
+
     suite = builder.build(*datasources)
-    settings.rpa = builder.rpa
-    suite.configure(**settings.suite_config)
+
     if settings.pre_run_modifiers:
         _write.error = _write.warn = _write.info = _write.debug = _write.trace = _write
         suite.visit(
             ModelModifier(settings.pre_run_modifiers, settings.run_empty_suite, _write)
         )
+
+    settings.rpa = builder.rpa
+    suite.configure(**settings.suite_config)
+
     all_suites = (
         get_all_suites_from_main_suite(suite.suites) if suite.suites else [suite]
     )
@@ -1518,7 +1557,10 @@ def _merge_one_run(
         files, options, tests_root_name, copied_artifacts, invalid_xml_callback
     )
     _update_stats(resu, stats)
-    resu.save(output_path)
+    if ROBOT_VERSION >= "7.0" and options.get("legacyoutput"):
+        resu.save(output_path, legacy_output=True)
+    else:
+        resu.save(output_path)
     return output_path
 
 
@@ -1666,7 +1708,7 @@ class QueueItem(object):
         argfile,
         hive=None,
         processes=0,
-        timeout=None
+        timeout=None,
     ):
         # type: (List[str], str, Dict[str, object], ExecutionItem, List[str], bool, Tuple[str, Optional[str]], Optional[str], int, Optional[int]) -> None
         self.datasources = datasources
@@ -1764,7 +1806,7 @@ def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group):
             argfile,
             pabot_args.get("hive"),
             pabot_args["processes"],
-            pabot_args["processtimeout"]
+            pabot_args["processtimeout"],
         )
         for suite in suite_group
         for argfile in pabot_args["argumentfiles"] or [("", None)]
@@ -1783,9 +1825,7 @@ def _create_execution_items_for_dry_run(
             datasources, opts_for_run, outs_dir, pabot_args, suite_group
         )
         chunk_size = (
-            round(len(items) / processes_count)
-            if len(items) > processes_count
-            else len(items)
+            round(len(items) / processes_count) if len(items) > processes_count else 1
         )
         chunked_items = list(_chunk_items(items, chunk_size))
         _NUMBER_OF_ITEMS_TO_BE_EXECUTED += len(chunked_items)
@@ -1809,7 +1849,7 @@ def _chunk_items(items, chunk_size):
             base_item.verbose,
             (base_item.argfile_index, base_item.argfile),
             processes=base_item.processes,
-            timeout=base_item.timeout
+            timeout=base_item.timeout,
         )
         yield chunked_item
 
@@ -1889,7 +1929,7 @@ def _get_dynamically_created_execution_items(
             ("", None),
             pabot_args.get("hive"),
             pabot_args["processes"],
-            pabot_args["processtimeout"]
+            pabot_args["processtimeout"],
         )
         for suite in suite_group
     ]
@@ -1986,12 +2026,12 @@ def main_program(args):
 def _group_suites(outs_dir, datasources, options, pabot_args):
     suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
     _verify_depends(suite_names)
-    shard_suites = solve_shard_suites(suite_names, pabot_args)
-    ordered_suites = _preserve_order(shard_suites, pabot_args.get("ordering"))
+    ordered_suites = _preserve_order(suite_names, pabot_args.get("ordering"))
+    shard_suites = solve_shard_suites(ordered_suites, pabot_args)
     grouped_suites = (
-        _chunked_suite_names(ordered_suites, pabot_args["processes"])
+        _chunked_suite_names(shard_suites, pabot_args["processes"])
         if pabot_args["chunk"]
-        else _group_by_wait(_group_by_groups(ordered_suites))
+        else _group_by_wait(_group_by_groups(shard_suites))
     )
     grouped_by_depend = _all_grouped_suites_by_depend(grouped_suites)
     return grouped_by_depend
@@ -2028,17 +2068,23 @@ def _verify_depends(suite_names):
         )
     )
     if suites_with_depends != suites_with_found_dependencies:
-        raise Exception("There are unmet dependencies using #DEPENDS")
+        raise DataError(
+            "Invalid test configuration: Some test suites have dependencies (#DEPENDS) that cannot be found."
+        )
     suites_with_circular_dependencies = list(
         filter(lambda suite: suite.depends == suite.name, suites_with_depends)
     )
     if suites_with_circular_dependencies:
-        raise Exception("There are suites with circular dependencies using #DEPENDS")
+        raise DataError(
+            "Invalid test configuration: Test suites cannot depend on themselves."
+        )
     grouped_suites = list(
         filter(lambda suite: isinstance(suite, GroupItem), suite_names)
     )
     if grouped_suites and suites_with_depends:
-        raise Exception("#DEPENDS and grouped suites are incompatible")
+        raise DataError(
+            "Invalid test configuration: Cannot use both #DEPENDS and grouped suites."
+        )
 
 
 def _group_by_depend(suite_names):
@@ -2079,7 +2125,9 @@ def _group_by_depend(suite_names):
     #print("Dependency Tree", dependency_tree)
     flattened_dependency_tree = sum(dependency_tree, [])
     if len(flattened_dependency_tree) != len(runnable_suites):
-        raise Exception("There are circular or unmet dependencies using #DEPENDS")
+        raise DataError(
+            "Invalid test configuration: Circular or unmet dependencies detected between test suites. Please check your #DEPENDS definitions."
+        )
     return dependency_tree
 
 
