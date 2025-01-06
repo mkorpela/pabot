@@ -1296,6 +1296,8 @@ def _options_for_rebot(options, start_time_string, end_time_string):
     rebot_options["include"] = []
     if ROBOT_VERSION >= "2.8":
         options["monitormarkers"] = "off"
+    if rebot_options.get("runemptysuite"):
+        rebot_options["processemptysuite"] = True
     for key in [
         "console",
         "consolemarkers",
