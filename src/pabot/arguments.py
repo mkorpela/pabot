@@ -90,7 +90,6 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "shardindex": 0,
         "shardcount": 1,
         "chunk": False,
-        "_testdependencies": False,
     }
     # Explicitly define argument types for validation
     flag_args = {
@@ -107,8 +106,9 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "resourcefile": str,
         "pabotlibhost": str,
         "pabotlibport": int,
+        "pabotprerunmodifier": str,
         "processtimeout": int,
-        "ordering": _parse_ordering,
+        "ordering": str,
         "suitesfrom": str,
         "artifacts": lambda x: x.split(","),
         "shard": _parse_shard,
@@ -194,17 +194,6 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
     pabot_args["argumentfiles"] = argumentfiles
 
     return remaining_args, pabot_args
-
-
-def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
-    try:
-        with open(filename, "r") as orderingfile:
-            return [
-                parse_execution_item_line(line.strip())
-                for line in orderingfile.readlines()
-            ]
-    except:
-        raise DataError("Error parsing ordering file '%s'" % filename)
 
 
 def _delete_none_keys(d):  # type: (Dict[str, Optional[object]]) -> Dict[str, object]

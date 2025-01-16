@@ -138,6 +138,9 @@ between parallel test executions.
 --chunk
   Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same setups and teardowns.
 
+--pabotprerunmodifier [PRERUNMODIFIER MODULE OR CLASS]
+  Like Robot Framework's --prerunmodifier, but executed only once in the pabot's main process. Not passed to pabot subprocesses unlike the regular --prerunmodifier command. Can be used, for example, to modify the list of tests to be performed.
+
 Example usages:
 
      pabot test_directory
@@ -219,7 +222,7 @@ There different possibilities to influence the execution:
   * If the base suite name is changing with robot option [```--name / -N```](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-the-name) you can also give partial suite name without the base suite.
   * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
   * You can group suites and tests together to same executor process by adding line `{` before the group and `}`after.
-  * You can introduce dependencies using the word `#DEPENDS` after a test declaration. Please take care that in case of circular dependencies an exception will be thrown. An example could be.
+  * You can introduce dependencies using the word `#DEPENDS` after a test declaration. Can be used several times if it is necessary to refer to several different tests. Please take care that in case of circular dependencies an exception will be thrown. An example could be.
 
 ```
 --test robotTest.1 Scalar.Test With Environment Variables #DEPENDS robotTest.1 Scalar.Test with BuiltIn Variables of Robot Framework
