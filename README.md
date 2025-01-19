@@ -86,7 +86,7 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
 PabotLib remote server is started by default to enable locking and resource distribution 
 between parallel test executions.
 
---no-pabotlib
+--no-pabotlib  
   Disable the PabotLib remote server if you don't need locking or resource distribution features.
 
 --pabotlibhost   [HOSTNAME]          
@@ -131,14 +131,14 @@ between parallel test executions.
   Optionally read suites from output.xml file. Failed suites will run
   first and longer running ones will be executed before shorter ones.
 
---shard [INDEX]/[TOTAL]
+--shard [INDEX]/[TOTAL]   
   Optionally split execution into smaller pieces. This can
   be used for distributing testing to multiple machines.
 
---chunk
+--chunk   
   Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same setups and teardowns.
 
---pabotprerunmodifier [PRERUNMODIFIER MODULE OR CLASS]
+--pabotprerunmodifier [PRERUNMODIFIER MODULE OR CLASS]   
   Like Robot Framework's --prerunmodifier, but executed only once in the pabot's main process after all other --prerunmodifiers. But unlike the regular --prerunmodifier command, --pabotprerunmodifier is not executed again in each pabot subprocesses. Depending on the intended use, this may be desirable as well as more efficient. Can be used, for example, to modify the list of tests to be performed.
 
 Example usages:
