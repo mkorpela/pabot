@@ -12,8 +12,8 @@ class PabotPrerunModifierTests(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.tmpdir = tempfile.mkdtemp()
-        self.tmpdir_name = re.sub(r'(\d)([a-z])', lambda m: m.group(1) + m.group(2).upper(),
-                                   " ".join(word.capitalize().strip() for word in os.path.basename(self.tmpdir).split("_")))
+        self.tmpdir_name = (re.sub(r'(\d)([a-z])', lambda m: m.group(1) + m.group(2).upper(),
+                                   " ".join(word.capitalize().strip() for word in os.path.basename(self.tmpdir).split("_")))).strip()
 
         # robot case file 1
         self.robot_file_path_1 = f'{self.tmpdir}/test_1.robot'
@@ -104,6 +104,8 @@ class Modifier(SuiteVisitor):
         )
 
         stdout, stderr = process.communicate()
+        # without testlevelsplit argument whole test suite 1 will be executed.
+        self.assertIn(f'PASSED {self.tmpdir_name}.Test 1'.encode('utf-8'), stdout)
         self.assertIn(b'3 tests, 3 passed, 0 failed, 0 skipped.', stdout)
         self.assertEqual(b"", stderr)
 
@@ -124,6 +126,8 @@ class Modifier(SuiteVisitor):
         )
 
         stdout, stderr = process.communicate()
+        self.assertIn(f'PASSED {self.tmpdir_name}.Test 1.Testing 2'.encode('utf-8'), stdout)
+        self.assertIn(f'PASSED {self.tmpdir_name}.Test 2.Testing 5'.encode('utf-8'), stdout)
         self.assertIn(b'2 tests, 2 passed, 0 failed, 0 skipped.', stdout)
         self.assertEqual(b"", stderr)
 
@@ -133,7 +137,6 @@ class Modifier(SuiteVisitor):
             [
                 sys.executable,
                 "-m", "pabot.pabot",
-                #"--verbose",
                 "--testlevelsplit",
                 "--pabotprerunmodifier",
                 self.modifier_file_path + ":test3",
