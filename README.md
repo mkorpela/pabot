@@ -139,7 +139,7 @@ between parallel test executions.
   Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same setups and teardowns.
 
 --pabotprerunmodifier [PRERUNMODIFIER MODULE OR CLASS]
-  Like Robot Framework's --prerunmodifier, but executed only once in the pabot's main process. Not passed to pabot subprocesses unlike the regular --prerunmodifier command. Can be used, for example, to modify the list of tests to be performed.
+  Like Robot Framework's --prerunmodifier, but executed only once in the pabot's main process after all other --prerunmodifiers. But unlike the regular --prerunmodifier command, --pabotprerunmodifier is not executed again in each pabot subprocesses. Depending on the intended use, this may be desirable as well as more efficient. Can be used, for example, to modify the list of tests to be performed.
 
 Example usages:
 

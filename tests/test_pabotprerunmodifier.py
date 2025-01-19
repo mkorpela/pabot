@@ -75,7 +75,23 @@ class Modifier(SuiteVisitor):
         suite.tests = [t for t in suite.tests if t.full_name in self.list_of_test_names]
         suite.suites = [s for s in suite.suites if s.test_count > 0]              
 """))
-        
+
+        # prerunmodifier script
+        self.modifier2_file_path = f'{self.tmpdir}/Modifier2.py'
+        with open(self.modifier2_file_path, 'w') as modifier_file:
+            modifier_file.write(
+                textwrap.dedent("""
+from robot.api import SuiteVisitor
+
+class Modifier2(SuiteVisitor):
+    def start_suite(self, suite):
+        if suite.tests:
+            for test in suite.tests:
+                if '2' in test.name:
+                    test.name = 'new-name-2'
+                    test.tags.add(['tag2'])
+"""))
+
         # ordering file
         self.ordering_file_path = f'{self.tmpdir}/ordering.txt'
         with open(self.ordering_file_path, 'w') as ordering_file:
@@ -153,6 +169,29 @@ class Modifier(SuiteVisitor):
         self.assertIn(f'PASSED Group_{self.tmpdir_name}.Test 1.Testing 2_{self.tmpdir_name}.Test 2.Testing 5'.encode('utf-8'), stdout)
         self.assertIn(f'PASSED {self.tmpdir_name}.Test 1.Testing 1'.encode('utf-8'), stdout)
         self.assertIn(b'3 tests, 3 passed, 0 failed, 0 skipped.', stdout)
+        self.assertEqual(b"", stderr)
+
+
+    def test_pabotprerunmodifier_with_prerunmodifier(self):
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m", "pabot.pabot",
+                "--testlevelsplit",
+                "--pabotprerunmodifier",
+                self.modifier_file_path + ":tag2",
+                "--prerunmodifier",
+                self.modifier2_file_path,
+                self.tmpdir
+            ],
+            cwd=self.tmpdir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+
+        stdout, stderr = process.communicate()
+        self.assertIn(f'PASSED {self.tmpdir_name}.Test 1.new-name-2'.encode('utf-8'), stdout)
+        self.assertIn(b'1 tests, 1 passed, 0 failed, 0 skipped.', stdout)
         self.assertEqual(b"", stderr)
 
 
