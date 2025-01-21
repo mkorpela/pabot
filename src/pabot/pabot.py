@@ -2117,7 +2117,7 @@ def _group_by_depend(suite_names):
         unknown_dependent_tests = run_later
         if len(run_in_this_stage) == 0:
             text = "There are circular or unmet dependencies using #DEPENDS. Check this/these test(s): " + str(run_later)
-            raise Exception(text)
+            raise DataError(text)
         else:
             dependency_tree.append(run_in_this_stage)
     flattened_dependency_tree = sum(dependency_tree, [])

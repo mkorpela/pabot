@@ -164,7 +164,8 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"circular or unmet dependencies using #DEPENDS. Check this/these test(s): [<test:Test.The Test S1Test 01>, <test:Test.The Test S1Test 02>]", stderr)
+        self.assertIn(b"circular or unmet dependencies using #DEPENDS. Check this/these test(s): [<test:Test.The Test S1Test 01>, <test:Test.The Test S1Test 02>]", stdout)
+        self.assertEqual(b"", stderr)
 
     def test_circular_dependency_with_multiple_depends(self):
         stdout, stderr = self._run_tests_with(
@@ -177,7 +178,8 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 09 #DEPENDS Test.The Test S1Test 01 #DEPENDS Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"circular or unmet dependencies using #DEPENDS. Check this/these test(s): [<test:Test.The Test S1Test 08>, <test:Test.The Test S1Test 09>]", stderr)
+        self.assertIn(b"circular or unmet dependencies using #DEPENDS. Check this/these test(s): [<test:Test.The Test S1Test 08>, <test:Test.The Test S1Test 09>]", stdout)
+        self.assertEqual(b"", stderr)
 
     def test_unmet_dependency(self):
         stdout, stderr = self._run_tests_with(
@@ -188,7 +190,8 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"circular or unmet dependencies using #DEPENDS. Check this/these test(s): [<test:Test.The Test S1Test 02>]", stderr)
+        self.assertIn(b"circular or unmet dependencies using #DEPENDS. Check this/these test(s): [<test:Test.The Test S1Test 02>]", stdout)
+        self.assertEqual(b"", stderr)
 
     def test_same_reference(self):
         stdout, stderr = self._run_tests_with(
@@ -199,7 +202,8 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"circular or unmet dependencies using #DEPENDS. Check this/these test(s): [<test:Test.The Test S1Test 02>]", stderr)
+        self.assertIn(b"circular or unmet dependencies using #DEPENDS. Check this/these test(s): [<test:Test.The Test S1Test 02>]", stdout)
+        self.assertEqual(b"", stderr)
 
     def test_wait(self):
         stdout, stderr = self._run_tests_with(
@@ -211,4 +215,5 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"circular or unmet dependencies using #DEPENDS. Check this/these test(s): [<test:Test.The Test S1Test 02>]", stderr)
+        self.assertIn(b"circular or unmet dependencies using #DEPENDS. Check this/these test(s): [<test:Test.The Test S1Test 02>]", stdout)
+        self.assertEqual(b"", stderr)
