@@ -1,2 +1,52 @@
 PabotLib.html linguist-documentation
-* text=auto eol=lf
+
+# Template from: https://docs.github.com/en/get-started/getting-started-with-git/configuring-git-to-handle-line-endings
+
+# Set the default behavior, in case people don't have core.autocrlf set.
+* text=auto
+
+# Explicitly declare text files you want to always be normalized and converted
+# to native line endings on checkout.
+*.c text
+*.h text
+
+# Declare files that will always have CRLF line endings on checkout.
+*.sln text eol=crlf
+
+# Denote all files that are truly binary and should not be modified.
+*.png binary
+*.jpg binary
+
+
+# And: https://github.com/gitattributes/gitattributes/blob/master/Python.gitattributes
+# Basic .gitattributes for a python repo.
+
+# Source files
+# ============
+*.pxd    text
+*.py     text
+*.py3    text
+*.pyw    text
+*.pyx    text
+*.pyz    text
+*.pyi    text
+
+# Binary files
+# ============
+*.db     binary
+*.p      binary
+*.pkl    binary
+*.pickle binary
+*.pyc    binary export-ignore
+*.pyo    binary export-ignore
+*.pyd    binary
+
+# Jupyter notebook
+*.ipynb  text eol=lf
+
+# Note: .db, .p, and .pkl files are associated
+# with the python modules ``pickle``, ``dbm.*``,
+# ``shelve``, ``marshal``, ``anydbm``, & ``bsddb``
+# (among others).
+
+tests/fixtures/** text eol=lf
