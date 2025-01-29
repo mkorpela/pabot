@@ -16,7 +16,7 @@ def check_robot_version_and_return_name():
     if major_version >= 7:
         return "full_name"
     else:
-        return "long_name"
+        return "longname"
 
 
 class PabotPrerunModifierTests(unittest.TestCase):
