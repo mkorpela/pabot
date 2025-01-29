@@ -15,73 +15,12 @@
 #  limitations under the License.
 #
 #  partly based on work by Nokia Solutions and Networks Oyj
+
+# Help documentation from README.md:
 """A parallel executor for Robot Framework test cases.
 Version [PABOT_VERSION]
 
-Supports all Robot Framework command line options and also following
-options (these must be before normal RF options):
-
---verbose
-  more output
-
---command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command
-  RF script for situations where pybot is not used directly
-
---processes [NUMBER OF PROCESSES]
-  How many parallel executors to use (default max of 2 and cpu count).
-  Special option "all" will use as many processes as there are
-  executable suites or tests.
-
---testlevelsplit
-  Split execution on test level instead of default suite level.
-  If .pabotsuitenames contains both tests and suites then this
-  will only affect new suites and split only them.
-  Leaving this flag out when both suites and tests in
-  .pabotsuitenames file will also only affect new suites and
-  add them as suite files.
-
---resourcefile [FILEPATH]
-  Indicator for a file that can contain shared variables for
-  distributing resources.
-
---no-pabotlib
-  Disable the PabotLib remote server if you don't need locking or resource distribution features.
-  PabotLib remote server is started by default.
-
---pabotlibhost [HOSTNAME]          
-  Connect to an already running instance of the PabotLib remote server at the given host
-  (disables the local PabotLib server start). For example, to connect to a 
-  remote PabotLib server running on another machine:
-  
-      pabot --pabotlibhost 192.168.1.123 --pabotlibport 8271 tests/
-
-  The remote PabotLib server can be started separately using:
-      python -m pabot.pabotlib <path_to_resourcefile> <host> <port>
-      python -m pabot.pabotlib resource.txt 192.168.1.123 8271
-
---pabotlibport [PORT]
-  Port number of the PabotLib remote server (default is 8270)
-
---processtimeout [TIMEOUT]
-  Maximum time in seconds to wait for a process before killing it. If not set, there's no timeout.
-
---ordering [FILE PATH]
-  Optionally give execution order from a file.
-
---suitesfrom [FILEPATH TO OUTPUTXML]
-  Optionally read suites from output.xml file. Failed suites will run
-  first and longer running ones will be executed before shorter ones.
-
---argumentfile[INTEGER] [FILEPATH]
-  Run same suite with multiple argumentfile options.
-  For example "--argumentfile1 arg1.txt --argumentfile2 arg2.txt".
-
---shard [SHARD]/[SHARD COUNT]
-  Optionally split execution into smaller pieces. This can
-  be used for distributing testing to multiple machines.
-
---chunk
-  Optionally chunk tests to PROCESSES number of robot runs.
+PLACEHOLDER_README.MD
 
 Copyright 2022 Mikko Korpela - Apache 2 License
 """
@@ -182,6 +121,27 @@ _ROBOT_EXTENSIONS = [
     ".robot",
 ]
 _ALL_ELAPSED = []  # type: List[Union[int, float]]
+
+
+def extract_section(filename, start_marker, end_marker):
+    with open(filename, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    inside_section = False
+    extracted_lines = []
+
+    for line in lines:
+        if start_marker in line:
+            inside_section = True
+            continue
+        if end_marker in line:
+            inside_section = False
+            break
+        if inside_section:
+            # Add line from README.md without [] and (https: address)
+            extracted_lines.append(re.sub(r'\[([^\]]+)\]\(https?://[^\)]+\)', r'\1', line))
+
+    return "".join(extracted_lines).strip()
 
 
 class Color:
@@ -880,6 +840,8 @@ def solve_shard_suites(suite_names, pabot_args):
 
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
+    if pabot_args.get("pabotprerunmodifier"):
+        options['prerunmodifier'].append(pabot_args['pabotprerunmodifier'])
     h = Hashes(
         dirs=get_hash_of_dirs(datasources),
         cmd=get_hash_of_command(options, pabot_args),
@@ -915,7 +877,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                 for l in lines[4:]
             )
             execution_item_lines = [parse_execution_item_line(l) for l in lines[4:]]
-            if corrupted or h != file_h or file_hash != hash_of_file:
+            if corrupted or h != file_h or file_hash != hash_of_file or pabot_args.get("pabotprerunmodifier"):
                 return _regenerate(
                     file_h,
                     h,
@@ -1949,7 +1911,11 @@ def main_program(args):
         _start_message_writer()
         options, datasources, pabot_args, opts_for_run = parse_args(args)
         if pabot_args["help"]:
-            print(__doc__.replace("[PABOT_VERSION]", PABOT_VERSION))
+            help_print = __doc__.replace(
+                "PLACEHOLDER_README.MD",
+                extract_section("README.md", "<!-- START DOCSTRING -->", "<!-- END DOCSTRING -->")
+                )
+            print(help_print.replace("[PABOT_VERSION]", PABOT_VERSION))
             return 0
         if len(datasources) == 0:
             print("[ " + _wrap_with(Color.RED, "ERROR") + " ]: No datasources given.")
@@ -1988,7 +1954,8 @@ def main_program(args):
         )
         return result_code if not _ABNORMAL_EXIT_HAPPENED else 252
     except Information as i:
-        print(__doc__.replace("[PABOT_VERSION]", PABOT_VERSION))
+        version_print = __doc__.replace("\nPLACEHOLDER_README.MD\n", "")
+        print(version_print.replace("[PABOT_VERSION]", PABOT_VERSION))
         print(i.message)
     except DataError as err:
         print(err.message)
@@ -2010,10 +1977,24 @@ def main_program(args):
         _stop_message_writer()
 
 
+def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
+    try:
+        with open(filename, "r") as orderingfile:
+            return [
+                parse_execution_item_line(line.strip())
+                for line in orderingfile.readlines()
+            ]
+    except FileNotFoundError:
+        raise DataError("Error: File '%s' not found." % filename)
+    except:
+        raise DataError("Error parsing ordering file '%s'" % filename)
+
+
 def _group_suites(outs_dir, datasources, options, pabot_args):
     suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
     _verify_depends(suite_names)
-    ordered_suites = _preserve_order(suite_names, pabot_args.get("ordering"))
+    ordering_arg = _parse_ordering(pabot_args.get("ordering")) if (pabot_args.get("ordering")) is not None else None
+    ordered_suites = _preserve_order(suite_names, ordering_arg)
     shard_suites = solve_shard_suites(ordered_suites, pabot_args)
     grouped_suites = (
         _chunked_suite_names(shard_suites, pabot_args["processes"])
@@ -2083,20 +2064,27 @@ def _group_by_depend(suite_names):
         return [suite_names]
     independent_tests = list(filter(lambda suite: not suite.depends, runnable_suites))
     dependency_tree = [independent_tests]
-    while True:
-        dependent_tests = list(filter(lambda suite: suite.depends, runnable_suites))
-        dependent_on_last_stage = list(
-            filter(
-                lambda suite: any(
-                    test_in_tier_before.name == suite.depends
-                    for test_in_tier_before in dependency_tree[-1]
-                ),
-                dependent_tests,
-            )
-        )
-        if not dependent_on_last_stage:
-            break
-        dependency_tree += [dependent_on_last_stage]
+    dependent_tests = list(filter(lambda suite: suite.depends, runnable_suites))
+    unknown_dependent_tests = dependent_tests
+    while len(unknown_dependent_tests) > 0:
+        run_in_this_stage, run_later = [], []
+        for d in unknown_dependent_tests:
+            stage_indexes = []
+            for i, stage in enumerate(dependency_tree):
+                for test in stage:
+                    if test.name in d.depends:
+                        stage_indexes.append(i)
+            # All #DEPENDS test are already run:
+            if len(stage_indexes) == len(d.depends):
+                run_in_this_stage.append(d)
+            else:
+                run_later.append(d)
+        unknown_dependent_tests = run_later
+        if len(run_in_this_stage) == 0:
+            text = "There are circular or unmet dependencies using #DEPENDS. Check this/these test(s): " + str(run_later)
+            raise DataError(text)
+        else:
+            dependency_tree.append(run_in_this_stage)
     flattened_dependency_tree = sum(dependency_tree, [])
     if len(flattened_dependency_tree) != len(runnable_suites):
         raise DataError(
