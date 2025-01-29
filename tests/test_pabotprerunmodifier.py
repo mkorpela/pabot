@@ -6,6 +6,17 @@ import subprocess
 import sys
 import os
 import re
+import robot
+
+
+def check_robot_version_and_return_name():
+    version = robot.__version__
+    major_version = int(version.split('.')[0])
+
+    if major_version >= 7:
+        return "full_name"
+    else:
+        return "long_name"
 
 
 class PabotPrerunModifierTests(unittest.TestCase):
@@ -57,7 +68,7 @@ Testing 6
         self.modifier_file_path = f'{self.tmpdir}/Modifier.py'
         with open(self.modifier_file_path, 'w') as modifier_file:
             modifier_file.write(
-                textwrap.dedent("""
+                textwrap.dedent(f"""
 from robot.api import SuiteVisitor
 
 class Modifier(SuiteVisitor):
@@ -69,7 +80,7 @@ class Modifier(SuiteVisitor):
         if suite.tests:
             for test in suite.tests:
                 if self.tag in test.tags:
-                   self.list_of_test_names.append(test.full_name)
+                   self.list_of_test_names.append(test.{check_robot_version_and_return_name()})
     
     def end_suite(self, suite):
         suite.tests = [t for t in suite.tests if t.full_name in self.list_of_test_names]
