@@ -135,7 +135,7 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   Optionally read suites from output.xml file. Failed suites will run first and longer running ones will be executed 
   before shorter ones.
 
---ordering [FILE PATH]
+--ordering [FILE PATH]   
   Optionally give execution order from a file.
 
 --chunk   
