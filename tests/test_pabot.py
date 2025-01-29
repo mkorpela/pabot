@@ -15,8 +15,8 @@ from robot import __version__ as ROBOT_VERSION
 
 s = execution_items.SuiteItem
 t = execution_items.TestItem
-datasource_hash = "da24db433a6bc0fb6d582faad83335541b518520"
-file_hash = "08d5b32cc034b848a7b414f980fdb06a8295d373"
+datasource_hash = "8bd7e5d3de0bf878df17c338ce72a5ab27575050"
+file_hash = "19488a6a4a95f5ecb935ef87e07df9d10d81e3c0"
 
 
 class PabotTests(unittest.TestCase):
@@ -263,7 +263,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "97d170e1550eee4afc0af065b78cda302a97674c",
             "no-suites-from-option",
-            "709995ac78a043ebaf1132d68835f870412b5ba7",
+            "2543f14f62afd037bd3958bb719656fc315cbc9d",
             "--suite Fixtures",
         )
         with open(".pabotsuitenames", "r") as f:
@@ -442,7 +442,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "65f95c924ba97541f47949701c4e3c51192a5b43",
             "no-suites-from-option",
-            "7f9c2728624fc47895c77078a98990bf834ccbc0",
+            "2e667c32eb50b41dffd9f3d97a5c3f442b52a1ca",
             *self._all_with_tests
         )
         with pabot._open_pabotsuitenames("r") as f:
@@ -474,7 +474,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "65f95c924ba97541f47949701c4e3c51192a5b43",
             "no-suites-from-option",
-            "7f9c2728624fc47895c77078a98990bf834ccbc0",
+            "2e667c32eb50b41dffd9f3d97a5c3f442b52a1ca",
             *self._all_with_tests
         )
         with pabot._open_pabotsuitenames("r") as f:
@@ -518,7 +518,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "65f95c924ba97541f47949701c4e3c51192a5b43",
             "no-suites-from-option",
-            "f618005a3b6790fc313e13ab5a25e9b14e00e7c6",
+            "9bfb1cffcc5fe8b0dfa2ee5a1587655d5da00f53",
             *all_with
         )
         with open(".pabotsuitenames", "r") as f:
@@ -560,7 +560,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "97d170e1550eee4afc0af065b78cda302a97674c",
             "no-suites-from-option",
-            "f7d29b701801f4a9be4b2eb28ed73aa2ac368f69",
+            "7beb0f073adfba9b7c36db527e65b3bdb3d14001",
             *all_with
         )
         with open(".pabotsuitenames", "r") as f:
@@ -585,8 +585,8 @@ class PabotTests(unittest.TestCase):
         expected = self._psuitenames(
             datasource_hash,
             "97d170e1550eee4afc0af065b78cda302a97674c",
-            "f937d9e310c66125d1f3bd5f8a35e228fd5828ed",
-            "383e5e61cdba973a5731dae7d02c922a92985ab8",
+            "f57c1949d5137773e0b9f6ca34c439a27a22bcb0",
+            "03b4e1ff17f3a3e4a7f5c6a1b3c480956bbd83d5",
             "--suite Fixtures.Suite Second",
             "--suite Fixtures.Suite One",
             "--suite Fixtures.Suite Special",
@@ -622,8 +622,8 @@ class PabotTests(unittest.TestCase):
         expected = self._psuitenames(
             datasource_hash,
             "97d170e1550eee4afc0af065b78cda302a97674c",
-            "f937d9e310c66125d1f3bd5f8a35e228fd5828ed",
-            "383e5e61cdba973a5731dae7d02c922a92985ab8",
+            "f57c1949d5137773e0b9f6ca34c439a27a22bcb0",
+            "03b4e1ff17f3a3e4a7f5c6a1b3c480956bbd83d5",
             "--suite Fixtures.Suite Second",
             "--suite Fixtures.Suite One",
             "--suite Fixtures.Suite Special",
@@ -671,8 +671,8 @@ class PabotTests(unittest.TestCase):
         expected = self._psuitenames(
             datasource_hash,
             "97d170e1550eee4afc0af065b78cda302a97674c",
-            "f937d9e310c66125d1f3bd5f8a35e228fd5828ed",
-            "14c54913e1885a5fa518078bff5ac7807bb91358",
+            "f57c1949d5137773e0b9f6ca34c439a27a22bcb0",
+            "e33ce1259a999afd6c09c190c717d4d98bf6d5be",
             "--suite Fixtures.Suite Second",
             "--suite Fixtures.Suite One",
             "--suite Fixtures.Suite Special",
@@ -726,7 +726,7 @@ class PabotTests(unittest.TestCase):
             datasource_hash,
             "97d170e1550eee4afc0af065b78cda302a97674c",
             "da39a3ee5e6b4b0d3255bfef95601890afd80709",
-            "c7ec856e38005c612af235dea34ef297a78fd9c2",
+            "644c540a9c30544812b1f1170635d077806a2669",
             "--suite Fixtures.Suite Second",
             "--suite Fixtures.Suite One",
             "--suite Fixtures.Suite Special",
