@@ -66,6 +66,7 @@ Testing 6
 
         # pabotprerunmodifier script. Works like Robot Framework --include command
         self.modifier_file_path = f'{self.tmpdir}/Modifier.py'
+        correct_full_name_call = check_robot_version_and_return_name()
         with open(self.modifier_file_path, 'w') as modifier_file:
             modifier_file.write(
                 textwrap.dedent(f"""
@@ -80,10 +81,10 @@ class Modifier(SuiteVisitor):
         if suite.tests:
             for test in suite.tests:
                 if self.tag in test.tags:
-                   self.list_of_test_names.append(test.{check_robot_version_and_return_name()})
+                   self.list_of_test_names.append(test.{correct_full_name_call})
     
     def end_suite(self, suite):
-        suite.tests = [t for t in suite.tests if t.full_name in self.list_of_test_names]
+        suite.tests = [t for t in suite.tests if t.{correct_full_name_call} in self.list_of_test_names]
         suite.suites = [s for s in suite.suites if s.test_count > 0]              
 """))
 
