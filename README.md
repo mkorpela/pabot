@@ -53,45 +53,45 @@ There are several ways you can help in improving this tool:
    - Contribute by programming and making a pull request (easiest way is to work on an issue from the issue tracker)
 
 ## Command-line options
+<!-- START DOCSTRING -->
+pabot [--verbose|--testlevelsplit|--command .. --end-command|
+        --processes num|--no-pabotlib|--pabotlibhost host|--pabotlibport port|
+        --processtimeout num|
+        --shard i/n|
+        --artifacts extensions|--artifactsinsubfolders|
+        --resourcefile file|--argumentfile[num] file|--suitesfrom file|--ordering file
+        --chunk
+        --pabotprerunmodifier modifier] 
+      [robot options] [path ...]
 
-    pabot [--verbose|--testlevelsplit|--command .. --end-command|
-           --processes num|--no-pabotlib|--pabotlibhost host|--pabotlibport port|
-           --processtimeout num|
-           --shard i/n|
-           --artifacts extensions|--artifactsinsubfolders|
-           --resourcefile file|--argumentfile[num] file|--suitesfrom file] 
-          [robot options] [path ...]
+PabotLib remote server is started by default to enable locking and resource distribution between parallel test executions.
 
 Supports all [Robot Framework command line options](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options) and also following pabot options:
 
 --verbose     
-  more output from the parallel execution
+  More output from the parallel execution.
 
 --testlevelsplit          
-  Split execution on test level instead of default suite level.
-  If .pabotsuitenames contains both tests and suites then this
-  will only affect new suites and split only them.
-  Leaving this flag out when both suites and tests in
-  .pabotsuitenames file will also only affect new suites and
-  add them as suite files.
+  Split execution on test level instead of default suite level. If .pabotsuitenames contains both tests and suites then
+  this will only affect new suites and split only them. Leaving this flag out when both suites and tests in 
+  .pabotsuitenames file will also only affect new suites and add them as suite files.
 
 --command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command    
-  RF script for situations where robot is not used directly
+  RF script for situations where robot is not used directly.
 
---processes   [NUMBER OF PROCESSES]          
-  How many parallel executors to use (default max of 2 and cpu count).
-  Special option "all" will use as many processes as there are
-  executable suites or tests.
+--processes [NUMBER OF PROCESSES]          
+  How many parallel executors to use (default max of 2 and cpu count). Special option "all" will use as many processes as 
+  there are executable suites or tests.
 
-PabotLib remote server is started by default to enable locking and resource distribution 
-between parallel test executions.
-
---no-pabotlib
+--no-pabotlib  
   Disable the PabotLib remote server if you don't need locking or resource distribution features.
 
---pabotlibhost   [HOSTNAME]          
-  Connect to an already running instance of the PabotLib remote server at the given host
-  (disables the local PabotLib server start). 
+--pabotlibhost [HOSTNAME]          
+  Connect to an already running instance of the PabotLib remote server at the given host (disables the local PabotLib 
+  server start). For example, to connect to a remote PabotLib server running on another machine:
+  
+      pabot --pabotlibhost 192.168.1.123 --pabotlibport 8271 tests/
+
   The remote server can be also started and executed separately from pabot instances:
   
       python -m pabot.pabotlib <path_to_resourcefile> <host> <port>
@@ -99,21 +99,20 @@ between parallel test executions.
   
   This enables sharing a resource with multiple Robot Framework instances.
 
---pabotlibport   [PORT]          
-  Port number of the PabotLib remote server (default is 8270)
-  See --pabotlibhost for more information
+--pabotlibport [PORT]          
+  Port number of the PabotLib remote server (default is 8270). See --pabotlibhost for more information.
 
---processtimeout   [TIMEOUT]          
+--processtimeout [TIMEOUT]          
   Maximum time in seconds to wait for a process before killing it. If not set, there's no timeout.
 
---resourcefile   [FILEPATH]          
-  Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with pabotlib option. Resource file syntax is same as Windows ini files. Where a section is a shared set of variables.
+--shard [INDEX]/[TOTAL]   
+  Optionally split execution into smaller pieces. This can be used for distributing testing to multiple machines.
   
 --artifacts [FILE EXTENSIONS]   
-  List of file extensions (comma separated).    
-  Defines which files (screenshots, videos etc.) from separate reporting directories would be copied and included in a final report.   
-  Possible links to copied files in RF log would be updated (only relative paths supported).   
-  The default value is `png`.    
+  List of file extensions (comma separated). Defines which files (screenshots, videos etc.) from separate reporting 
+  directories would be copied and included in a final report. Possible links to copied files in RF log would be updated 
+  (only relative paths supported). The default value is `png`.
+
   Examples:
 
      --artifacts png,mp4,txt
@@ -121,22 +120,33 @@ between parallel test executions.
 --artifactsinsubfolders   
   Copy artifacts located not only directly in the RF output dir, but also in it's sub-folders.
 
---argumentfile[INTEGER]   [FILEPATH]          
+--resourcefile [FILEPATH]          
+  Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with 
+  pabotlib option. Resource file syntax is same as Windows ini files. Where a section is a shared set of variables.
+
+--argumentfile [INTEGER] [FILEPATH]          
   Run same suites with multiple [argumentfile](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files) options.
+
   For example:
 
      --argumentfile1 arg1.txt --argumentfile2 arg2.txt
 
---suitesfrom   [FILEPATH TO OUTPUTXML]          
-  Optionally read suites from output.xml file. Failed suites will run
-  first and longer running ones will be executed before shorter ones.
+--suitesfrom [FILEPATH TO OUTPUTXML]          
+  Optionally read suites from output.xml file. Failed suites will run first and longer running ones will be executed 
+  before shorter ones.
 
---shard [INDEX]/[TOTAL]
-  Optionally split execution into smaller pieces. This can
-  be used for distributing testing to multiple machines.
+--ordering [FILE PATH]   
+  Optionally give execution order from a file.
 
---chunk
-  Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same setups and teardowns.
+--chunk   
+  Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same 
+  setups and teardowns.
+
+--pabotprerunmodifier [PRERUNMODIFIER MODULE OR CLASS]   
+  Like Robot Framework's --prerunmodifier, but executed only once in the pabot's main process after all other 
+  --prerunmodifiers. But unlike the regular --prerunmodifier command, --pabotprerunmodifier is not executed again in each 
+  pabot subprocesses. Depending on the intended use, this may be desirable as well as more efficient. Can be used, for 
+  example, to modify the list of tests to be performed.
 
 Example usages:
 
@@ -149,6 +159,7 @@ Example usages:
      # To disable PabotLib:
      pabot --no-pabotlib tests
 
+<!-- END DOCSTRING -->
 ### PabotLib
 
 pabot.PabotLib provides keywords that will help communication and data sharing between the executor processes.
@@ -219,7 +230,7 @@ There different possibilities to influence the execution:
   * If the base suite name is changing with robot option [```--name / -N```](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-the-name) you can also give partial suite name without the base suite.
   * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
   * You can group suites and tests together to same executor process by adding line `{` before the group and `}`after.
-  * You can introduce dependencies using the word `#DEPENDS` after a test declaration. Please take care that in case of circular dependencies an exception will be thrown. An example could be.
+  * You can introduce dependencies using the word `#DEPENDS` after a test declaration. Can be used several times if it is necessary to refer to several different tests. Please take care that in case of circular dependencies an exception will be thrown. An example could be.
 
 ```
 --test robotTest.1 Scalar.Test With Environment Variables #DEPENDS robotTest.1 Scalar.Test with BuiltIn Variables of Robot Framework

@@ -1,2 +1,12 @@
 PabotLib.html linguist-documentation
 
+# Set the default behavior, in case people don't have core.autocrlf set.
+* text=auto eol=lf
+
+# These must be in LF format
+tests/fixtures/** text eol=lf
+tests/output.xml text eol=lf
+
+# Denote all files that are truly binary and should not be modified.
+*.png binary
+*.jpg binary
