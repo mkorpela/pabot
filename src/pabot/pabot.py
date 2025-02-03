@@ -123,10 +123,32 @@ _ROBOT_EXTENSIONS = [
 _ALL_ELAPSED = []  # type: List[Union[int, float]]
 
 
-def extract_section(filename, start_marker, end_marker):
-    with open(filename, "r", encoding="utf-8") as f:
-        lines = f.readlines()
+def read_args_from_readme():
+    msg = "PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues"
 
+    # Get the directory of the current script (inside pabot/)
+    current_dir = os.path.dirname(__file__)
+
+    # Path in the packaged environment
+    package_readme_path = os.path.abspath(os.path.join(current_dir, "..", "..", "..", "pabot", "README.md"))
+
+    # Path in the development environment (README.md is above src/)
+    dev_readme_path = os.path.abspath(os.path.join(current_dir, "..", "..", "README.md"))
+
+    # Use the first available file
+    for path in (package_readme_path, dev_readme_path):
+        if os.path.exists(path):
+            with open(path, encoding="utf-8") as f:
+                lines = f.readlines()
+                help_args = extract_section(lines, "<!-- START DOCSTRING -->", "<!-- END DOCSTRING -->")
+                if help_args != "":
+                    return f"Reading information from: {path}\n\n{help_args}"
+                return f"README.md found, but correct DOCSTRING section not.\n{msg}"
+
+    return f"README.md not found.\n{msg}"
+
+
+def extract_section(lines, start_marker, end_marker):
     inside_section = False
     extracted_lines = []
 
@@ -1913,7 +1935,7 @@ def main_program(args):
         if pabot_args["help"]:
             help_print = __doc__.replace(
                 "PLACEHOLDER_README.MD",
-                extract_section("README.md", "<!-- START DOCSTRING -->", "<!-- END DOCSTRING -->")
+                read_args_from_readme()
                 )
             print(help_print.replace("[PABOT_VERSION]", PABOT_VERSION))
             return 0

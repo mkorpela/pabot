@@ -23,6 +23,10 @@ OR clone this repository and run:
 
      setup.py  install
 
+OR clone this repository and run:
+
+     pip install --editable .
+
 ## Basic use
 
 Split execution to suite files.
@@ -61,7 +65,8 @@ pabot [--verbose|--testlevelsplit|--command .. --end-command|
         --artifacts extensions|--artifactsinsubfolders|
         --resourcefile file|--argumentfile[num] file|--suitesfrom file|--ordering file
         --chunk
-        --pabotprerunmodifier modifier] 
+        --pabotprerunmodifier modifier
+        --help|--version]
       [robot options] [path ...]
 
 PabotLib remote server is started by default to enable locking and resource distribution between parallel test executions.
@@ -147,6 +152,12 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   --prerunmodifiers. But unlike the regular --prerunmodifier command, --pabotprerunmodifier is not executed again in each 
   pabot subprocesses. Depending on the intended use, this may be desirable as well as more efficient. Can be used, for 
   example, to modify the list of tests to be performed.
+
+ --help             
+ Print usage instructions.
+ 
+ --version                
+ Print version information.
 
 Example usages:
 
