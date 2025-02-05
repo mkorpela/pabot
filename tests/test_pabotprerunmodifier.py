@@ -19,12 +19,26 @@ def check_robot_version_and_return_name():
         return "longname"
 
 
+def get_tmpdir_name(input: str) -> str:
+    # Remove everything before the first occurrence of two or more consecutive underscores,
+    # while preserving underscores as spaces with the same count
+    result = re.sub(r'^.*?(__+)', lambda m: ' ' * len(m.group(1)), input).strip()
+
+    # Capitalize letters following space, underscores or digits (e.g. after ' ', '_', '1')
+    result = re.sub(r'([ _\d])([a-z])', lambda m: m.group(1) + m.group(2).upper(), result)
+
+    result = result.replace("_", " ").strip()
+    # Capitalize the first letter of the result
+    result = result[0].upper() + result[1:] if result else result
+
+    return result.strip()
+
+
 class PabotPrerunModifierTests(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.tmpdir = tempfile.mkdtemp()
-        self.tmpdir_name = (re.sub(r'(\d)([a-z])', lambda m: m.group(1) + m.group(2).upper(),
-                                   " ".join(word.capitalize().strip() for word in os.path.basename(self.tmpdir).split("_")))).strip()
+        self.tmpdir_name = get_tmpdir_name(os.path.basename(self.tmpdir))
 
         # robot case file 1
         self.robot_file_path_1 = f'{self.tmpdir}/test_1.robot'
@@ -116,6 +130,24 @@ class Modifier2(SuiteVisitor):
 --test {self.tmpdir_name}.Test 1.Testing 1
 """))
 
+
+    # This is only for testing test tool
+    """
+    def test_get_tmpdir_name(self):
+        # This is what get_tmpdir_name will return
+        self.assertEqual(get_tmpdir_name("tmp3v__d5jk"), "D5Jk")
+        self.assertEqual(get_tmpdir_name("abc__xyz__test123"), "Xyz  Test123")
+        self.assertEqual(get_tmpdir_name("hello_world__test"), "Test")
+        self.assertEqual(get_tmpdir_name("tmp__data__42a"), "Data  42A")
+        self.assertEqual(get_tmpdir_name("2__1__g"), "1  G")
+        self.assertEqual(get_tmpdir_name("abc___xyz__123"), "Xyz  123") #(three and two spaces)
+        self.assertEqual(get_tmpdir_name("test__data__42a"), "Data  42A")
+        self.assertEqual(get_tmpdir_name("__1___2__3__4"), "1   2  3  4")
+        self.assertEqual(get_tmpdir_name("1___2__3__4"), "2  3  4")
+        self.assertEqual(get_tmpdir_name("tmp_ddl9fmr"), "Tmp Ddl9Fmr")
+        self.assertEqual(get_tmpdir_name("tmp1ddl9fmr"), "Tmp1Ddl9Fmr")
+        self.assertEqual(get_tmpdir_name(" mpe 74cy0ty"), "Mpe 74Cy0Ty")
+    """
 
     def test_pabotprerunmodifier(self):
         process = subprocess.Popen(
