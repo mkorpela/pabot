@@ -91,6 +91,12 @@ try:
 except ImportError:
     from pipes import quote  # type: ignore
 
+try:
+    import importlib.metadata
+    METADATA_AVAILABLE = True
+except ImportError:
+    METADATA_AVAILABLE = False
+
 from typing import IO, Any, Dict, List, Optional, Tuple, Union
 
 CTRL_C_PRESSED = False
@@ -122,33 +128,63 @@ _ROBOT_EXTENSIONS = [
 ]
 _ALL_ELAPSED = []  # type: List[Union[int, float]]
 
+# Python version check for supporting importlib.metadata (requires Python 3.8+)
+IS_PYTHON_3_8_OR_NEWER = sys.version_info >= (3, 8)
+
 
 def read_args_from_readme():
-    msg = "PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues"
+    """Reads a specific section from package METADATA or development README.md if available."""
 
-    # Get the directory of the current script (inside pabot/)
-    current_dir = os.path.dirname(__file__)
+    # 1. Try to read from METADATA (only if available and Python version is compatible)
+    metadata_section = read_from_metadata()
+    if metadata_section:
+        return f"Extracted from METADATA:\n\n{metadata_section}"
 
-    # Path in the packaged environment
-    package_readme_path = os.path.abspath(os.path.join(current_dir, "..", "..", "..", "pabot", "README.md"))
+    # 2. If METADATA is not available, fall back to development environment README.md
+    dev_readme_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "README.md"))
+    if os.path.exists(dev_readme_path):
+        with open(dev_readme_path, encoding="utf-8") as f:
+            lines = f.readlines()
+            help_args = extract_section(lines)
+            if help_args:
+                return f"Extracted from README.md ({dev_readme_path}):\n\n{help_args}"
 
-    # Path in the development environment (README.md is above src/)
-    dev_readme_path = os.path.abspath(os.path.join(current_dir, "..", "..", "README.md"))
+    if not IS_PYTHON_3_8_OR_NEWER:
+        return (
+            "Warning: Your Python version is too old and does not support importlib.metadata.\n"
+            "Please consider upgrading to Python 3.8 or newer for better compatibility.\n\n"
+            "To view any possible arguments, please kindly read the README.md here:\n"
+            "https://github.com/mkorpela/pabot"
+        )
 
-    # Use the first available file
-    for path in (package_readme_path, dev_readme_path):
-        if os.path.exists(path):
-            with open(path, encoding="utf-8") as f:
-                lines = f.readlines()
-                help_args = extract_section(lines, "<!-- START DOCSTRING -->", "<!-- END DOCSTRING -->")
-                if help_args != "":
-                    return f"Reading information from: {path}\n\n{help_args}"
-                return f"README.md found, but correct DOCSTRING section not.\n{msg}"
-
-    return f"README.md not found.\n{msg}"
+    return (
+        "Error: README.md or METADATA long_description not found.\n"
+        "If you believe this is an issue, please report it at:\n"
+        "https://github.com/mkorpela/pabot/issues"
+    )
 
 
-def extract_section(lines, start_marker, end_marker):
+def read_from_metadata():
+    """Reads the long_description section from package METADATA if available."""
+    if not METADATA_AVAILABLE:
+        return None
+
+    try:
+        metadata = importlib.metadata.metadata("robotframework-pabot")
+        description = metadata.get("Description", "")
+
+        if not description:
+            return None
+
+        lines = description.splitlines(True)
+        return extract_section(lines)
+
+    except importlib.metadata.PackageNotFoundError:
+        return None
+
+
+def extract_section(lines, start_marker="<!-- START DOCSTRING -->", end_marker="<!-- END DOCSTRING -->"):
+    """Extracts content between two markers in a list of lines."""
     inside_section = False
     extracted_lines = []
 
@@ -157,10 +193,9 @@ def extract_section(lines, start_marker, end_marker):
             inside_section = True
             continue
         if end_marker in line:
-            inside_section = False
             break
         if inside_section:
-            # Add line from README.md without [] and (https: address)
+            # Remove Markdown links but keep the text
             extracted_lines.append(re.sub(r'\[([^\]]+)\]\(https?://[^\)]+\)', r'\1', line))
 
     return "".join(extracted_lines).strip()

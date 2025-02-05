@@ -2,6 +2,4 @@
 
 from setuptools import setup
 
-setup(
-    data_files=[("pabot", ["README.md"])],
-)
+setup()

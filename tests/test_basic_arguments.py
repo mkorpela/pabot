@@ -3,9 +3,22 @@ import tempfile
 import shutil
 import subprocess
 import sys
-from pabot import __version__ as PABOT_VERSION
+import re
 
-class PrerunModifierTests(unittest.TestCase):
+EXPECTED_VERSION_PATTERN = (
+    rb"A parallel executor for Robot Framework test cases\.\r?\n"
+    rb"Version \d+\.\d+\.\d+\r?\n\r?\n"
+    rb"Copyright 20\d{2} Mikko Korpela - Apache 2 License"
+)
+
+EXPECTED_HELP_PATTERN = (
+    rb"A parallel executor for Robot Framework test cases\.\r?\n"
+    rb"Version \d+\.\d+\.\d+\r?\n\r?\n"
+    rb"Extracted from "
+)
+
+
+class BasicArgumentsTests(unittest.TestCase):
     @classmethod
     def setUpClass(self):
         self.tmpdir = tempfile.mkdtemp()
@@ -23,7 +36,8 @@ class PrerunModifierTests(unittest.TestCase):
         )
 
         stdout, stderr = process.communicate()
-        self.assertIn(f'Version {PABOT_VERSION}'.encode('utf-8'), stdout)
+        match = re.match(EXPECTED_VERSION_PATTERN, stdout)
+        assert match, f"Version output does not match expected format, output: {repr(stdout)}"
         self.assertEqual(b"", stderr)
 
     def test_pabot_help(self):
@@ -39,10 +53,10 @@ class PrerunModifierTests(unittest.TestCase):
         )
 
         stdout, stderr = process.communicate()
-        self.assertIn(b'Reading information from:', stdout)
+        match = re.match(EXPECTED_HELP_PATTERN, stdout)
+        assert match, f"Help output does not match expected format, output: {repr(stdout)}"
         self.assertEqual(b"", stderr)
 
     @classmethod
     def tearDownClass(self):
         shutil.rmtree(self.tmpdir)
-        
