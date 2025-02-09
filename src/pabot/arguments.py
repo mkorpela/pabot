@@ -91,6 +91,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "shardindex": 0,
         "shardcount": 1,
         "chunk": False,
+        "no-rebot": False,
     }
     # Explicitly define argument types for validation
     flag_args = {
@@ -100,6 +101,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "pabotlib",
         "artifactsinsubfolders",
         "chunk",
+        "no-rebot"
     }
     value_args = {
         "hive": str,

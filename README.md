@@ -63,9 +63,10 @@ pabot [--verbose|--testlevelsplit|--command .. --end-command|
         --processtimeout num|
         --shard i/n|
         --artifacts extensions|--artifactsinsubfolders|
-        --resourcefile file|--argumentfile[num] file|--suitesfrom file|--ordering file
-        --chunk
-        --pabotprerunmodifier modifier
+        --resourcefile file|--argumentfile[num] file|--suitesfrom file|--ordering file|
+        --chunk|
+        --pabotprerunmodifier modifier|
+        --no-rebot|
         --help|--version]
       [robot options] [path ...]
 
@@ -153,11 +154,16 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   pabot subprocesses. Depending on the intended use, this may be desirable as well as more efficient. Can be used, for 
   example, to modify the list of tests to be performed.
 
- --help             
- Print usage instructions.
+--no-rebot    
+  If specified, the tests will execute as usual, but Rebot will not be called to merge the logs. This option is designed 
+  for scenarios where Rebot should be run later due to large log files, ensuring better memory and resource availability. 
+  Subprocess results are stored in the pabot_results folder.
+
+--help             
+  Print usage instructions.
  
- --version                
- Print version information.
+--version                
+  Print version information.
 
 Example usages:
 

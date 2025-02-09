@@ -2002,6 +2002,14 @@ def main_program(args):
                 opts_for_run,
                 pabot_args,
             )
+        if pabot_args["no-rebot"]:
+            _write((
+                "All tests were executed, but the --no-rebot argument was given, "
+                "so the results were not compiled, and no summary was generated. "
+                f"All results have been saved in the {os.path.join(os.path.curdir, 'pabot_results')} folder."
+            ))
+            _write("===================================================")
+            return 0 if not _ABNORMAL_EXIT_HAPPENED else 252
         result_code = _report_results(
             outs_dir,
             pabot_args,
