@@ -935,6 +935,13 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
             )
             execution_item_lines = [parse_execution_item_line(l) for l in lines[4:]]
             if corrupted or h != file_h or file_hash != hash_of_file or pabot_args.get("pabotprerunmodifier"):
+                if file_h[0] != h[0] and file_h[2] == h[2]:
+                    suite_names = _levelsplit(
+                        generate_suite_names_with_builder(outs_dir, datasources, options),
+                        pabot_args,
+                    )
+                    store_suite_names(h, suite_names)
+                    return suite_names
                 return _regenerate(
                     file_h,
                     h,
