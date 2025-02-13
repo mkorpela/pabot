@@ -16,6 +16,7 @@ from .execution_items import (
     SuiteItem,
     TestItem,
     WaitItem,
+    SleepItem,
 )
 
 ARGSMATCHER = re.compile(r"--argumentfile(\d+)")
@@ -219,6 +220,8 @@ def parse_execution_item_line(text):  # type: (str) -> ExecutionItem
     if text.startswith("DYNAMICTEST"):
         suite, test = text[12:].split(" :: ")
         return DynamicTestItem(test, suite)
+    if text.startswith("#SLEEP "):
+        return SleepItem(text[7:])
     if text == "#WAIT":
         return WaitItem()
     if text == "{":
