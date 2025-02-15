@@ -532,7 +532,7 @@ def _run(
     timestamp = datetime.datetime.now()
     if sleep_before_start > 0:
         _write(
-            "%s [%s] [ID:%s] SLEEPING %s second before starting %s"
+            "%s [%s] [ID:%s] SLEEPING %s SECONDS BEFORE STARTING %s"
             % (timestamp, pool_id, item_index, sleep_before_start, item_name),
         )
         time.sleep(sleep_before_start)
@@ -2101,10 +2101,10 @@ def _set_sleep_times(ordering_arg):
     in_group = False
     output = copy.deepcopy(ordering_arg)
     if output is not None:
-        if len(output) > 2:
+        if len(output) >= 2:
             for i in range(len(output) - 1):
                 if isinstance(output[i], SleepItem):
-                    set_sleep_value = output[i].get_time_from_sleep_item()
+                    set_sleep_value = output[i].get_sleep()
                 else:
                     set_sleep_value = 0
                 if isinstance(output[i], GroupStartItem):

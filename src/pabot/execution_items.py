@@ -290,17 +290,16 @@ class SleepItem(ExecutionItem):
 
     def __init__(self, time):
         try:
-            3600 >= int(time) >= 0  # 1h max.
+            assert 3600 >= int(time) >= 0  # 1 h max.
+            self.name = time
+            self.sleep = int(time)
         except ValueError:
-            raise ValueError("#SLEEP value %s is not integer or in between 0 and 3600" % self.name)
-        self.name = time
+            raise ValueError("#SLEEP value %s is not integer" % time)
+        except AssertionError:
+            raise ValueError("#SLEEP value %s is not in between 0 and 3600" % time)
 
     def line(self):
         return "#SLEEP " + self.name
-
-    def get_time_from_sleep_item(self):
-        # type: () -> int
-        return int(self.name)  # This is already check as integer when parsing
 
 
 class GroupStartItem(ExecutionItem):
