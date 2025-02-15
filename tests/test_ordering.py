@@ -192,3 +192,73 @@ class PabotOrderingGroupTest(unittest.TestCase):
             self.assertIn(b"PASSED", stdout, stderr)
             self.assertNotIn(b"FAILED", stdout, stderr)
             self.assertEqual(stdout.count(b"PASSED"), 2)
+
+
+class PabotOrderingSleepTest(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def _run_tests_with(self, testfile, orderfile):
+        robot_file = open("{}/test.robot".format(self.tmpdir), "w")
+        robot_file.write(textwrap.dedent(testfile))
+        robot_file.close()
+        with open("{}/order.dat".format(self.tmpdir), "w") as f:
+            f.write(textwrap.dedent(orderfile))
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m" "pabot.pabot",
+                "--testlevelsplit",
+                "--ordering",
+                "{}/order.dat".format(self.tmpdir),
+                "{}/test.robot".format(self.tmpdir),
+            ],
+            cwd=self.tmpdir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        return process.communicate()
+
+    def test_sleep_test_cases_and_group(self):
+        stdout, stderr = self._run_tests_with(
+            """
+        *** Test Cases ***
+        Test Case A
+           Log  Hello!
+
+        Test Case B
+           Log  Hello!
+
+        Test Case C
+           Log  Hello!
+
+        Test Case D
+            Log  Hello!
+        """,
+            """
+        #SLEEP 1
+        {
+        #SLEEP 4
+        --test Test.Test Case A
+        #SLEEP 4
+        --test Test.Test Case B
+        #SLEEP 4
+        }
+        #SLEEP 4
+        #SLEEP 3
+        --test Test.Test Case C
+        #SLEEP 2
+        --test Test.Test Case D
+        #SLEEP 4
+        """,
+        )
+        self.assertIn(b"PASSED", stdout, stderr)
+        self.assertNotIn(b"FAILED", stdout, stderr)
+        self.assertEqual(stdout.count(b"PASSED"), 3)
+        self.assertIn(b"SLEEPING 1 SECONDS BEFORE STARTING Group_Test.Test Case A_Test.Test Case B", stdout, stderr)
+        self.assertIn(b"SLEEPING 3 SECONDS BEFORE STARTING Test.Test Case C", stdout, stderr)
+        self.assertIn(b"SLEEPING 2 SECONDS BEFORE STARTING Test.Test Case D", stdout, stderr)
+        self.assertNotIn(b"SLEEPING 4", stdout, stderr)

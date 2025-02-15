@@ -16,6 +16,7 @@ from .execution_items import (
     SuiteItem,
     TestItem,
     WaitItem,
+    SleepItem,
 )
 
 ARGSMATCHER = re.compile(r"--argumentfile(\d+)")
@@ -91,6 +92,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "shardindex": 0,
         "shardcount": 1,
         "chunk": False,
+        "no-rebot": False,
     }
     # Explicitly define argument types for validation
     flag_args = {
@@ -100,6 +102,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "pabotlib",
         "artifactsinsubfolders",
         "chunk",
+        "no-rebot"
     }
     value_args = {
         "hive": str,
@@ -217,6 +220,8 @@ def parse_execution_item_line(text):  # type: (str) -> ExecutionItem
     if text.startswith("DYNAMICTEST"):
         suite, test = text[12:].split(" :: ")
         return DynamicTestItem(test, suite)
+    if text.startswith("#SLEEP "):
+        return SleepItem(text[7:])
     if text == "#WAIT":
         return WaitItem()
     if text == "{":

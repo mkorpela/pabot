@@ -41,6 +41,7 @@ import threading
 import time
 import traceback
 import uuid
+import copy
 from collections import namedtuple
 from contextlib import closing
 from glob import glob
@@ -78,6 +79,7 @@ from .execution_items import (
     SuiteItems,
     TestItem,
     RunnableItem,
+    SleepItem,
 )
 from .result_merger import merge
 
@@ -262,6 +264,7 @@ def execute_and_wait_with(item):
                 item.index,
                 item.execution_item.type != "test",
                 process_timeout=item.timeout,
+                sleep_before_start=item.sleep_before_start
             )
         outputxml_preprocessing(
             item.options, outs_dir, name, item.verbose, _make_id(), caller_id
@@ -320,8 +323,9 @@ def _try_execute_and_wait(
     my_index=-1,
     show_stdout_on_failure=False,
     process_timeout=None,
+    sleep_before_start=0
 ):
-    # type: (List[str], str, str, bool, int, str, int, bool, Optional[int]) -> None
+    # type: (List[str], str, str, bool, int, str, int, bool, Optional[int], int) -> None
     plib = None
     is_ignored = False
     if _pabotlib_in_use():
@@ -339,6 +343,7 @@ def _try_execute_and_wait(
                     my_index,
                     outs_dir,
                     process_timeout,
+                    sleep_before_start
                 )
     except:
         _write(traceback.format_exc())
@@ -521,8 +526,16 @@ def _run(
     item_index,
     outs_dir,
     process_timeout,
+    sleep_before_start,
 ):
-    # type: (List[str], IO[Any], IO[Any], str, bool, int, int, str, Optional[int]) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
+    # type: (List[str], IO[Any], IO[Any], str, bool, int, int, str, Optional[int], int) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
+    timestamp = datetime.datetime.now()
+    if sleep_before_start > 0:
+        _write(
+            "%s [%s] [ID:%s] SLEEPING %s SECONDS BEFORE STARTING %s"
+            % (timestamp, pool_id, item_index, sleep_before_start, item_name),
+        )
+        time.sleep(sleep_before_start)
     timestamp = datetime.datetime.now()
     cmd = " ".join(command)
     if PY2:
@@ -757,6 +770,7 @@ def _group_by_groups(tokens):
                     "Ordering: Group can not contain a group. Encoutered '{'"
                 )
             group = GroupItem()
+            group.set_sleep(token.get_sleep())
             result.append(group)
             continue
         if isinstance(token, GroupEndItem):
@@ -935,6 +949,13 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
             )
             execution_item_lines = [parse_execution_item_line(l) for l in lines[4:]]
             if corrupted or h != file_h or file_hash != hash_of_file or pabot_args.get("pabotprerunmodifier"):
+                if file_h[0] != h[0] and file_h[2] == h[2]:
+                    suite_names = _levelsplit(
+                        generate_suite_names_with_builder(outs_dir, datasources, options),
+                        pabot_args,
+                    )
+                    store_suite_names(h, suite_names)
+                    return suite_names
                 return _regenerate(
                     file_h,
                     h,
@@ -1735,6 +1756,7 @@ class QueueItem(object):
         self.hive = hive
         self.processes = processes
         self.timeout = timeout
+        self.sleep_before_start = execution_item.get_sleep()
 
     @property
     def index(self):
@@ -2002,6 +2024,14 @@ def main_program(args):
                 opts_for_run,
                 pabot_args,
             )
+        if pabot_args["no-rebot"]:
+            _write((
+                "All tests were executed, but the --no-rebot argument was given, "
+                "so the results were not compiled, and no summary was generated. "
+                f"All results have been saved in the {os.path.join(os.path.curdir, 'pabot_results')} folder."
+            ))
+            _write("===================================================")
+            return 0 if not _ABNORMAL_EXIT_HAPPENED else 252
         result_code = _report_results(
             outs_dir,
             pabot_args,
@@ -2043,6 +2073,8 @@ def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
             ]
     except FileNotFoundError:
         raise DataError("Error: File '%s' not found." % filename)
+    except ValueError as e:
+        raise DataError("Error in ordering file: %s: %s" % (filename, e))
     except:
         raise DataError("Error parsing ordering file '%s'" % filename)
 
@@ -2051,7 +2083,8 @@ def _group_suites(outs_dir, datasources, options, pabot_args):
     suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
     _verify_depends(suite_names)
     ordering_arg = _parse_ordering(pabot_args.get("ordering")) if (pabot_args.get("ordering")) is not None else None
-    ordered_suites = _preserve_order(suite_names, ordering_arg)
+    ordering_arg_with_sleep = _set_sleep_times(ordering_arg)
+    ordered_suites = _preserve_order(suite_names, ordering_arg_with_sleep)
     shard_suites = solve_shard_suites(ordered_suites, pabot_args)
     grouped_suites = (
         _chunked_suite_names(shard_suites, pabot_args["processes"])
@@ -2060,6 +2093,29 @@ def _group_suites(outs_dir, datasources, options, pabot_args):
     )
     grouped_by_depend = _all_grouped_suites_by_depend(grouped_suites)
     return grouped_by_depend
+
+
+def _set_sleep_times(ordering_arg):
+    # type: (List[ExecutionItem]) -> List[ExecutionItem]
+    set_sleep_value = 0
+    in_group = False
+    output = copy.deepcopy(ordering_arg)
+    if output is not None:
+        if len(output) >= 2:
+            for i in range(len(output) - 1):
+                if isinstance(output[i], SleepItem):
+                    set_sleep_value = output[i].get_sleep()
+                else:
+                    set_sleep_value = 0
+                if isinstance(output[i], GroupStartItem):
+                    in_group = True
+                if isinstance(output[i], GroupEndItem):
+                    in_group = False
+                if isinstance(output[i + 1], GroupStartItem) and set_sleep_value > 0:
+                    output[i + 1].set_sleep(set_sleep_value)
+                if isinstance(output[i + 1], RunnableItem) and set_sleep_value > 0 and not in_group:
+                    output[i + 1].set_sleep(set_sleep_value)
+    return output
 
 
 def _chunked_suite_names(suite_names, processes):

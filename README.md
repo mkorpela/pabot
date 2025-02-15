@@ -63,9 +63,10 @@ pabot [--verbose|--testlevelsplit|--command .. --end-command|
         --processtimeout num|
         --shard i/n|
         --artifacts extensions|--artifactsinsubfolders|
-        --resourcefile file|--argumentfile[num] file|--suitesfrom file|--ordering file
-        --chunk
-        --pabotprerunmodifier modifier
+        --resourcefile file|--argumentfile[num] file|--suitesfrom file|--ordering file|
+        --chunk|
+        --pabotprerunmodifier modifier|
+        --no-rebot|
         --help|--version]
       [robot options] [path ...]
 
@@ -153,11 +154,16 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   pabot subprocesses. Depending on the intended use, this may be desirable as well as more efficient. Can be used, for 
   example, to modify the list of tests to be performed.
 
- --help             
- Print usage instructions.
+--no-rebot    
+  If specified, the tests will execute as usual, but Rebot will not be called to merge the logs. This option is designed 
+  for scenarios where Rebot should be run later due to large log files, ensuring better memory and resource availability. 
+  Subprocess results are stored in the pabot_results folder.
+
+--help             
+  Print usage instructions.
  
- --version                
- Print version information.
+--version                
+  Print version information.
 
 Example usages:
 
@@ -259,6 +265,50 @@ There different possibilities to influence the execution:
 --test robotTest.1 Scalar.Test With Arguments and Return Values
 --test robotTest.3 Dictionary.Test with Dictionaries as Arguments
 --test robotTest.3 Dictionary.Test with FOR loops and Dictionaries #DEPENDS robotTest.1 Scalar.Test Case with Return Values
+```
+
+  * By using the command `#SLEEP X`, where `X` is an integer in the range [0-3600] (in seconds), you can 
+  define a startup delay for each subprocess. `#SLEEP` affects the next line unless the next line starts a 
+  group with `{`, in which case the delay applies to the entire group. If the next line begins with `--test` 
+  or `--suite`, the delay is applied to that specific item. Any other occurrences of `#SLEEP` are ignored.
+
+The following example clarifies the behavior:
+
+```sh
+pabot --process 2 --ordering order.txt data_1
+```
+
+where order.txt is:
+
+```
+#SLEEP 1
+{
+#SLEEP 2
+--suite Data 1.suite A
+#SLEEP 3
+--suite Data 1.suite B
+#SLEEP 4
+}
+#SLEEP 5
+#SLEEP 6
+--suite Data 1.suite C
+#SLEEP 7
+--suite Data 1.suite D
+#SLEEP 8
+```
+
+prints something like this:
+
+```
+2025-02-15 19:15:00.408321 [0] [ID:1] SLEEPING 6 SECONDS BEFORE STARTING Data 1.suite C
+2025-02-15 19:15:00.408321 [1] [ID:0] SLEEPING 1 SECONDS BEFORE STARTING Group_Data 1.suite A_Data 1.suite B
+2025-02-15 19:15:01.409389 [PID:52008] [1] [ID:0] EXECUTING Group_Data 1.suite A_Data 1.suite B
+2025-02-15 19:15:06.409024 [PID:1528] [0] [ID:1] EXECUTING Data 1.suite C
+2025-02-15 19:15:09.257564 [PID:52008] [1] [ID:0] PASSED Group_Data 1.suite A_Data 1.suite B in 7.8 seconds
+2025-02-15 19:15:09.259067 [1] [ID:2] SLEEPING 7 SECONDS BEFORE STARTING Data 1.suite D
+2025-02-15 19:15:09.647342 [PID:1528] [0] [ID:1] PASSED Data 1.suite C in 3.2 seconds
+2025-02-15 19:15:16.260432 [PID:48156] [1] [ID:2] EXECUTING Data 1.suite D
+2025-02-15 19:15:18.696420 [PID:48156] [1] [ID:2] PASSED Data 1.suite D in 2.4 seconds
 ```
 
 ### Programmatic use

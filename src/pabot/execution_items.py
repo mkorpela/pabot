@@ -12,6 +12,7 @@ class ExecutionItem(object):
     isWait = False
     type = None  # type: str
     name = None  # type: str
+    sleep = 0  # type: int
 
     def top_name(self):
         # type: () -> str
@@ -28,6 +29,14 @@ class ExecutionItem(object):
     def line(self):
         # type: () -> str
         return ""
+
+    def set_sleep(self, sleep_time):
+        # type: (int) -> None
+        self.sleep = sleep_time
+
+    def get_sleep(self):
+        # type: () -> int
+        return self.sleep
 
     def modify_options_for_executor(self, options):
         options[self.type] = self.name
@@ -82,6 +91,8 @@ class GroupItem(ExecutionItem):
             )
         if len(self._items) > 0:
             self.name += "_"
+        if self.get_sleep() < item.get_sleep():     # TODO: check!
+            self.set_sleep(item.get_sleep())
         self.name += item.name
         self._element_type = item.type
         self._items.append(item)
@@ -272,6 +283,23 @@ class WaitItem(ExecutionItem):
 
     def line(self):
         return self.name
+
+
+class SleepItem(ExecutionItem):
+    type = "sleep"
+
+    def __init__(self, time):
+        try:
+            assert 3600 >= int(time) >= 0  # 1 h max.
+            self.name = time
+            self.sleep = int(time)
+        except ValueError:
+            raise ValueError("#SLEEP value %s is not integer" % time)
+        except AssertionError:
+            raise ValueError("#SLEEP value %s is not in between 0 and 3600" % time)
+
+    def line(self):
+        return "#SLEEP " + self.name
 
 
 class GroupStartItem(ExecutionItem):
