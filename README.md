@@ -267,11 +267,10 @@ There different possibilities to influence the execution:
 --test robotTest.3 Dictionary.Test with FOR loops and Dictionaries #DEPENDS robotTest.1 Scalar.Test Case with Return Values
 ```
 
-  * By using the command `#SLEEP X`, where `X` is an integer in the range [0-3600] (in seconds), you can define a startup delay for each subprocess.
-
-- `#SLEEP` affects the next line unless the next line starts a group with `{`, in which case the delay applies to the entire group.
-- If the next line begins with `--test` or `--suite`, the delay is applied to that specific item.
-- Any other occurrences of `#SLEEP` are ignored.
+  * By using the command `#SLEEP X`, where `X` is an integer in the range [0-3600] (in seconds), you can 
+  define a startup delay for each subprocess. `#SLEEP` affects the next line unless the next line starts a 
+  group with `{`, in which case the delay applies to the entire group. If the next line begins with `--test` 
+  or `--suite`, the delay is applied to that specific item. Any other occurrences of `#SLEEP` are ignored.
 
 The following example clarifies the behavior:
 
