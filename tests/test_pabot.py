@@ -390,6 +390,12 @@ class PabotTests(unittest.TestCase):
         item.modify_options_for_executor(opts)
         self.assertTrue("rerunfailed" not in opts)
 
+    def test_test_item_removes_rerunfailedsuites_option(self):
+        item = t("Some test")
+        opts = {"rerunfailedsuites": []}
+        item.modify_options_for_executor(opts)
+        self.assertTrue("rerunfailedsuites" not in opts)
+
     def test_fix_items_splits_to_tests_when_suite_after_test_from_that_suite(self):
         expected_items = [t("s.t1"), t("s.t2")]
         items = [t("s.t1"), s("s", tests=["s.t1", "s.t2"])]
