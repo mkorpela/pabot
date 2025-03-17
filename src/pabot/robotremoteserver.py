@@ -50,6 +50,7 @@ __version__ = "1.1.1.dev1"
 BINARY = re.compile("[\x00-\x08\x0B\x0C\x0E-\x1F]")
 NON_ASCII = re.compile("[\x80-\xff]")
 
+LOCK = threading.Lock()
 
 class RobotRemoteServer(object):
     def __init__(
@@ -416,23 +417,24 @@ class KeywordRunner(object):
         self._keyword = keyword
 
     def run_keyword(self, args, kwargs=None):
-        args = self._handle_binary(args)
-        kwargs = self._handle_binary(kwargs or {})
-        result = KeywordResult()
-        with StandardStreamInterceptor() as interceptor:
-            try:
-                return_value = self._keyword(*args, **kwargs)
-            except Exception:
-                result.set_error(*sys.exc_info())
-            else:
+        with LOCK:
+            args = self._handle_binary(args)
+            kwargs = self._handle_binary(kwargs or {})
+            result = KeywordResult()
+            with StandardStreamInterceptor() as interceptor:
                 try:
-                    result.set_return(return_value)
+                    return_value = self._keyword(*args, **kwargs)
                 except Exception:
-                    result.set_error(*sys.exc_info()[:2])
+                    result.set_error(*sys.exc_info())
                 else:
-                    result.set_status("PASS")
-        result.set_output(interceptor.output)
-        return result.data
+                    try:
+                        result.set_return(return_value)
+                    except Exception:
+                        result.set_error(*sys.exc_info()[:2])
+                    else:
+                        result.set_status("PASS")
+            result.set_output(interceptor.output)
+            return result.data
 
     def _handle_binary(self, arg):
         # No need to compare against other iterables or mappings because we
