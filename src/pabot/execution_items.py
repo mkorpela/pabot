@@ -208,6 +208,8 @@ class TestItem(RunnableItem):
         def modify_options_for_executor(self, options):
             if "rerunfailed" in options:
                 del options["rerunfailed"]
+            if "rerunfailedsuites" in options:
+                del options["rerunfailedsuites"]
             name = self.name
             for char in ["[", "?", "*"]:
                 name = name.replace(char, "[" + char + "]")
@@ -218,6 +220,8 @@ class TestItem(RunnableItem):
         def modify_options_for_executor(self, options):
             if "rerunfailed" in options:
                 del options["rerunfailed"]
+            if "rerunfailedsuites" in options:
+                del options["rerunfailedsuites"]
 
     def difference(self, from_items):
         # type: (List[ExecutionItem]) -> List[ExecutionItem]
