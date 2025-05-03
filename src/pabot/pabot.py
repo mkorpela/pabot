@@ -1867,19 +1867,28 @@ def _chunk_items(items, chunk_size):
         base_item = chunked_items[0]
         if not base_item:
             continue
-        execution_items = SuiteItems([item.execution_item for item in chunked_items])
-        chunked_item = QueueItem(
-            base_item.datasources,
-            base_item.outs_dir,
-            base_item.options,
-            execution_items,
-            base_item.command,
-            base_item.verbose,
-            (base_item.argfile_index, base_item.argfile),
-            processes=base_item.processes,
-            timeout=base_item.timeout,
-        )
-        yield chunked_item
+        if type(base_item.execution_item) == TestItem:
+            for item in chunked_items:
+                chunked_item = _queue_item(base_item, item.execution_item)
+                yield chunked_item
+        else:
+            execution_items = SuiteItems([item.execution_item for item in chunked_items])
+            chunked_item = _queue_item(base_item, execution_items)
+            yield chunked_item
+
+
+def _queue_item(base_item, execution_items):
+    return QueueItem(
+        base_item.datasources,
+        base_item.outs_dir,
+        base_item.options,
+        execution_items,
+        base_item.command,
+        base_item.verbose,
+        (base_item.argfile_index, base_item.argfile),
+        processes=base_item.processes,
+        timeout=base_item.timeout,
+    )
 
 
 def _find_ending_level(name, group):
