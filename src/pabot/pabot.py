@@ -1867,7 +1867,7 @@ def _chunk_items(items, chunk_size):
         base_item = chunked_items[0]
         if not base_item:
             continue
-        if type(base_item.execution_item) == TestItem:
+        if isinstance(base_item.execution_item, TestItem):
             for item in chunked_items:
                 chunked_item = _queue_item(base_item, item.execution_item)
                 yield chunked_item
