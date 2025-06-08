@@ -1089,8 +1089,6 @@ def _fix_items(items):  # type: (List[ExecutionItem]) -> List[ExecutionItem]
     _remove_empty_groups(result)
     if result and result[0].isWait:
         result = result[1:]
-    if result and result[-1].isWait:
-        result = result[:-1]
     return result
 
 
