@@ -91,13 +91,17 @@ class GroupItem(ExecutionItem):
             )
         if len(self._items) > 0:
             self.name += "_"
-        if self.get_sleep() < item.get_sleep():     # TODO: check!
+        if self.get_sleep() < item.get_sleep():
             self.set_sleep(item.get_sleep())
         self.name += item.name
         self._element_type = item.type
         self._items.append(item)
 
     def modify_options_for_executor(self, options):
+        # Since a GroupItem contains either tests or suites, options are cleared
+        # and only the Group's content is used to avoid duplicate execution.
+        options['suite'] = []
+        options['test'] = []
         for item in self._items:
             if item.type not in options:
                 options[item.type] = []
