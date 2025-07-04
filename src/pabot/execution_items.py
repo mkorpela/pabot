@@ -7,6 +7,40 @@ from robot.utils import PY2, is_unicode
 
 import re
 
+
+def create_dependency_tree(items):  
+    # type: (List[ExecutionItem]) -> List[List[ExecutionItem]]
+    independent_tests = list(filter(lambda item: not item.depends, items))
+    dependency_tree = [independent_tests]
+    dependent_tests = list(filter(lambda item: item.depends, items))
+    unknown_dependent_tests = dependent_tests
+    while len(unknown_dependent_tests) > 0:
+        run_in_this_stage, run_later = [], []
+        for d in unknown_dependent_tests:
+            stage_indexes = []
+            for i, stage in enumerate(dependency_tree):
+                for test in stage:
+                    if test.name in d.depends:
+                        stage_indexes.append(i)
+            # All #DEPENDS test are already run:
+            if len(stage_indexes) == len(d.depends):
+                run_in_this_stage.append(d)
+            else:
+                run_later.append(d)
+        unknown_dependent_tests = run_later
+        if len(run_in_this_stage) == 0:
+            text = "There are circular or unmet dependencies using #DEPENDS. Check this/these test(s): " + str(run_later)
+            raise DataError(text)
+        else:
+            dependency_tree.append(run_in_this_stage)
+    flattened_dependency_tree = sum(dependency_tree, [])
+    if len(flattened_dependency_tree) != len(items):
+        raise DataError(
+            "Invalid test configuration: Circular or unmet dependencies detected between test suites. Please check your #DEPENDS definitions."
+        )
+    return dependency_tree
+
+
 @total_ordering
 class ExecutionItem(object):
     isWait = False
@@ -78,7 +112,7 @@ class GroupItem(ExecutionItem):
     type = "group"
 
     def __init__(self):
-        self.name = "Group_"
+        self.name = "Group"
         self._items = []
         self._element_type = None
 
@@ -96,6 +130,15 @@ class GroupItem(ExecutionItem):
         self.name += item.name
         self._element_type = item.type
         self._items.append(item)
+    
+    def change_items_order_by_depends(self):
+        ordered_name = "Group"
+        dependency_tree = create_dependency_tree(self._items)
+        ordered = [item for sublist in dependency_tree for item in sublist]
+        for item in ordered:
+            ordered_name += f"_{item.name}"
+        self.name = ordered_name
+        self._items = ordered
 
     def modify_options_for_executor(self, options):
         # Since a GroupItem contains either tests or suites, options are cleared
