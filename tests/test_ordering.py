@@ -262,3 +262,180 @@ class PabotOrderingSleepTest(unittest.TestCase):
         self.assertIn(b"SLEEPING 3 SECONDS BEFORE STARTING Test.Test Case C", stdout, stderr)
         self.assertIn(b"SLEEPING 2 SECONDS BEFORE STARTING Test.Test Case D", stdout, stderr)
         self.assertNotIn(b"SLEEPING 4", stdout, stderr)
+
+    def test_sleep_test_items_and_wait(self):
+        stdout, stderr = self._run_tests_with(
+            """
+        *** Test Cases ***
+        Test Case A
+           Log  Hello!
+
+        Test Case B
+           Log  Hello!
+
+        Test Case C
+           Log  Hello!
+
+        Test Case D
+            Log  Hello!
+        """,
+            """
+        #SLEEP 4
+        #WAIT
+        #SLEEP 1
+        --test Test.Test Case A
+        #SLEEP 2
+        --test Test.Test Case B
+        #SLEEP 4
+        #WAIT
+        #SLEEP 4
+        #SLEEP 2
+        --test Test.Test Case C
+        #SLEEP 1
+        --test Test.Test Case D
+        #SLEEP 4
+        #WAIT
+        """,
+        )
+        self.assertIn(b"PASSED", stdout, stderr)
+        self.assertNotIn(b"FAILED", stdout, stderr)
+        self.assertEqual(stdout.count(b"PASSED"), 4)
+        self.assertIn(b"SLEEPING 1 SECONDS BEFORE STARTING Test.Test Case A", stdout, stderr)
+        self.assertIn(b"SLEEPING 2 SECONDS BEFORE STARTING Test.Test Case B", stdout, stderr)
+        self.assertIn(b"SLEEPING 2 SECONDS BEFORE STARTING Test.Test Case C", stdout, stderr)
+        self.assertIn(b"SLEEPING 1 SECONDS BEFORE STARTING Test.Test Case D", stdout, stderr)
+        self.assertNotIn(b"SLEEPING 4", stdout, stderr)
+
+
+class PabotOrderingMalformedTest(unittest.TestCase):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+
+    def _run_tests_with(self, testfile, orderfile):
+        robot_file = open("{}/test.robot".format(self.tmpdir), "w")
+        robot_file.write(textwrap.dedent(testfile))
+        robot_file.close()
+        with open("{}/order.dat".format(self.tmpdir), "w") as f:
+            f.write(textwrap.dedent(orderfile))
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m" "pabot.pabot",
+                "--testlevelsplit",
+                "--ordering",
+                "{}/order.dat".format(self.tmpdir),
+                "{}/test.robot".format(self.tmpdir),
+            ],
+            cwd=self.tmpdir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        return process.communicate()
+
+    def test_ordering_file_contains_not_existing_test(self):
+        stdout, stderr = self._run_tests_with(
+            """
+        *** Test Cases ***
+        Test Case A
+           Log  Hello!
+
+        Test Case B
+           Log  Hello!
+
+        Test Case C
+           Log  Hello!
+
+        Test Case D
+            Log  Hello!
+        """,
+            """
+        --test Test.Test Case E
+        --test Test.Test Case B
+        --test Test.Test Case C
+        --test Test.Test Case D
+        """,
+        )
+        self.assertIn(b"Test item 'Test.Test Case E' in --ordering file does not match suite or test names in .pabotsuitenames file.\r\nPlease verify content of --ordering file.", stdout, stderr)
+
+    def test_ordering_file_contains_not_existing_default_item(self):
+        # Default item is suite
+        stdout, stderr = self._run_tests_with(
+            """
+        *** Test Cases ***
+        Test Case A
+           Log  Hello!
+
+        Test Case B
+           Log  Hello!
+
+        Test Case C
+           Log  Hello!
+
+        Test Case D
+            Log  Hello!
+        """,
+            """
+        --test Test.Test Case A
+        --test Test.Test Case B
+        --test Test.Test Case C
+        --test Test.Test Case D
+        NOT_EXISTING
+        """,
+        )
+        self.assertIn(b"Suite item 'NOT_EXISTING' in --ordering file does not match suite or test names in .pabotsuitenames file.\r\nPlease verify content of --ordering file.", stdout, stderr)
+
+    def test_ordering_file_contains_depends_without_name_of_suite_or_test(self):
+        # Default item is suite
+        stdout, stderr = self._run_tests_with(
+            """
+        *** Test Cases ***
+        Test Case A
+           Log  Hello!
+
+        Test Case B
+           Log  Hello!
+
+        Test Case C
+           Log  Hello!
+
+        Test Case D
+            Log  Hello!
+        """,
+            """
+        --test Test Case A
+        --test Test.Test Case B
+        --test Test Case C
+        --test   #DEPENDS Test.Test Case D
+        """,
+        )
+        self.assertIn(b"Suite or test name cannot be empty and then contain #DEPENDS like:   #DEPENDS Test.Test Case D", stdout, stderr)
+
+    def test_ordering_file_contains_too_many_runnable_items(self):
+        # Default item is suite
+        stdout, stderr = self._run_tests_with(
+            """
+        *** Test Cases ***
+        Test Case A
+           Log  Hello!
+
+        Test Case B
+           Log  Hello!
+
+        Test Case C
+           Log  Hello!
+
+        Test Case D
+            Log  Hello!
+        """,
+            """
+        --test Test.Test Case A
+        --test Test.Test Case B
+        --test Test Case C
+        --test Test.Test Case D
+        --test Test Case A
+        """,
+        )
+        self.assertIn(b'Ordering file contains more tests and/or suites than exists. Check that there is no duplicates etc. in ordering file', stdout, stderr)
