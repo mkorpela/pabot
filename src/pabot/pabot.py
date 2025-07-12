@@ -2102,27 +2102,29 @@ def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
         with open(filename, "r") as orderingfile:
             return [
                 parse_execution_item_line(line.strip())
-                for line in orderingfile.readlines()
+                for line in orderingfile.readlines() if line.strip() != ""
             ]
     except FileNotFoundError:
         raise DataError("Error: File '%s' not found." % filename)
-    except ValueError as e:
+    except (ValueError, AssertionError) as e:
         raise DataError("Error in ordering file: %s: %s" % (filename, e))
-    except:
+    except Exception:
         raise DataError("Error parsing ordering file '%s'" % filename)
 
 
 def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], List[ExecutionItem]) -> None
     list_of_suite_names = [s.name for s in suite_names]
+    number_of_tests_or_suites = 0
     if ordering_file:
         for item in ordering_file:
             if item.type in ['suite', 'test']:
-                if not any(s.startswith(item.name) for s in list_of_suite_names):
+                if not any((s == item.name or s.endswith("." + item.name)) for s in list_of_suite_names):
                     # If test name is too long, it gets name ' Invalid', so skip that
                     if item.name != ' Invalid':
                         raise DataError("%s item '%s' in --ordering file does not match suite or test names in .pabotsuitenames file.\nPlease verify content of --ordering file." % (item.type.title(), item.name))
-            elif item.type not in ['sleep', 'wait', 'group']:
-                raise DataError("Unsupported item '%s' with type '%s' in --ordering file. Supported are: --test, --suite, {, }, #WAIT, #SLEEP" % (item.name, item.type))
+                number_of_tests_or_suites += 1
+        if number_of_tests_or_suites > len(list_of_suite_names):
+            raise DataError('Ordering file contains more tests and/or suites than exists. Check that there is no duplicates etc. in ordering file and that to .pabotsuitenames.')
 
 
 def _group_suites(outs_dir, datasources, options, pabot_args):

@@ -178,6 +178,7 @@ class RunnableItem(ExecutionItem):
             if len(depends_indexes) == 0
             else line_name[0:depends_indexes[0]].strip()
         )
+        assert len(self.name) != 0, f"Suite or test name cannot be empty and then contain #DEPENDS like: {name}"
         self.depends = (
             self._split_dependencies(line_name, depends_indexes)
             if len(depends_indexes) != 0
