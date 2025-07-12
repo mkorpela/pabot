@@ -240,6 +240,8 @@ After this come the suite names.
 
 With ```--ordering FILENAME``` you can have a list that controls order also. The syntax is same as .pabotsuitenames file syntax but does not contain 4 hash rows that are present in .pabotsuitenames. 
 
+Note: The `--ordering` file is intended only for defining the execution order of suites and tests. The actual selection of what to run must still be done using options like `--test`, `--suite`, `--include`, or `--exclude`.
+
 There different possibilities to influence the execution:
 
   * The order of suites can be changed.
