@@ -1538,13 +1538,13 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
         )
         missing_outputs.extend(_check_pabot_results_for_missing_xml(outs_dir))
     if missing_outputs:
-        _write((f"[ {_wrap_with(Color.YELLOW, "WARNING")} ]: "
+        _write(("[ " + _wrap_with(Color.YELLOW, 'WARNING') + " ] "
                 "One or more subprocesses encountered an error and the "
                 "internal .xml files could not be generated. Please check the "
                 "following stderr files to identify the cause:"))
         for missing in missing_outputs:
             _write(repr(missing))
-        _write((f"[ {_wrap_with(Color.RED, "ERROR")} ]: "
+        _write((f"[ " + _wrap_with(Color.RED, 'ERROR') + " ] "
                 "The output, log and report files produced by Pabot are "
                 "incomplete and do not contain all test cases."))
     return exit_code if not missing_outputs else 252
