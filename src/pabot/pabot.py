@@ -1338,6 +1338,8 @@ def _options_for_rebot(options, start_time_string, end_time_string):
     rebot_options["test"] = []
     rebot_options["exclude"] = []
     rebot_options["include"] = []
+    if options.get("runemptysuite", False):
+        rebot_options["processemptysuite"] = True
     if ROBOT_VERSION >= "2.8":
         options["monitormarkers"] = "off"
     for key in [
@@ -2022,8 +2024,8 @@ def main_program(args):
         options, datasources, pabot_args, opts_for_run = parse_args(args)
         if pabot_args["help"]:
             help_print = __doc__.replace(
-                "PLACEHOLDER_README.MD",
-                read_args_from_readme()
+                    "PLACEHOLDER_README.MD",
+                    read_args_from_readme()
                 )
             print(help_print.replace("[PABOT_VERSION]", PABOT_VERSION))
             return 0
@@ -2059,7 +2061,7 @@ def main_program(args):
             _write((
                 "All tests were executed, but the --no-rebot argument was given, "
                 "so the results were not compiled, and no summary was generated. "
-                f"All results have been saved in the {os.path.join(os.path.curdir, 'pabot_results')} folder."
+                f"All results have been saved in the {outs_dir} folder."
             ))
             _write("===================================================")
             return 0 if not _ABNORMAL_EXIT_HAPPENED else 252
