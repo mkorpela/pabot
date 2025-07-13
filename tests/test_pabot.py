@@ -345,8 +345,8 @@ class PabotTests(unittest.TestCase):
     def test_suite_ordering_removes_wait_command_if_it_would_be_first_element(self):
         self._test_preserve_order(["s1", "s3"], ["s1", "s3"], ["s2", "#WAIT", "s1"])
 
-    def test_suite_ordering_removes_wait_command_if_it_would_be_last_element(self):
-        self._test_preserve_order(["s2"], ["s2"], ["s2", "#WAIT", "s1"])
+    def test_suite_ordering_preserve_wait_command_if_it_would_be_last_element(self):
+        self._test_preserve_order(["s2", "#WAIT"], ["s2"], ["s2", "#WAIT", "s1"])
 
     def test_suite_ordering_removes_double_wait_command(self):
         self._test_preserve_order(
@@ -424,12 +424,15 @@ class PabotTests(unittest.TestCase):
         self.assertEqual([], pabot._fix_items([w()]))
         self.assertEqual([], pabot._fix_items([w(), w()]))
         self.assertEqual([s("s")], pabot._fix_items([w(), s("s")]))
-        self.assertEqual([s("s")], pabot._fix_items([s("s"), w()]))
+        self.assertEqual([s("s"), w()], pabot._fix_items([s("s"), w()]))
         self.assertEqual(
             [s("s1"), w(), s("s2")], pabot._fix_items([s("s1"), w(), s("s2")])
         )
         self.assertEqual(
             [s("s1"), w(), s("s2")], pabot._fix_items([s("s1"), w(), w(), s("s2")])
+        )
+        self.assertEqual(
+            [s("s1"), w(), s("s2"), w()], pabot._fix_items([w(), w(), s("s1"), w(), w(), s("s2"), w(), w(), w()])
         )
 
     def test_solve_suite_names_with_testlevelsplit_option(self):

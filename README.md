@@ -130,7 +130,7 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with 
   pabotlib option. Resource file syntax is same as Windows ini files. Where a section is a shared set of variables.
 
---argumentfile [INTEGER] [FILEPATH]          
+--argumentfile[INTEGER] [FILEPATH]          
   Run same suites with multiple [argumentfile](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files) options.
 
   For example:
@@ -246,7 +246,7 @@ There different possibilities to influence the execution:
   * If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row as a ```--suite``` option.
   * If the base suite name is changing with robot option [```--name / -N```](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-the-name) you can also give partial suite name without the base suite.
   * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
-  * You can group suites and tests together to same executor process by adding line `{` before the group and `}`after.
+  * You can group suites and tests together to same executor process by adding line `{` before the group and `}` after.
   * You can introduce dependencies using the word `#DEPENDS` after a test declaration. Can be used several times if it is necessary to refer to several different tests. Please take care that in case of circular dependencies an exception will be thrown. An example could be.
 
 ```
@@ -270,7 +270,8 @@ There different possibilities to influence the execution:
   * By using the command `#SLEEP X`, where `X` is an integer in the range [0-3600] (in seconds), you can 
   define a startup delay for each subprocess. `#SLEEP` affects the next line unless the next line starts a 
   group with `{`, in which case the delay applies to the entire group. If the next line begins with `--test` 
-  or `--suite`, the delay is applied to that specific item. Any other occurrences of `#SLEEP` are ignored.
+  or `--suite`, the delay is applied to that specific item. Any other occurrences of `#SLEEP` are ignored. 
+  Note that `#SLEEP` has no effect within a group, i.e., inside a subprocess.
 
 The following example clarifies the behavior:
 

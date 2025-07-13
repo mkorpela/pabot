@@ -290,7 +290,8 @@ def _create_command_for_execution(caller_id, datasources, is_last, item, outs_di
             item.last_level,
             item.processes,
         )
-        + datasources
+        # If the datasource ends with a backslash, it is doubled to ensure correct handling of the escape character later on.
+        + [s + '\\' if not s.endswith('\\\\') and s.endswith('\\') else s for s in datasources]
     )
     return _mapOptionalQuote(cmd)
 
@@ -1088,8 +1089,6 @@ def _fix_items(items):  # type: (List[ExecutionItem]) -> List[ExecutionItem]
     _remove_empty_groups(result)
     if result and result[0].isWait:
         result = result[1:]
-    if result and result[-1].isWait:
-        result = result[:-1]
     return result
 
 
