@@ -361,7 +361,7 @@ class PabotOrderingMalformedTest(unittest.TestCase):
         --test Test.Test Case D
         """,
         )
-        self.assertIn(b"Test item 'Test.Test Case E' in --ordering file does not match suite or test names in .pabotsuitenames file.\r\nPlease verify content of --ordering file.", stdout, stderr)
+        self.assertIn(b"Test item 'Test.Test Case E' in --ordering file does not match suite or test names in .pabotsuitenames file.", stdout, stderr)
 
     def test_ordering_file_contains_not_existing_default_item(self):
         # Default item is suite
@@ -388,7 +388,7 @@ class PabotOrderingMalformedTest(unittest.TestCase):
         NOT_EXISTING
         """,
         )
-        self.assertIn(b"Suite item 'NOT_EXISTING' in --ordering file does not match suite or test names in .pabotsuitenames file.\r\nPlease verify content of --ordering file.", stdout, stderr)
+        self.assertIn(b"Suite item 'NOT_EXISTING' in --ordering file does not match suite or test names in .pabotsuitenames file.", stdout, stderr)
 
     def test_ordering_file_contains_depends_without_name_of_suite_or_test(self):
         # Default item is suite

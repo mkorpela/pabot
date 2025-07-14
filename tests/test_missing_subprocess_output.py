@@ -86,8 +86,6 @@ Testing 3
             'argumentfiles': []
         }
         options = {
-            'language': [], 
-            'parseinclude': [], 
             'metadata': [], 
             'settag': [], 
             'test': [], 
@@ -112,7 +110,6 @@ Testing 3
             'listener': [], 
             'prerunmodifier': [], 
             'prerebotmodifier': [], 
-            'parser': [], 
             'pythonpath': [],
         }
         pabot_args2 = pabot_args.copy()  # Using copy, because pabot._report_results does minor modifications.

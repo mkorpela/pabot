@@ -4,6 +4,7 @@ import textwrap
 import unittest
 import shutil
 import subprocess
+from robot import __version__ as ROBOT_VERSION
 
 
 class PabotRunEmptySuiteTest(unittest.TestCase):
@@ -64,7 +65,10 @@ class PabotRunEmptySuiteTest(unittest.TestCase):
         ]
         stdout, stderr = self._run_command(command2)
         self.assertEqual(b"", stderr)
-        self.assertIn(b"0 tests, 0 passed, 0 failed, 0 skipped.", stdout)
-        self.assertIn(b"Log: ", stdout)
-        self.assertIn(b"Report: ", stdout)
-        self.assertNotIn(b"[ ERROR ]", stdout)
+        if ROBOT_VERSION >= "5.1":
+            self.assertIn(b"0 tests, 0 passed, 0 failed, 0 skipped.", stdout)
+            self.assertIn(b"Log: ", stdout)
+            self.assertIn(b"Report: ", stdout)
+            self.assertNotIn(b"[ ERROR ]", stdout)
+        else:
+            self.assertIn("Collecting failed tests from 'output.xml' failed: All tests passed.", stdout)
