@@ -308,6 +308,9 @@ class PabotOrderingSleepTest(unittest.TestCase):
 
 
 class PabotOrderingMalformedTest(unittest.TestCase):
+    """
+    Tests for: https://github.com/mkorpela/pabot/issues/498
+    """
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
 
