@@ -1338,7 +1338,7 @@ def _options_for_rebot(options, start_time_string, end_time_string):
     rebot_options["test"] = []
     rebot_options["exclude"] = []
     rebot_options["include"] = []
-    if options.get("runemptysuite", False):
+    if rebot_options.get("runemptysuite"):
         rebot_options["processemptysuite"] = True
     if ROBOT_VERSION >= "2.8":
         options["monitormarkers"] = "off"
