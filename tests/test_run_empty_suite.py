@@ -65,7 +65,7 @@ class PabotRunEmptySuiteTest(unittest.TestCase):
         ]
         stdout, stderr = self._run_command(command2)
         self.assertEqual(b"", stderr)
-        if ROBOT_VERSION >= "5.1":
+        if ROBOT_VERSION >= "5.0.1":
             self.assertIn(b"0 tests, 0 passed, 0 failed, 0 skipped.", stdout)
             self.assertIn(b"Log: ", stdout)
             self.assertIn(b"Report: ", stdout)
