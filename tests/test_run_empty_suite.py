@@ -71,4 +71,4 @@ class PabotRunEmptySuiteTest(unittest.TestCase):
             self.assertIn(b"Report: ", stdout)
             self.assertNotIn(b"[ ERROR ]", stdout)
         else:
-            self.assertIn("Collecting failed tests from 'output.xml' failed: All tests passed.", stdout)
+            self.assertIn(b"Collecting failed tests from 'output.xml' failed: All tests passed.", stdout)
