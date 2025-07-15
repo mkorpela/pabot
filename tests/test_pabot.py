@@ -345,8 +345,8 @@ class PabotTests(unittest.TestCase):
     def test_suite_ordering_removes_wait_command_if_it_would_be_first_element(self):
         self._test_preserve_order(["s1", "s3"], ["s1", "s3"], ["s2", "#WAIT", "s1"])
 
-    def test_suite_ordering_removes_wait_command_if_it_would_be_last_element(self):
-        self._test_preserve_order(["s2"], ["s2"], ["s2", "#WAIT", "s1"])
+    def test_suite_ordering_preserve_wait_command_if_it_would_be_last_element(self):
+        self._test_preserve_order(["s2", "#WAIT"], ["s2"], ["s2", "#WAIT", "s1"])
 
     def test_suite_ordering_removes_double_wait_command(self):
         self._test_preserve_order(
@@ -390,6 +390,12 @@ class PabotTests(unittest.TestCase):
         item.modify_options_for_executor(opts)
         self.assertTrue("rerunfailed" not in opts)
 
+    def test_test_item_removes_rerunfailedsuites_option(self):
+        item = t("Some test")
+        opts = {"rerunfailedsuites": []}
+        item.modify_options_for_executor(opts)
+        self.assertTrue("rerunfailedsuites" not in opts)
+
     def test_fix_items_splits_to_tests_when_suite_after_test_from_that_suite(self):
         expected_items = [t("s.t1"), t("s.t2")]
         items = [t("s.t1"), s("s", tests=["s.t1", "s.t2"])]
@@ -418,12 +424,15 @@ class PabotTests(unittest.TestCase):
         self.assertEqual([], pabot._fix_items([w()]))
         self.assertEqual([], pabot._fix_items([w(), w()]))
         self.assertEqual([s("s")], pabot._fix_items([w(), s("s")]))
-        self.assertEqual([s("s")], pabot._fix_items([s("s"), w()]))
+        self.assertEqual([s("s"), w()], pabot._fix_items([s("s"), w()]))
         self.assertEqual(
             [s("s1"), w(), s("s2")], pabot._fix_items([s("s1"), w(), s("s2")])
         )
         self.assertEqual(
             [s("s1"), w(), s("s2")], pabot._fix_items([s("s1"), w(), w(), s("s2")])
+        )
+        self.assertEqual(
+            [s("s1"), w(), s("s2"), w()], pabot._fix_items([w(), w(), s("s1"), w(), w(), s("s2"), w(), w(), w()])
         )
 
     def test_solve_suite_names_with_testlevelsplit_option(self):

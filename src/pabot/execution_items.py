@@ -7,11 +7,46 @@ from robot.utils import PY2, is_unicode
 
 import re
 
+
+def create_dependency_tree(items):  
+    # type: (List[ExecutionItem]) -> List[List[ExecutionItem]]
+    independent_tests = list(filter(lambda item: not item.depends, items))
+    dependency_tree = [independent_tests]
+    dependent_tests = list(filter(lambda item: item.depends, items))
+    unknown_dependent_tests = dependent_tests
+    while len(unknown_dependent_tests) > 0:
+        run_in_this_stage, run_later = [], []
+        for d in unknown_dependent_tests:
+            stage_indexes = []
+            for i, stage in enumerate(dependency_tree):
+                for test in stage:
+                    if test.name in d.depends:
+                        stage_indexes.append(i)
+            # All #DEPENDS test are already run:
+            if len(stage_indexes) == len(d.depends):
+                run_in_this_stage.append(d)
+            else:
+                run_later.append(d)
+        unknown_dependent_tests = run_later
+        if len(run_in_this_stage) == 0:
+            text = "There are circular or unmet dependencies using #DEPENDS. Check this/these test(s): " + str(run_later)
+            raise DataError(text)
+        else:
+            dependency_tree.append(run_in_this_stage)
+    flattened_dependency_tree = sum(dependency_tree, [])
+    if len(flattened_dependency_tree) != len(items):
+        raise DataError(
+            "Invalid test configuration: Circular or unmet dependencies detected between test suites. Please check your #DEPENDS definitions."
+        )
+    return dependency_tree
+
+
 @total_ordering
 class ExecutionItem(object):
     isWait = False
     type = None  # type: str
     name = None  # type: str
+    sleep = 0  # type: int
 
     def top_name(self):
         # type: () -> str
@@ -28,6 +63,14 @@ class ExecutionItem(object):
     def line(self):
         # type: () -> str
         return ""
+
+    def set_sleep(self, sleep_time):
+        # type: (int) -> None
+        self.sleep = sleep_time
+
+    def get_sleep(self):
+        # type: () -> int
+        return self.sleep
 
     def modify_options_for_executor(self, options):
         options[self.type] = self.name
@@ -69,7 +112,7 @@ class GroupItem(ExecutionItem):
     type = "group"
 
     def __init__(self):
-        self.name = "Group_"
+        self.name = "Group"
         self._items = []
         self._element_type = None
 
@@ -82,11 +125,26 @@ class GroupItem(ExecutionItem):
             )
         if len(self._items) > 0:
             self.name += "_"
+        if self.get_sleep() < item.get_sleep():
+            self.set_sleep(item.get_sleep())
         self.name += item.name
         self._element_type = item.type
         self._items.append(item)
+    
+    def change_items_order_by_depends(self):
+        ordered_name = "Group"
+        dependency_tree = create_dependency_tree(self._items)
+        ordered = [item for sublist in dependency_tree for item in sublist]
+        for item in ordered:
+            ordered_name += f"_{item.name}"
+        self.name = ordered_name
+        self._items = ordered
 
     def modify_options_for_executor(self, options):
+        # Since a GroupItem contains either tests or suites, options are cleared
+        # and only the Group's content is used to avoid duplicate execution.
+        options['suite'] = []
+        options['test'] = []
         for item in self._items:
             if item.type not in options:
                 options[item.type] = []
@@ -120,6 +178,7 @@ class RunnableItem(ExecutionItem):
             if len(depends_indexes) == 0
             else line_name[0:depends_indexes[0]].strip()
         )
+        assert len(self.name) != 0, f"Suite or test name cannot be empty and then contain #DEPENDS like: {name}"
         self.depends = (
             self._split_dependencies(line_name, depends_indexes)
             if len(depends_indexes) != 0
@@ -197,6 +256,8 @@ class TestItem(RunnableItem):
         def modify_options_for_executor(self, options):
             if "rerunfailed" in options:
                 del options["rerunfailed"]
+            if "rerunfailedsuites" in options:
+                del options["rerunfailedsuites"]
             name = self.name
             for char in ["[", "?", "*"]:
                 name = name.replace(char, "[" + char + "]")
@@ -207,6 +268,8 @@ class TestItem(RunnableItem):
         def modify_options_for_executor(self, options):
             if "rerunfailed" in options:
                 del options["rerunfailed"]
+            if "rerunfailedsuites" in options:
+                del options["rerunfailedsuites"]
 
     def difference(self, from_items):
         # type: (List[ExecutionItem]) -> List[ExecutionItem]
@@ -272,6 +335,23 @@ class WaitItem(ExecutionItem):
 
     def line(self):
         return self.name
+
+
+class SleepItem(ExecutionItem):
+    type = "sleep"
+
+    def __init__(self, time):
+        try:
+            assert 3600 >= int(time) >= 0  # 1 h max.
+            self.name = time
+            self.sleep = int(time)
+        except ValueError:
+            raise ValueError("#SLEEP value %s is not integer" % time)
+        except AssertionError:
+            raise ValueError("#SLEEP value %s is not in between 0 and 3600" % time)
+
+    def line(self):
+        return "#SLEEP " + self.name
 
 
 class GroupStartItem(ExecutionItem):
