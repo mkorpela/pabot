@@ -240,14 +240,18 @@ After this come the suite names.
 
 With ```--ordering FILENAME``` you can have a list that controls order also. The syntax is same as .pabotsuitenames file syntax but does not contain 4 hash rows that are present in .pabotsuitenames. 
 
+Note: The `--ordering` file is intended only for defining the execution order of suites and tests. The actual selection of what to run must still be done using options like `--test`, `--suite`, `--include`, or `--exclude`.
+
 There different possibilities to influence the execution:
 
   * The order of suites can be changed.
   * If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row as a ```--suite``` option.
   * If the base suite name is changing with robot option [```--name / -N```](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-the-name) you can also give partial suite name without the base suite.
-  * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
-  * You can group suites and tests together to same executor process by adding line `{` before the group and `}` after.
-  * You can introduce dependencies using the word `#DEPENDS` after a test declaration. Can be used several times if it is necessary to refer to several different tests. Please take care that in case of circular dependencies an exception will be thrown. An example could be.
+  * You can add a line with text  to force executor to wait until all previous suites have been executed.
+  * You can group suites and tests together to same executor process by adding line `{` before the group and `}` after. Note that `#WAIT` cannot be used inside a group.
+  * You can introduce dependencies using the word `#DEPENDS` after a test declaration. This keyword can be used several times if it is necessary to refer to several different tests. Please take care that in case of circular dependencies an exception will be thrown. Note that each `#WAIT` splits suites into separate execution blocks, and it's not possible to define dependencies for suites or tests that are inside another `#WAIT` block or inside another `{}` brackets.
+  * Note: Within a group `{}`, neither execution order nor the `#DEPENDS` keyword currently works. This is due to limitations in Robot Framework, which is invoked within Pabot subprocesses. These limitations may be addressed in a future release of Robot Framework. For now, tests or suites within a group will be executed in the order Robot Framework discovers them — typically in alphabetical order.
+  * An example could be:
 
 ```
 --test robotTest.1 Scalar.Test With Environment Variables #DEPENDS robotTest.1 Scalar.Test with BuiltIn Variables of Robot Framework
@@ -255,8 +259,10 @@ There different possibilities to influence the execution:
 --test robotTest.2 Lists.Test with Keywords and a list
 #WAIT
 --test robotTest.2 Lists.Test with a Keyword that accepts multiple arguments
+{
 --test robotTest.2 Lists.Test with some Collections keywords
 --test robotTest.2 Lists.Test to access list entries
+}
 --test robotTest.3 Dictionary.Test that accesses Dictionaries
 --test robotTest.3 Dictionary.Dictionaries for named arguments #DEPENDS robotTest.3 Dictionary.Test that accesses Dictionaries
 --test robotTest.1 Scalar.Test Case With Variables #DEPENDS robotTest.3 Dictionary.Test that accesses Dictionaries
@@ -276,7 +282,7 @@ There different possibilities to influence the execution:
 The following example clarifies the behavior:
 
 ```sh
-pabot --process 2 --ordering order.txt data_1
+pabot --processes 2 --ordering order.txt data_1
 ```
 
 where order.txt is:

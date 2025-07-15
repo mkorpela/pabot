@@ -80,6 +80,7 @@ from .execution_items import (
     TestItem,
     RunnableItem,
     SleepItem,
+    create_dependency_tree,
 )
 from .result_merger import merge
 
@@ -290,8 +291,9 @@ def _create_command_for_execution(caller_id, datasources, is_last, item, outs_di
             item.last_level,
             item.processes,
         )
-        # If the datasource ends with a backslash, it is doubled to ensure correct handling of the escape character later on.
-        + [s + '\\' if not s.endswith('\\\\') and s.endswith('\\') else s for s in datasources]
+        # If the datasource ends with a backslash '\', it is deleted to ensure 
+        # correct handling of the escape character later on.
+        + [os.path.normpath(s) for s in datasources]
     )
     return _mapOptionalQuote(cmd)
 
@@ -762,6 +764,7 @@ def _options_to_cli_arguments(opts):  # type: (dict) -> List[str]
 
 
 def _group_by_groups(tokens):
+    # type: (List[ExecutionItem]) -> List[ExecutionItem]
     result = []
     group = None
     for token in tokens:
@@ -779,6 +782,7 @@ def _group_by_groups(tokens):
                 raise DataError(
                     "Ordering: Group end tag '}' encountered before start '{'"
                 )
+            group.change_items_order_by_depends()
             group = None
             continue
         if group is not None:
@@ -950,7 +954,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
             )
             execution_item_lines = [parse_execution_item_line(l) for l in lines[4:]]
             if corrupted or h != file_h or file_hash != hash_of_file or pabot_args.get("pabotprerunmodifier"):
-                if file_h[0] != h[0] and file_h[2] == h[2]:
+                if file_h is not None and file_h[0] != h[0] and file_h[2] == h[2]:
                     suite_names = _levelsplit(
                         generate_suite_names_with_builder(outs_dir, datasources, options),
                         pabot_args,
@@ -986,7 +990,8 @@ def _levelsplit(
 
 
 def _group_by_wait(lines):
-    suites = [[]]  # type: List[List[ExecutionItem]]
+    # type: (List[ExecutionItem]) -> List[List[ExecutionItem]]
+    suites = [[]]
     for suite in lines:
         if not suite.isWait:
             if suite:
@@ -1333,6 +1338,8 @@ def _options_for_rebot(options, start_time_string, end_time_string):
     rebot_options["test"] = []
     rebot_options["exclude"] = []
     rebot_options["include"] = []
+    if rebot_options.get("runemptysuite"):
+        rebot_options["processemptysuite"] = True
     if ROBOT_VERSION >= "2.8":
         options["monitormarkers"] = "off"
     for key in [
@@ -1475,6 +1482,19 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
     return copied_artifacts
 
 
+def _check_pabot_results_for_missing_xml(base_dir):
+    missing = []
+    for root, dirs, _ in os.walk(base_dir):
+        if root == base_dir:
+            for subdir in dirs:
+                subdir_path = os.path.join(base_dir, subdir)
+                has_xml = any(fname.endswith('.xml') for fname in os.listdir(subdir_path))
+                if not has_xml:
+                    missing.append(os.path.join(subdir_path, 'robot_stderr.out'))
+            break
+    return missing
+
+
 def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root_name):
     if "pythonpath" in options:
         del options["pythonpath"]
@@ -1490,6 +1510,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
             "failed": 0,
             "skipped": 0,
         }
+    missing_outputs = []
     if pabot_args["argumentfiles"]:
         outputs = []  # type: List[str]
         for index, _ in pabot_args["argumentfiles"]:
@@ -1506,14 +1527,27 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
                     outputfile=os.path.join("pabot_results", "output%s.xml" % index),
                 )
             ]
+            missing_outputs.extend(_check_pabot_results_for_missing_xml(os.path.join(outs_dir, index)))
         if "output" not in options:
             options["output"] = "output.xml"
         _write_stats(stats)
-        return rebot(*outputs, **_options_for_rebot(options, start_time_string, _now()))
+        exit_code = rebot(*outputs, **_options_for_rebot(options, start_time_string, _now()))
     else:
-        return _report_results_for_one_run(
+        exit_code = _report_results_for_one_run(
             outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
         )
+        missing_outputs.extend(_check_pabot_results_for_missing_xml(outs_dir))
+    if missing_outputs:
+        _write(("[ " + _wrap_with(Color.YELLOW, 'WARNING') + " ] "
+                "One or more subprocesses encountered an error and the "
+                "internal .xml files could not be generated. Please check the "
+                "following stderr files to identify the cause:"))
+        for missing in missing_outputs:
+            _write(repr(missing))
+        _write((f"[ " + _wrap_with(Color.RED, 'ERROR') + " ] "
+                "The output, log and report files produced by Pabot are "
+                "incomplete and do not contain all test cases."))
+    return exit_code if not missing_outputs else 252
 
 
 def _write_stats(stats):
@@ -1548,9 +1582,9 @@ def _report_results_for_one_run(
     _write_stats(stats)
     if (
         "report" in options
-        and options["report"] == "NONE"
+        and options["report"].upper() == "NONE"
         and "log" in options
-        and options["log"] == "NONE"
+        and options["log"].upper() == "NONE"
     ):
         options[
             "output"
@@ -1990,8 +2024,8 @@ def main_program(args):
         options, datasources, pabot_args, opts_for_run = parse_args(args)
         if pabot_args["help"]:
             help_print = __doc__.replace(
-                "PLACEHOLDER_README.MD",
-                read_args_from_readme()
+                    "PLACEHOLDER_README.MD",
+                    read_args_from_readme()
                 )
             print(help_print.replace("[PABOT_VERSION]", PABOT_VERSION))
             return 0
@@ -2027,7 +2061,7 @@ def main_program(args):
             _write((
                 "All tests were executed, but the --no-rebot argument was given, "
                 "so the results were not compiled, and no summary was generated. "
-                f"All results have been saved in the {os.path.join(os.path.curdir, 'pabot_results')} folder."
+                f"All results have been saved in the {outs_dir} folder."
             ))
             _write("===================================================")
             return 0 if not _ABNORMAL_EXIT_HAPPENED else 252
@@ -2068,20 +2102,38 @@ def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
         with open(filename, "r") as orderingfile:
             return [
                 parse_execution_item_line(line.strip())
-                for line in orderingfile.readlines()
+                for line in orderingfile.readlines() if line.strip() != ""
             ]
     except FileNotFoundError:
         raise DataError("Error: File '%s' not found." % filename)
-    except ValueError as e:
+    except (ValueError, AssertionError) as e:
         raise DataError("Error in ordering file: %s: %s" % (filename, e))
-    except:
+    except Exception:
         raise DataError("Error parsing ordering file '%s'" % filename)
+
+
+def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], List[ExecutionItem]) -> None
+    list_of_suite_names = [s.name for s in suite_names]
+    number_of_tests_or_suites = 0
+    if ordering_file:
+        for item in ordering_file:
+            if item.type in ['suite', 'test']:
+                if not any((s == item.name or s.endswith("." + item.name)) for s in list_of_suite_names):
+                    # If test name is too long, it gets name ' Invalid', so skip that
+                    if item.name != ' Invalid':
+                        raise DataError("%s item '%s' in --ordering file does not match suite or test names in .pabotsuitenames file.\nPlease verify content of --ordering file." % (item.type.title(), item.name))
+                number_of_tests_or_suites += 1
+        if number_of_tests_or_suites > len(list_of_suite_names):
+            raise DataError('Ordering file contains more tests and/or suites than exists. Check that there is no duplicates etc. in ordering file and that to .pabotsuitenames.')
 
 
 def _group_suites(outs_dir, datasources, options, pabot_args):
     suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
     _verify_depends(suite_names)
     ordering_arg = _parse_ordering(pabot_args.get("ordering")) if (pabot_args.get("ordering")) is not None else None
+    if ordering_arg:
+        _verify_depends(ordering_arg)
+        _check_ordering(ordering_arg, suite_names)
     ordering_arg_with_sleep = _set_sleep_times(ordering_arg)
     ordered_suites = _preserve_order(suite_names, ordering_arg_with_sleep)
     shard_suites = solve_shard_suites(ordered_suites, pabot_args)
@@ -2141,7 +2193,7 @@ def _verify_depends(suite_names):
     suites_with_found_dependencies = list(
         filter(
             lambda suite: any(
-                runnable_suite.name == suite.depends
+                runnable_suite.name in suite.depends
                 for runnable_suite in runnable_suites
             ),
             suites_with_depends,
@@ -2152,63 +2204,31 @@ def _verify_depends(suite_names):
             "Invalid test configuration: Some test suites have dependencies (#DEPENDS) that cannot be found."
         )
     suites_with_circular_dependencies = list(
-        filter(lambda suite: suite.depends == suite.name, suites_with_depends)
+        filter(lambda suite: suite.name in suite.depends, suites_with_depends)
     )
     if suites_with_circular_dependencies:
         raise DataError(
             "Invalid test configuration: Test suites cannot depend on themselves."
         )
-    grouped_suites = list(
-        filter(lambda suite: isinstance(suite, GroupItem), suite_names)
-    )
-    if grouped_suites and suites_with_depends:
-        raise DataError(
-            "Invalid test configuration: Cannot use both #DEPENDS and grouped suites."
-        )
 
 
 def _group_by_depend(suite_names):
+    # type: (List[ExecutionItem]) -> List[List[ExecutionItem]]
     group_items = list(filter(lambda suite: isinstance(suite, GroupItem), suite_names))
     runnable_suites = list(
         filter(lambda suite: isinstance(suite, RunnableItem), suite_names)
     )
-    if group_items or not runnable_suites:
-        return [suite_names]
-    independent_tests = list(filter(lambda suite: not suite.depends, runnable_suites))
-    dependency_tree = [independent_tests]
-    dependent_tests = list(filter(lambda suite: suite.depends, runnable_suites))
-    unknown_dependent_tests = dependent_tests
-    while len(unknown_dependent_tests) > 0:
-        run_in_this_stage, run_later = [], []
-        for d in unknown_dependent_tests:
-            stage_indexes = []
-            for i, stage in enumerate(dependency_tree):
-                for test in stage:
-                    if test.name in d.depends:
-                        stage_indexes.append(i)
-            # All #DEPENDS test are already run:
-            if len(stage_indexes) == len(d.depends):
-                run_in_this_stage.append(d)
-            else:
-                run_later.append(d)
-        unknown_dependent_tests = run_later
-        if len(run_in_this_stage) == 0:
-            text = "There are circular or unmet dependencies using #DEPENDS. Check this/these test(s): " + str(run_later)
-            raise DataError(text)
-        else:
-            dependency_tree.append(run_in_this_stage)
-    flattened_dependency_tree = sum(dependency_tree, [])
-    if len(flattened_dependency_tree) != len(runnable_suites):
-        raise DataError(
-            "Invalid test configuration: Circular or unmet dependencies detected between test suites. Please check your #DEPENDS definitions."
-        )
+    dependency_tree = create_dependency_tree(runnable_suites)
+    # Since groups cannot depend on others, they are placed at the beginning.
+    dependency_tree[0][0:0] = group_items
     return dependency_tree
 
 
 def _all_grouped_suites_by_depend(grouped_suites):
+    # type: (List[List[ExecutionItem]]) -> List[List[ExecutionItem]]
     grouped_by_depend = []
-    for group_suite in grouped_suites:
-        grouped_by_depend += _group_by_depend(group_suite)
+    for group_suite in grouped_suites:  # These groups are divided by #WAIT
+        grouped_by_depend.extend(_group_by_depend(group_suite))
     return grouped_by_depend
 
 
