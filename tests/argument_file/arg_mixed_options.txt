@@ -1,0 +1,4 @@
+--test  *3
+--suite  Suite-2
+-s  Suite-1
+--loglevel debug

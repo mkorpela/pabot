@@ -1,5 +1,8 @@
+import atexit
 import multiprocessing
+import os.path
 import re
+import tempfile
 from typing import Dict, List, Optional, Tuple
 
 from robot import __version__ as ROBOT_VERSION
@@ -66,8 +69,47 @@ def parse_args(
         options_for_subprocesses["name"] = "Suites"
     opts = _delete_none_keys(options)
     opts_sub = _delete_none_keys(options_for_subprocesses)
+    _replace_arg_files(pabot_args, opts_sub)
     return opts, datasources, pabot_args, opts_sub
 
+# remove options from argumentfile according to different scenarios.
+# -t/--test/--task shall be removed if --testlevelsplit options exists
+# -s/--suite shall be removed if --testlevelsplit options does not exist
+def _replace_arg_files(pabot_args, opts_sub):
+    if not opts_sub.get('argumentfile') or not opts_sub['argumentfile']:
+        return
+    arg_file_list = opts_sub['argumentfile']
+    temp_file_list = []
+    test_level = pabot_args.get('testlevelsplit')
+
+    for arg_file_path in arg_file_list:
+        with open(arg_file_path, 'r') as arg_file:
+            arg_file_lines = arg_file.readlines()
+        if not arg_file_lines:
+            continue
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            for line in arg_file_lines:
+                if test_level and _is_test_option(line):
+                    continue
+                elif not test_level and _is_suite_option(line):
+                    continue
+                temp_file.write(line.encode('utf-8'))
+        temp_file_list.append(temp_file.name)
+
+    opts_sub['argumentfile'] = temp_file_list
+    atexit.register(cleanup_temp_file, temp_file_list)
+
+def _is_suite_option(line):
+    return line.startswith('-s ') or line.startswith('--suite ')
+
+def _is_test_option(line):
+    return line.startswith('-t ') or line.startswith('--test ') or line.startswith('--task ')
+
+# clean the temp argument files before exiting the pabot process
+def cleanup_temp_file(temp_file_list):
+    for temp_file in temp_file_list:
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
 
 def _parse_shard(arg):
     # type: (str) -> Tuple[int, int]
