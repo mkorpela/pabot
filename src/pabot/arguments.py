@@ -1,6 +1,7 @@
 import atexit
 import multiprocessing
-import os.path
+import os
+import glob
 import re
 import tempfile
 from typing import Dict, List, Optional, Tuple
@@ -72,10 +73,12 @@ def parse_args(
     _replace_arg_files(pabot_args, opts_sub)
     return opts, datasources, pabot_args, opts_sub
 
+
 # remove options from argumentfile according to different scenarios.
 # -t/--test/--task shall be removed if --testlevelsplit options exists
 # -s/--suite shall be removed if --testlevelsplit options does not exist
 def _replace_arg_files(pabot_args, opts_sub):
+    _cleanup_old_pabot_temp_files()
     if not opts_sub.get('argumentfile') or not opts_sub['argumentfile']:
         return
     arg_file_list = opts_sub['argumentfile']
@@ -87,29 +90,51 @@ def _replace_arg_files(pabot_args, opts_sub):
             arg_file_lines = arg_file.readlines()
         if not arg_file_lines:
             continue
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+
+        fd, temp_path = tempfile.mkstemp(prefix="pabot_temp_", suffix=".txt")
+        with os.fdopen(fd, 'wb') as temp_file:
             for line in arg_file_lines:
                 if test_level and _is_test_option(line):
                     continue
                 elif not test_level and _is_suite_option(line):
                     continue
                 temp_file.write(line.encode('utf-8'))
-        temp_file_list.append(temp_file.name)
+
+        temp_file_list.append(temp_path)
 
     opts_sub['argumentfile'] = temp_file_list
     atexit.register(cleanup_temp_file, temp_file_list)
 
+
 def _is_suite_option(line):
     return line.startswith('-s ') or line.startswith('--suite ')
 
+
 def _is_test_option(line):
     return line.startswith('-t ') or line.startswith('--test ') or line.startswith('--task ')
+
 
 # clean the temp argument files before exiting the pabot process
 def cleanup_temp_file(temp_file_list):
     for temp_file in temp_file_list:
         if os.path.exists(temp_file):
-            os.remove(temp_file)
+            try:
+                os.remove(temp_file)
+            except Exception:
+                pass
+
+
+# Deletes all possible pabot_temp_ files from os temp directory
+def _cleanup_old_pabot_temp_files():
+    temp_dir = tempfile.gettempdir()
+    pattern = os.path.join(temp_dir, "pabot_temp_*.txt")
+    old_files = glob.glob(pattern)
+    for file_path in old_files:
+        try:
+            os.remove(file_path)
+        except Exception:
+            pass
+
 
 def _parse_shard(arg):
     # type: (str) -> Tuple[int, int]
