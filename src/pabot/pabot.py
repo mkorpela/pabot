@@ -2227,23 +2227,11 @@ def _verify_depends(suite_names):
         )
 
 
-def _group_by_depend(suite_names):
-    # type: (List[ExecutionItem]) -> List[List[ExecutionItem]]
-    group_items = list(filter(lambda suite: isinstance(suite, GroupItem), suite_names))
-    runnable_suites = list(
-        filter(lambda suite: isinstance(suite, RunnableItem), suite_names)
-    )
-    dependency_tree = create_dependency_tree(runnable_suites)
-    # Since groups cannot depend on others, they are placed at the beginning.
-    dependency_tree[0][0:0] = group_items
-    return dependency_tree
-
-
 def _all_grouped_suites_by_depend(grouped_suites):
     # type: (List[List[ExecutionItem]]) -> List[List[ExecutionItem]]
     grouped_by_depend = []
     for group_suite in grouped_suites:  # These groups are divided by #WAIT
-        grouped_by_depend.extend(_group_by_depend(group_suite))
+        grouped_by_depend.extend(create_dependency_tree(group_suite))
     return grouped_by_depend
 
 
