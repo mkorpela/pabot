@@ -91,16 +91,43 @@ class PabotOrderingGroupTest(unittest.TestCase):
             self.assertNotIn(b"FAILED", stdout, stderr)
             self.assertEqual(stdout.count(b"PASSED"), 2)
 
-    def NOT_VALID_test_sequential_suite_execution_invalid_name(self):
+    def test_sequential_suite_execution_ok(self):
         stdout, stderr = self._run_tests_with(
             """
         *** Variables ***
         ${SCALAR}  Hello, globe!
+
         *** Test Cases ***
         First Test
             Set Suite Variable	${SCALAR}	Hello, world!
+
         Second Test
             Should Be Equal  ${SCALAR}	Hello, world!
+
+        Third Test
+            Should Be Equal  ${SCALAR}	Hello, world!
+        """,
+            """
+        --suite Test
+        """,
+        )
+        self.assertIn(b"3 tests, 3 passed, 0 failed, 0 skipped.", stdout)
+        self.assertEqual(stdout.count(b"PASSED"), 1)
+        self.assertEqual(b"", stderr)
+
+    def test_sequential_suite_execution_invalid_name(self):
+        stdout, stderr = self._run_tests_with(
+            """
+        *** Variables ***
+        ${SCALAR}  Hello, globe!
+
+        *** Test Cases ***
+        First Test
+            Set Suite Variable	${SCALAR}	Hello, world!
+
+        Second Test
+            Should Be Equal  ${SCALAR}	Hello, world!
+
         Third Test
             Should Be Equal  ${SCALAR}	Hello, world!
         """,
@@ -164,6 +191,30 @@ class PabotOrderingGroupTest(unittest.TestCase):
         self.assertNotIn(b"FAILED", stdout, stderr)
         self.assertEqual(stdout.count(b"PASSED"), 4)
         self.assertIn(b"8 tests, 8 passed, 0 failed, 0 skipped.", stdout)
+        self.assertEqual(b"", stderr)
+
+    def test_sequential_suite_execution_reference_same_tests(self):
+        stdout, stderr = self._run_tests_with(
+            """
+        *** Variables ***
+        ${SCALAR}  Hello, globe!
+
+        *** Test Cases ***
+        First Test
+            Set Suite Variable	${SCALAR}	Hello, world!
+
+        Second Test
+            Should Be Equal  ${SCALAR}	Hello, world!
+
+        Third Test
+            Should Be Equal  ${SCALAR}	Hello, world!
+        """,
+            """
+        --suite Test
+        --suite Test
+        """,
+        )
+        self.assertIn(b"Invalid test configuration: Test 'Test.First Test' is matched by multiple suites: 'Test' and 'Test'", stdout)
         self.assertEqual(b"", stderr)
 
     def test_two_orders(self):

@@ -2147,9 +2147,13 @@ def _group_suites(outs_dir, datasources, options, pabot_args):
     ordering_arg = _parse_ordering(pabot_args.get("ordering")) if (pabot_args.get("ordering")) is not None else None
     if ordering_arg:
         _verify_depends(ordering_arg)
+        if options.get("name"):
+            ordering_arg = _update_ordering_names(ordering_arg, options['name'])
         # TODO: After issue #646, it seems necessary to thoroughly rethink how this functionality should work.
         #_check_ordering(ordering_arg, suite_names)
     ordering_arg_with_sleep = _set_sleep_times(ordering_arg)
+    if pabot_args.get("testlevelsplit") and ordering_arg and any(item.type == 'suite' for item in ordering_arg):
+        suite_names = _reduce_items(suite_names, ordering_arg)
     ordered_suites = _preserve_order(suite_names, ordering_arg_with_sleep)
     shard_suites = solve_shard_suites(ordered_suites, pabot_args)
     grouped_suites = (
@@ -2159,6 +2163,61 @@ def _group_suites(outs_dir, datasources, options, pabot_args):
     )
     grouped_by_depend = _all_grouped_suites_by_depend(grouped_suites)
     return grouped_by_depend
+
+
+def _update_ordering_names(ordering, new_top_name):
+    # type: (List[ExecutionItem], str) -> List[ExecutionItem]
+    output = []
+    for item in ordering:
+        if item.type in ['suite', 'test']:
+            splitted_name = item.name.split('.')
+            splitted_name[0] = new_top_name
+            item.name = '.'.join(splitted_name)
+        output.append(item)
+    return output
+
+
+def _reduce_items(items, selected_suites):
+    # type: (List[ExecutionItem], List[ExecutionItem]) -> List[ExecutionItem]
+    """
+    Reduce a list of test items by replacing covered test cases with suite items from selected_suites.
+    Raises DataError if:
+    - Any selected suite does not match any tests.
+    - Any test is covered by more than one selected suite.
+    """
+    reduced = []
+    suite_coverage = {}
+    test_to_suite = {}
+
+    for suite in selected_suites:
+        if suite.type == 'suite':
+            suite_name = str(suite.name)
+            covered_tests = [
+                item for item in items
+                if item.type == "test" and str(item.name).startswith(suite_name + ".")
+            ]
+
+            if not covered_tests:
+                raise DataError(f"Invalid test configuration: Selected suite '{suite_name}' does not match any tests.")
+
+            for test in covered_tests:
+                test_name = str(test.name)
+                if test_name in test_to_suite:
+                    raise DataError(
+                        f"Invalid test configuration: Test '{test_name}' is matched by multiple suites: "
+                        f"'{test_to_suite[test_name]}' and '{suite_name}'."
+                    )
+                test_to_suite[test_name] = suite_name
+
+            suite_coverage[suite_name] = set(str(t.name) for t in covered_tests)
+            reduced.append(suite)
+
+    # Add tests not covered by any suite
+    for item in items:
+        if item.type == "test" and str(item.name) not in test_to_suite:
+            reduced.append(item)
+
+    return reduced
 
 
 def _set_sleep_times(ordering_arg):
