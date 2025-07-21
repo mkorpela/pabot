@@ -34,6 +34,29 @@ class PabotOrderingGroupTest(unittest.TestCase):
             stderr=subprocess.PIPE,
         )
         return process.communicate()
+    
+    def _run_tests_with_root_level_suites(self, testfiles_dict, orderfile):
+        for key, testfile in testfiles_dict.items():
+            with open("{}/{}.robot".format(self.tmpdir, key), "w") as f:
+                f.write(textwrap.dedent(testfile))
+        with open("{}/order.dat".format(self.tmpdir), "w") as f:
+            f.write(textwrap.dedent(orderfile))
+        process = subprocess.Popen(
+            [
+                sys.executable,
+                "-m" "pabot.pabot",
+                "--testlevelsplit",
+                "--name",
+                "Top Suite",
+                "--ordering",
+                "{}/order.dat".format(self.tmpdir),
+                "{}/".format(self.tmpdir),
+            ],
+            cwd=self.tmpdir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        return process.communicate()
 
     def test_orders(self):
         stdout, stderr = self._run_tests_with(
@@ -67,6 +90,81 @@ class PabotOrderingGroupTest(unittest.TestCase):
             self.assertIn(b"PASSED", stdout, stderr)
             self.assertNotIn(b"FAILED", stdout, stderr)
             self.assertEqual(stdout.count(b"PASSED"), 2)
+
+    def test_sequential_suite_execution_invalid_name(self):
+        stdout, stderr = self._run_tests_with(
+            """
+        *** Variables ***
+        ${SCALAR}  Hello, globe!
+        *** Test Cases ***
+        First Test
+            Set Suite Variable	${SCALAR}	Hello, world!
+        Second Test
+            Should Be Equal  ${SCALAR}	Hello, world!
+        Third Test
+            Should Be Equal  ${SCALAR}	Hello, world!
+        """,
+            """
+        --suite Invalid Name
+        """,
+        )
+        self.assertIn(b"Suite item 'Invalid Name' in --ordering file does not match suite or test names in .pabotsuitenames file.", stdout)
+        self.assertEqual(b"", stderr)
+
+    def test_multiple_suites_and_ordering_ok(self):
+        testfiles = {
+            "Suite 1":
+            """
+            *** Variables ***
+            ${SCALAR}  Hello, globe!
+
+            *** Test Cases ***
+            First Test
+                Set Suite Variable	${SCALAR}	Hello, world!
+
+            Second Test
+                Should Be Equal  ${SCALAR}	Hello, world!
+
+            Second And Quarter
+                Should Be Equal  ${SCALAR}	Hello, globe!
+
+            Second And Half
+                Should Be Equal  ${SCALAR}	Hello, globe!
+
+            Third Test
+                Should Be Equal  ${SCALAR}	Hello, globe!
+            """,
+            "Suite 2":
+            """
+            *** Variables ***
+            ${SCALAR}  Hello, globe!
+            *** Test Cases ***
+            First Test
+                Set Suite Variable	${SCALAR}	Hello, world!
+            Second Test
+                Should Be Equal  ${SCALAR}	Hello, world!
+            Third Test
+                Should Be Equal  ${SCALAR}	Hello, world!
+            """,
+        }
+        ordering_file = """
+        {
+        --test Top Suite.Suite 1.First Test
+        --test Top Suite.Suite 1.Second Test
+        }
+        {
+        --test Top Suite.Suite 1.Second And Quarter
+        --test Top Suite.Suite 1.Second And Half
+        }
+        --test Top Suite.Suite 1.Third Test
+        --suite Top Suite.Suite 2
+        """
+        stdout, stderr = self._run_tests_with_root_level_suites(testfiles, ordering_file)
+        self.assertIn(b"PASSED", stdout, stderr)
+        self.assertNotIn(b"FAILED", stdout, stderr)
+        self.assertEqual(stdout.count(b"PASSED"), 4)
+        self.assertIn(b"8 tests, 8 passed, 0 failed, 0 skipped.", stdout)
+        self.assertEqual(b"", stderr)
 
     def test_two_orders(self):
         stdout, stderr = self._run_tests_with(
