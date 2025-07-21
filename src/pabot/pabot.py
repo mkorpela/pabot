@@ -2130,7 +2130,9 @@ def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], 
             if item.type in ['suite', 'test']:
                 if not any((s == item.name or s.endswith("." + item.name)) for s in list_of_suite_names):
                     # If test name is too long, it gets name ' Invalid', so skip that
-                    if item.name != ' Invalid':
+                    # Additionally, the test is skipped also if the user wants a higher-level suite to be executed sequentially by using 
+                    # the --suite option, and the given name is part of the full name of any test or suite.
+                    if item.name != ' Invalid' and not (item.type == 'suite' and any((s == item.name or s.startswith(item.name + ".")) for s in list_of_suite_names)):
                         raise DataError("%s item '%s' in --ordering file does not match suite or test names in .pabotsuitenames file.\nPlease verify content of --ordering file." % (item.type.title(), item.name))
                 number_of_tests_or_suites += 1
         if number_of_tests_or_suites > len(list_of_suite_names):
