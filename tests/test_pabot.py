@@ -205,11 +205,11 @@ class PabotTests(unittest.TestCase):
             "simplestring": "old.simple",
             "listofstrings": ["old.first", "old.second"],
         }
-        pabot._replace_base_name("new", "old", opts, "simplestring")
+        pabot._replace_base_name("new", opts, "simplestring")
         self.assertEqual(opts["simplestring"], "new.simple")
-        pabot._replace_base_name("new", "old", opts, "listofstrings")
+        pabot._replace_base_name("new", opts, "listofstrings")
         self.assertEqual(opts["listofstrings"], ["new.first", "new.second"])
-        pabot._replace_base_name("new", "old", opts, "nonexisting")
+        pabot._replace_base_name("new", opts, "nonexisting")
         self.assertTrue("nonexisting" not in opts)
 
     def test_solve_suite_names_works_without_pabotsuitenames_file(self):

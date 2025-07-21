@@ -109,10 +109,6 @@ EXECUTION_POOL_ID_LOCK = threading.Lock()
 POPEN_LOCK = threading.Lock()
 _PABOTLIBURI = "127.0.0.1:8270"
 _PABOTLIBPROCESS = None  # type: Optional[subprocess.Popen]
-_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = (
-    "!#$^&*?[(){}<>~;'`\\|= \t\n"  # does not contain '"'
-)
-_BAD_CHARS_SET = set(_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE)
 _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
 _ABNORMAL_EXIT_HAPPENED = False
 
@@ -213,16 +209,6 @@ class Color:
     YELLOW = "\033[93m"
 
 
-def _mapOptionalQuote(command_args):
-    # type: (List[str]) -> List[str]
-    if os.name == "posix":
-        return [quote(arg) for arg in command_args]
-    return [
-        arg if set(arg).isdisjoint(_BAD_CHARS_SET) else '"%s"' % arg
-        for arg in command_args
-    ]
-
-
 def execute_and_wait_with(item):
     # type: ('QueueItem') -> None
     global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
@@ -268,7 +254,7 @@ def execute_and_wait_with(item):
                 sleep_before_start=item.sleep_before_start
             )
         outputxml_preprocessing(
-            item.options, outs_dir, name, item.verbose, _make_id(), caller_id
+            item.options, outs_dir, name, item.verbose, _make_id(), caller_id, item.index
         )
     except:
         _write(traceback.format_exc())
@@ -291,11 +277,9 @@ def _create_command_for_execution(caller_id, datasources, is_last, item, outs_di
             item.last_level,
             item.processes,
         )
-        # If the datasource ends with a backslash '\', it is deleted to ensure 
-        # correct handling of the escape character later on.
-        + [os.path.normpath(s) for s in datasources]
+        + datasources
     )
-    return _mapOptionalQuote(cmd)
+    return cmd
 
 
 def _pabotlib_in_use():
@@ -418,8 +402,8 @@ def _is_ignored(plib, caller_id):  # type: (Remote, str) -> bool
 
 # optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords
 # and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
-def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, caller_id):
-    # type: (Dict[str, Any], str, str, bool, int, str) -> None
+def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, caller_id, item_id):
+    # type: (Dict[str, Any], str, str, bool, int, str, int) -> None
     try:
         remove_keywords = options["removekeywords"]
         flatten_keywords = options["flattenkeywords"]
@@ -432,7 +416,10 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
             remove_keywords_args += ["--removekeywords", k]
         for k in flatten_keywords:
             flatten_keywords_args += ["--flattenkeywords", k]
-        outputxmlfile = os.path.join(outs_dir, "output.xml")
+        output_name = options.get("output", "output.xml")
+        outputxmlfile = os.path.join(outs_dir, output_name)
+        if not os.path.isfile(outputxmlfile):
+            raise DataError(f"Preprosessing cannot be done because file {outputxmlfile} not exists.")
         oldsize = os.path.getsize(outputxmlfile)
         cmd = (
             [
@@ -451,14 +438,14 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
             + flatten_keywords_args
             + ["--output", outputxmlfile, outputxmlfile]
         )
-        cmd = _mapOptionalQuote(cmd)
         _try_execute_and_wait(
             cmd,
             outs_dir,
-            "preprocessing output.xml on " + item_name,
+            f"preprocessing {output_name} on " + item_name,
             verbose,
             pool_id,
             caller_id,
+            item_id,
         )
         newsize = os.path.getsize(outputxmlfile)
         perc = 100 * newsize / oldsize
@@ -519,6 +506,34 @@ def _increase_completed(plib, my_index):
             )
 
 
+def _write_internal_argument_file(cmd_args, filename):
+    # type: (List[str], str) -> None
+    """
+    Writes a list of command-line arguments to a file.
+    If an argument starts with '-' or '--', its value (the next item) is written on the same line.
+
+    Example:
+        ['--name', 'value', '--flag', '--other', 'x']
+        becomes:
+            --name value
+            --flag
+            --other x
+
+    :param cmd_args: List of argument strings to write
+    :param filename: Target filename
+    """
+    with open(filename, "w", encoding="utf-8") as f:
+        i = 0
+        while i < len(cmd_args):
+            current = cmd_args[i]
+            if current.startswith("-") and i + 1 < len(cmd_args) and not cmd_args[i + 1].startswith("-"):
+                f.write(f"{current} {cmd_args[i + 1]}\n")
+                i += 2
+            else:
+                f.write(f"{current}\n")
+                i += 1
+
+
 def _run(
     command,
     stderr,
@@ -540,7 +555,9 @@ def _run(
         )
         time.sleep(sleep_before_start)
     timestamp = datetime.datetime.now()
-    cmd = " ".join(command)
+    argfile_path = os.path.join(outs_dir, f"{command[0]}_argfile.txt")
+    _write_internal_argument_file(command[1:], filename=argfile_path)
+    cmd = f"{command[0]} -A {argfile_path}"
     if PY2:
         cmd = cmd.decode("utf-8").encode(SYSTEM_ENCODING)
     # avoid hitting https://bugs.python.org/issue10394
@@ -701,14 +718,14 @@ def _options_for_executor(
         if pabotLastLevel not in options["variable"]:
             options["variable"].append(pabotLastLevel)
     if argfile:
-        _modify_options_for_argfile_use(argfile, options, execution_item.top_name())
+        _modify_options_for_argfile_use(argfile, options)
         options["argumentfile"] = argfile
     if options.get("test", False) and options.get("include", []):
         del options["include"]
     return _set_terminal_coloring_options(options)
 
 
-def _modify_options_for_argfile_use(argfile, options, root_name):
+def _modify_options_for_argfile_use(argfile, options):
     argfile_opts, _ = ArgumentParser(
         USAGE,
         **_filter_argument_parser_options(
@@ -717,21 +734,20 @@ def _modify_options_for_argfile_use(argfile, options, root_name):
             env_options="ROBOT_OPTIONS",
         ),
     ).parse_args(["--argumentfile", argfile])
-    old_name = options.get("name", root_name)
     if argfile_opts["name"]:
         new_name = argfile_opts["name"]
-        _replace_base_name(new_name, old_name, options, "suite")
+        _replace_base_name(new_name, options, "suite")
         if not options["suite"]:
-            _replace_base_name(new_name, old_name, options, "test")
+            _replace_base_name(new_name, options, "test")
         if "name" in options:
             del options["name"]
 
 
-def _replace_base_name(new_name, old_name, options, key):
+def _replace_base_name(new_name, options, key):
     if isinstance(options.get(key, None), str):
-        options[key] = new_name + options[key][len(old_name) :]
+        options[key] = new_name + '.' + options[key].split('.', 1)[1]
     elif key in options:
-        options[key] = [new_name + s[len(old_name) :] for s in options.get(key, [])]
+        options[key] = [new_name + '.' + s.split('.', 1)[1] for s in options.get(key, [])]
 
 
 def _set_terminal_coloring_options(options):
