@@ -28,7 +28,7 @@ jobs:
           # Extract version from __init__.py
           VERSION=$(python -c "
           import re
-          with open('pabot/__init__.py', 'r') as f:
+          with open('src/pabot/__init__.py', 'r') as f:
               content = f.read()
               match = re.search(r'__version__\s*=\s*[\"\'](.*?)[\"\']', content)
               if match:
@@ -105,15 +105,23 @@ jobs:
           twine upload dist/*.*
       
       - name: Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref }}
-          release_name: Release ${{ needs.validate-version.outputs.version }}
+          name: Pabot ${{ needs.validate-version.outputs.version }}
           body: |
-            Release of Pabot version ${{ needs.validate-version.outputs.version }}
+            ## Pabot ${{ needs.validate-version.outputs.version }}
             
-            See [CHANGELOG](https://github.com/mkorpela/pabot/blob/master/CHANGELOG.md) for details.
+            Released to PyPI: https://pypi.org/project/robotframework-pabot/${{ needs.validate-version.outputs.version }}/
+            
+            ### Installation
+            ```bash
+            pip install robotframework-pabot==${{ needs.validate-version.outputs.version }}
+            ```
+          generate_release_notes: true
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
           draft: false
           prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
