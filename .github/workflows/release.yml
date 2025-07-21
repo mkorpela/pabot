@@ -1,0 +1,119 @@
+name: Release to PyPI
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'  # Matches tags like 1.2.3
+
+jobs:
+  validate-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Get tag version
+        id: tag
+        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+      - name: Get package version
+        id: package
+        run: |
+          # Extract version from __init__.py
+          VERSION=$(python -c "
+          import re
+          with open('pabot/__init__.py', 'r') as f:
+              content = f.read()
+              match = re.search(r'__version__\s*=\s*[\"\'](.*?)[\"\']', content)
+              if match:
+                  print(match.group(1))
+          ")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      - name: Verify versions match
+        run: |
+          echo "Tag version: ${{ steps.tag.outputs.version }}"
+          echo "Package version: ${{ steps.package.outputs.version }}"
+          if [ "${{ steps.tag.outputs.version }}" != "${{ steps.package.outputs.version }}" ]; then
+            echo "Error: Tag version does not match package version!"
+            echo "Tag: ${{ steps.tag.outputs.version }}"
+            echo "Package: ${{ steps.package.outputs.version }}"
+            exit 1
+          fi
+          echo "✓ Versions match!"
+      
+  run-tests:
+    needs: validate-version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.8", "3.10", "3.12"]
+        robotframework: ["6.1.1", "7.1.1"]  # Testing with recent stable versions
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      
+      - name: Install Dependencies
+        run: |
+          pip install pytest
+          pip install -r ./requirements.txt
+          pip install "robotframework~=${{ matrix.robotframework }}"
+          pip install -e .
+      
+      - name: Run Pytest
+        run: pytest tests
+  
+  build-and-release:
+    needs: [validate-version, run-tests]
+    runs-on: ubuntu-latest
+    environment: release  # Optional: for manual approval
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      
+      - name: Install build tools
+        run: |
+          pip install --upgrade pip build twine
+      
+      - name: Build package
+        run: python -m build
+      
+      - name: Check package
+        run: twine check dist/*
+      
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          twine upload dist/*.*
+      
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ needs.validate-version.outputs.version }}
+          body: |
+            Release of Pabot version ${{ needs.validate-version.outputs.version }}
+            
+            See [CHANGELOG](https://github.com/mkorpela/pabot/blob/master/CHANGELOG.md) for details.
+          draft: false
+          prerelease: false
