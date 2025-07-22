@@ -2122,9 +2122,10 @@ def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
         raise DataError("Error parsing ordering file '%s'" % filename)
 
 
+# TODO: After issue #646, it seems necessary to thoroughly rethink how this functionality should work.
 def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], List[ExecutionItem]) -> None
     list_of_suite_names = [s.name for s in suite_names]
-    number_of_tests_or_suites = 0
+    skipped_runnable_items = []
     if ordering_file:
         for item in ordering_file:
             if item.type in ['suite', 'test']:
@@ -2133,10 +2134,11 @@ def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], 
                     # Additionally, the test is skipped also if the user wants a higher-level suite to be executed sequentially by using 
                     # the --suite option, and the given name is part of the full name of any test or suite.
                     if item.name != ' Invalid' and not (item.type == 'suite' and any((s == item.name or s.startswith(item.name + ".")) for s in list_of_suite_names)):
-                        raise DataError("%s item '%s' in --ordering file does not match suite or test names in .pabotsuitenames file.\nPlease verify content of --ordering file." % (item.type.title(), item.name))
-                number_of_tests_or_suites += 1
-        if number_of_tests_or_suites > len(list_of_suite_names):
-            raise DataError('Ordering file contains more tests and/or suites than exists. Check that there is no duplicates etc. in ordering file and that to .pabotsuitenames.')
+                        skipped_runnable_items.append(f"{item.type.title()} item: '{item.name}'")
+    if skipped_runnable_items:
+        _write("Note: The ordering file contains test or suite items that are not included in the current test run. The following items will be ignored/skipped:")
+        for item in skipped_runnable_items:
+            _write(f"  - {item}")
 
 
 def _group_suites(outs_dir, datasources, options, pabot_args):
@@ -2145,7 +2147,8 @@ def _group_suites(outs_dir, datasources, options, pabot_args):
     ordering_arg = _parse_ordering(pabot_args.get("ordering")) if (pabot_args.get("ordering")) is not None else None
     if ordering_arg:
         _verify_depends(ordering_arg)
-        _check_ordering(ordering_arg, suite_names)
+        # TODO: After issue #646, it seems necessary to thoroughly rethink how this functionality should work.
+        #_check_ordering(ordering_arg, suite_names)
     ordering_arg_with_sleep = _set_sleep_times(ordering_arg)
     ordered_suites = _preserve_order(suite_names, ordering_arg_with_sleep)
     shard_suites = solve_shard_suites(ordered_suites, pabot_args)
