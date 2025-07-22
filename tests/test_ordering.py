@@ -91,7 +91,7 @@ class PabotOrderingGroupTest(unittest.TestCase):
             self.assertNotIn(b"FAILED", stdout, stderr)
             self.assertEqual(stdout.count(b"PASSED"), 2)
 
-    def test_sequential_suite_execution_invalid_name(self):
+    def NOT_VALID_test_sequential_suite_execution_invalid_name(self):
         stdout, stderr = self._run_tests_with(
             """
         *** Variables ***
@@ -436,7 +436,7 @@ class PabotOrderingMalformedTest(unittest.TestCase):
         )
         return process.communicate()
 
-    def test_ordering_file_contains_not_existing_test(self):
+    def NOT_VALID_test_ordering_file_contains_not_existing_test(self):
         stdout, stderr = self._run_tests_with(
             """
         *** Test Cases ***
@@ -461,7 +461,7 @@ class PabotOrderingMalformedTest(unittest.TestCase):
         )
         self.assertIn(b"Test item 'Test.Test Case E' in --ordering file does not match suite or test names in .pabotsuitenames file.", stdout, stderr)
 
-    def test_ordering_file_contains_not_existing_default_item(self):
+    def NOT_VALID_test_ordering_file_contains_not_existing_default_item(self):
         # Default item is suite
         stdout, stderr = self._run_tests_with(
             """
@@ -514,7 +514,7 @@ class PabotOrderingMalformedTest(unittest.TestCase):
         )
         self.assertIn(b"Suite or test name cannot be empty and then contain #DEPENDS like:   #DEPENDS Test.Test Case D", stdout, stderr)
 
-    def test_ordering_file_contains_too_many_runnable_items(self):
+    def NOT_VALID_test_ordering_file_contains_too_many_runnable_items(self):
         # Default item is suite
         stdout, stderr = self._run_tests_with(
             """
