@@ -2142,10 +2142,11 @@ def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
         raise DataError("Error parsing ordering file '%s'" % filename)
 
 
-# TODO: After issue #646, it seems necessary to thoroughly rethink how this functionality should work.
 def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], List[ExecutionItem]) -> None
     list_of_suite_names = [s.name for s in suite_names]
     skipped_runnable_items = []
+    suite_and_test_names = []
+    duplicates = []
     if ordering_file:
         for item in ordering_file:
             if item.type in ['suite', 'test']:
@@ -2155,9 +2156,16 @@ def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], 
                     # the --suite option, and the given name is part of the full name of any test or suite.
                     if item.name != ' Invalid' and not (item.type == 'suite' and any((s == item.name or s.startswith(item.name + ".")) for s in list_of_suite_names)):
                         skipped_runnable_items.append(f"{item.type.title()} item: '{item.name}'")
+                if item.name in suite_and_test_names:
+                    duplicates.append(f"{item.type.title()} item: '{item.name}'")
+                suite_and_test_names.append(item.name)
     if skipped_runnable_items:
         _write("Note: The ordering file contains test or suite items that are not included in the current test run. The following items will be ignored/skipped:")
         for item in skipped_runnable_items:
+            _write(f"  - {item}")
+    if duplicates:
+        _write("Note: The ordering file contains duplicate suite or test items. Only the first occurrence is taken into account. These are duplicates:")
+        for item in duplicates:
             _write(f"  - {item}")
 
 
@@ -2169,11 +2177,14 @@ def _group_suites(outs_dir, datasources, options, pabot_args):
         _verify_depends(ordering_arg)
         if options.get("name"):
             ordering_arg = _update_ordering_names(ordering_arg, options['name'])
-        # TODO: After issue #646, it seems necessary to thoroughly rethink how this functionality should work.
-        #_check_ordering(ordering_arg, suite_names)
-    ordering_arg_with_sleep = _set_sleep_times(ordering_arg)
+        _check_ordering(ordering_arg, suite_names)
     if pabot_args.get("testlevelsplit") and ordering_arg and any(item.type == 'suite' for item in ordering_arg):
-        suite_names = _reduce_items(suite_names, ordering_arg)
+        reduced_suite_names = _reduce_items(suite_names, ordering_arg)
+        if options.get("runemptysuite") and not reduced_suite_names:
+            return [suite_names]
+        if reduced_suite_names:
+            suite_names = reduced_suite_names
+    ordering_arg_with_sleep = _set_sleep_times(ordering_arg)
     ordered_suites = _preserve_order(suite_names, ordering_arg_with_sleep)
     shard_suites = solve_shard_suites(ordered_suites, pabot_args)
     grouped_suites = (
@@ -2202,7 +2213,6 @@ def _reduce_items(items, selected_suites):
     """
     Reduce a list of test items by replacing covered test cases with suite items from selected_suites.
     Raises DataError if:
-    - Any selected suite does not match any tests.
     - Any test is covered by more than one selected suite.
     """
     reduced = []
@@ -2217,20 +2227,18 @@ def _reduce_items(items, selected_suites):
                 if item.type == "test" and str(item.name).startswith(suite_name + ".")
             ]
 
-            if not covered_tests:
-                raise DataError(f"Invalid test configuration: Selected suite '{suite_name}' does not match any tests.")
+            if covered_tests:
+                for test in covered_tests:
+                    test_name = str(test.name)
+                    if test_name in test_to_suite:
+                        raise DataError(
+                            f"Invalid test configuration: Test '{test_name}' is matched by multiple suites: "
+                            f"'{test_to_suite[test_name]}' and '{suite_name}'."
+                        )
+                    test_to_suite[test_name] = suite_name
 
-            for test in covered_tests:
-                test_name = str(test.name)
-                if test_name in test_to_suite:
-                    raise DataError(
-                        f"Invalid test configuration: Test '{test_name}' is matched by multiple suites: "
-                        f"'{test_to_suite[test_name]}' and '{suite_name}'."
-                    )
-                test_to_suite[test_name] = suite_name
-
-            suite_coverage[suite_name] = set(str(t.name) for t in covered_tests)
-            reduced.append(suite)
+                suite_coverage[suite_name] = set(str(t.name) for t in covered_tests)
+                reduced.append(suite)
 
     # Add tests not covered by any suite
     for item in items:

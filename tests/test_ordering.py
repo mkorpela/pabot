@@ -126,16 +126,19 @@ class PabotOrderingGroupTest(unittest.TestCase):
             Set Suite Variable	${SCALAR}	Hello, world!
 
         Second Test
-            Should Be Equal  ${SCALAR}	Hello, world!
+            Should Be Equal  ${SCALAR}	Hello, globe!
 
         Third Test
-            Should Be Equal  ${SCALAR}	Hello, world!
+            Should Be Equal  ${SCALAR}	Hello, globe!
         """,
             """
         --suite Invalid Name
         """,
         )
-        self.assertIn(b"Suite item 'Invalid Name' in --ordering file does not match suite or test names in .pabotsuitenames file.", stdout)
+        self.assertIn(b"The following items will be ignored/skipped:", stdout)
+        self.assertIn(b"- Suite item: 'Invalid Name'", stdout)
+        self.assertIn(b"3 tests, 3 passed, 0 failed, 0 skipped.", stdout)
+        self.assertEqual(stdout.count(b"PASSED"), 3)
         self.assertEqual(b"", stderr)
 
     def test_multiple_suites_and_ordering_ok(self):
@@ -456,7 +459,7 @@ class PabotOrderingSleepTest(unittest.TestCase):
         self.assertNotIn(b"SLEEPING 4", stdout, stderr)
 
 
-class PabotOrderingMalformedTest(unittest.TestCase):
+class PabotOrderingCheckTest(unittest.TestCase):
     """
     Tests for: https://github.com/mkorpela/pabot/issues/498
     """
@@ -487,7 +490,7 @@ class PabotOrderingMalformedTest(unittest.TestCase):
         )
         return process.communicate()
 
-    def NOT_VALID_test_ordering_file_contains_not_existing_test(self):
+    def test_ordering_file_contains_not_existing_test(self):
         stdout, stderr = self._run_tests_with(
             """
         *** Test Cases ***
@@ -510,9 +513,48 @@ class PabotOrderingMalformedTest(unittest.TestCase):
         --test Test.Test Case D
         """,
         )
-        self.assertIn(b"Test item 'Test.Test Case E' in --ordering file does not match suite or test names in .pabotsuitenames file.", stdout, stderr)
+        self.assertIn(b"The following items will be ignored/skipped:", stdout)
+        self.assertIn(b"- Test item: 'Test.Test Case E'", stdout)
+        self.assertIn(b"4 tests, 4 passed, 0 failed, 0 skipped.", stdout)
+        self.assertEqual(stdout.count(b"PASSED"), 4)
+        self.assertEqual(b"", stderr)
 
-    def NOT_VALID_test_ordering_file_contains_not_existing_default_item(self):
+    def test_ordering_file_contains_not_existing_default_item(self):
+        # Default item is suite
+        stdout, stderr = self._run_tests_with(
+            """
+        *** Test Cases ***
+        Test Case A
+           Log  Hello!
+
+        Test Case B
+           Log  Hello!
+
+        Test Case C
+           Log  Hello!
+
+        Test Case D
+            Log  Hello!
+        """,
+            """
+        {
+        --test Test.Test Case A
+        --test Test.Test Case B
+        }
+        {
+        --test Test.Test Case C
+        --test Test.Test Case D
+        }
+        NOT_EXISTING
+        """,
+        )
+        self.assertIn(b"The following items will be ignored/skipped:", stdout)
+        self.assertIn(b"- Suite item: 'NOT_EXISTING'", stdout)
+        self.assertIn(b"4 tests, 4 passed, 0 failed, 0 skipped.", stdout)
+        self.assertEqual(stdout.count(b"PASSED"), 2)
+        self.assertEqual(b"", stderr)
+
+    def test_ordering_file_contains_depends_without_name_of_suite_or_test(self):
         # Default item is suite
         stdout, stderr = self._run_tests_with(
             """
@@ -533,40 +575,13 @@ class PabotOrderingMalformedTest(unittest.TestCase):
         --test Test.Test Case A
         --test Test.Test Case B
         --test Test.Test Case C
-        --test Test.Test Case D
-        NOT_EXISTING
-        """,
-        )
-        self.assertIn(b"Suite item 'NOT_EXISTING' in --ordering file does not match suite or test names in .pabotsuitenames file.", stdout, stderr)
-
-    def test_ordering_file_contains_depends_without_name_of_suite_or_test(self):
-        # Default item is suite
-        stdout, stderr = self._run_tests_with(
-            """
-        *** Test Cases ***
-        Test Case A
-           Log  Hello!
-
-        Test Case B
-           Log  Hello!
-
-        Test Case C
-           Log  Hello!
-
-        Test Case D
-            Log  Hello!
-        """,
-            """
-        --test Test Case A
-        --test Test.Test Case B
-        --test Test Case C
         --test   #DEPENDS Test.Test Case D
         """,
         )
-        self.assertIn(b"Suite or test name cannot be empty and then contain #DEPENDS like:   #DEPENDS Test.Test Case D", stdout, stderr)
+        self.assertIn(b"Suite or test name cannot be empty and then contain #DEPENDS like:   #DEPENDS Test.Test Case D", stdout)
+        self.assertEqual(b"", stderr)
 
-    def NOT_VALID_test_ordering_file_contains_too_many_runnable_items(self):
-        # Default item is suite
+    def test_ordering_file_contains_same_runnable_items_(self):
         stdout, stderr = self._run_tests_with(
             """
         *** Test Cases ***
@@ -585,9 +600,18 @@ class PabotOrderingMalformedTest(unittest.TestCase):
             """
         --test Test.Test Case A
         --test Test.Test Case B
-        --test Test Case C
+        --test Test.Test Case B
+        {
+        --test Test.Test Case C
         --test Test.Test Case D
-        --test Test Case A
+        --test Test.Test Case A
+        }
         """,
         )
-        self.assertIn(b'Ordering file contains more tests and/or suites than exists. Check that there is no duplicates etc. in ordering file', stdout, stderr)
+        self.assertNotIn(b"The following items will be ignored/skipped:", stdout)
+        self.assertIn(b"These are duplicates:", stdout)
+        self.assertIn(b"- Test item: 'Test.Test Case B'", stdout)
+        self.assertIn(b"- Test item: 'Test.Test Case A'", stdout)
+        self.assertIn(b"4 tests, 4 passed, 0 failed, 0 skipped.", stdout)
+        self.assertEqual(stdout.count(b"PASSED"), 3)
+        self.assertEqual(b"", stderr)
