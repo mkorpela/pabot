@@ -1503,7 +1503,7 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
     return copied_artifacts
 
 
-def _check_pabot_results_for_missing_xml(base_dir):
+def _check_pabot_results_for_missing_xml(base_dir, command_name):
     missing = []
     for root, dirs, _ in os.walk(base_dir):
         if root == base_dir:
@@ -1511,7 +1511,7 @@ def _check_pabot_results_for_missing_xml(base_dir):
                 subdir_path = os.path.join(base_dir, subdir)
                 has_xml = any(fname.endswith('.xml') for fname in os.listdir(subdir_path))
                 if not has_xml:
-                    missing.append(os.path.join(subdir_path, 'robot_stderr.out'))
+                    missing.append(os.path.join(subdir_path, f'{command_name}_stderr.out'))
             break
     return missing
 
@@ -1548,7 +1548,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
                     outputfile=os.path.join("pabot_results", "output%s.xml" % index),
                 )
             ]
-            missing_outputs.extend(_check_pabot_results_for_missing_xml(os.path.join(outs_dir, index)))
+            missing_outputs.extend(_check_pabot_results_for_missing_xml(os.path.join(outs_dir, index), pabot_args.get('command')[0]))
         if "output" not in options:
             options["output"] = "output.xml"
         _write_stats(stats)
@@ -1557,7 +1557,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
         exit_code = _report_results_for_one_run(
             outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
         )
-        missing_outputs.extend(_check_pabot_results_for_missing_xml(outs_dir))
+        missing_outputs.extend(_check_pabot_results_for_missing_xml(outs_dir, pabot_args.get('command')[0]))
     if missing_outputs:
         _write(("[ " + _wrap_with(Color.YELLOW, 'WARNING') + " ] "
                 "One or more subprocesses encountered an error and the "
