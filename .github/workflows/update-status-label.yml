@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Set up Python (needed by GitHub Actions)
         uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
 
       - name: Update issue and PR status
         uses: actions/github-script@v6
@@ -43,13 +45,13 @@ jobs:
                       name: label.name
                     });
                   } catch (e) {
-                    // Label might not exist, ignore
+                    // ignore errors
                   }
                 }
               }
             }
 
-            // Handle issues
+            // Handle issues only (own labels)
             if (context.eventName === 'issues') {
               const issueNumber = context.payload.issue.number;
               await removeOldStatusLabels(issueNumber);
@@ -69,35 +71,28 @@ jobs:
               }
             }
 
-            // Handle pull requests
+            // Handle PR labels only (no external issue modifications)
             if (context.eventName === 'pull_request') {
               const pr = context.payload.pull_request;
               const prNumber = pr.number;
-
-              // Only remove labels from the PR itself (optional)
               await removeOldStatusLabels(prNumber);
 
               if (['opened', 'edited', 'synchronize'].includes(context.payload.action)) {
                 const body = pr.body || "";
-                const issueMatch = body.match(/(?:fixes|closes|resolves)\s+#(\d+)/i);
-
-                if (issueMatch) {
-                  const issueNumber = parseInt(issueMatch[1], 10);
-                  await removeOldStatusLabels(issueNumber);
+                const linkedIssue = body.match(/(?:fixes|closes|resolves)\s+#\d+/i);
+                if (linkedIssue) {
                   await github.rest.issues.addLabels({
                     ...context.repo,
-                    issue_number: issueNumber,
+                    issue_number: prNumber,
                     labels: [issueLabels.pr_submitted]
                   });
                 } else {
-                  // PR is open but not linked to issue
                   await github.rest.issues.addLabels({
                     ...context.repo,
                     issue_number: prNumber,
                     labels: [issueLabels.needs_review]
                   });
                 }
-
               } else if (context.payload.action === 'closed' && pr.merged) {
                 await github.rest.issues.addLabels({
                   ...context.repo,
