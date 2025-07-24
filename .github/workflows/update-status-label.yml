@@ -1,0 +1,108 @@
+name: Issue and PR Status Labels
+
+on:
+  issues:
+    types: [opened, closed]
+  pull_request:
+    types: [opened, edited, synchronize, closed]
+
+jobs:
+  update-status:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Set up Python (needed by GitHub Actions)
+        uses: actions/setup-python@v4
+
+      - name: Update issue and PR status
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const issueLabels = {
+              open: 'status: open',
+              completed: 'status: completed',
+              pr_submitted: 'status: pr submitted',
+              needs_review: 'status: needs review'
+            };
+
+            async function removeOldStatusLabels(issue_number) {
+              const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+                ...context.repo,
+                issue_number
+              });
+
+              for (const label of labels) {
+                if (label.name.startsWith('status:')) {
+                  try {
+                    await github.rest.issues.removeLabel({
+                      ...context.repo,
+                      issue_number,
+                      name: label.name
+                    });
+                  } catch (e) {
+                    // Label might not exist, ignore
+                  }
+                }
+              }
+            }
+
+            // Handle issues
+            if (context.eventName === 'issues') {
+              const issueNumber = context.payload.issue.number;
+              await removeOldStatusLabels(issueNumber);
+
+              if (context.payload.action === 'opened') {
+                await github.rest.issues.addLabels({
+                  ...context.repo,
+                  issue_number: issueNumber,
+                  labels: [issueLabels.open]
+                });
+              } else if (context.payload.action === 'closed') {
+                await github.rest.issues.addLabels({
+                  ...context.repo,
+                  issue_number: issueNumber,
+                  labels: [issueLabels.completed]
+                });
+              }
+            }
+
+            // Handle pull requests
+            if (context.eventName === 'pull_request') {
+              const pr = context.payload.pull_request;
+              const prNumber = pr.number;
+
+              // Only remove labels from the PR itself (optional)
+              await removeOldStatusLabels(prNumber);
+
+              if (['opened', 'edited', 'synchronize'].includes(context.payload.action)) {
+                const body = pr.body || "";
+                const issueMatch = body.match(/(?:fixes|closes|resolves)\s+#(\d+)/i);
+
+                if (issueMatch) {
+                  const issueNumber = parseInt(issueMatch[1], 10);
+                  await removeOldStatusLabels(issueNumber);
+                  await github.rest.issues.addLabels({
+                    ...context.repo,
+                    issue_number: issueNumber,
+                    labels: [issueLabels.pr_submitted]
+                  });
+                } else {
+                  // PR is open but not linked to issue
+                  await github.rest.issues.addLabels({
+                    ...context.repo,
+                    issue_number: prNumber,
+                    labels: [issueLabels.needs_review]
+                  });
+                }
+
+              } else if (context.payload.action === 'closed' && pr.merged) {
+                await github.rest.issues.addLabels({
+                  ...context.repo,
+                  issue_number: prNumber,
+                  labels: [issueLabels.completed]
+                });
+              }
+            }
