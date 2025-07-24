@@ -245,10 +245,6 @@ Note: The `--ordering` file is intended only for defining the execution order of
 There different possibilities to influence the execution:
 
   * The order of suites can be changed.
-<<<<<<< HEAD
-  * If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row as a ```--suite``` option.
-  * If the base suite name is changing with robot option [```--name / -N```](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-the-name) you can also give partial suite name without the base suite.
-=======
   * If a directory (or a directory structure) should be executed sequentially, add the directory suite name to a row as a ```--suite``` option. This usage is also supported when `--testlevelsplit` is enabled. As an alternative to using `--suite` options, you can also group tests into sequential batches using `{}` braces. (See below for details.) Note that if multiple `--suite` options are used, they must not reference the same test case. This means you cannot specify both parent and child suite names at the same time. For instance:
 
 ```
@@ -264,7 +260,6 @@ OR
 --test Old Suite Name.Sub Suite.Test 1
 ```
 
->>>>>>> e4ae232 (docs: Small additions, corrections, and clarifications to the README.md)
   * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
   * You can group suites and tests together to same executor process by adding line `{` before the group and `}` after. Note that `#WAIT` cannot be used inside a group.
   * You can introduce dependencies using the word `#DEPENDS` after a test declaration. This keyword can be used several times if it is necessary to refer to several different tests. The ordering algorithm is designed to preserve the exact user-defined order as closely as possible. However, if a test's execution dependencies are not yet satisfied, the test is postponed and moved to the earliest possible stage where all its dependencies are fulfilled. Please take care that in case of circular dependencies an exception will be thrown. Note that each `#WAIT` splits suites into separate execution blocks, and it's not possible to define dependencies for suites or tests that are inside another `#WAIT` block or inside another `{}` braces.
