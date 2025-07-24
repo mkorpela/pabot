@@ -421,6 +421,7 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
         if not os.path.isfile(outputxmlfile):
             raise DataError(f"Preprosessing cannot be done because file {outputxmlfile} not exists.")
         oldsize = os.path.getsize(outputxmlfile)
+        process_empty = ["--processemptysuite"] if options.get("runemptysuite") else []
         cmd = (
             [
                 "rebot",
@@ -434,6 +435,7 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
                 "off",
                 "--NoStatusRC",
             ]
+            + process_empty
             + remove_keywords_args
             + flatten_keywords_args
             + ["--output", outputxmlfile, outputxmlfile]
@@ -1001,7 +1003,9 @@ def _levelsplit(
         tests = []  # type: List[ExecutionItem]
         for s in suites:
             tests.extend(s.tests)
-        return tests
+        # If there are no tests, it may be that --runemptysuite option is used, so fallback suites
+        if tests:
+            return tests
     return list(suites)
 
 

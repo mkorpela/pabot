@@ -275,6 +275,10 @@ class SuiteItem(RunnableItem):
         # TODO Make this happen
         return []
 
+    def modify_options_for_executor(self, options):
+        if not(options.get("runemptysuite") and options.get("suite")):
+            options[self.type].extend([self.name])
+
 
 class TestItem(RunnableItem):
     type = "test"
