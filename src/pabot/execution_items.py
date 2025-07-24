@@ -1,5 +1,5 @@
 from functools import total_ordering
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Set
 
 from robot import __version__ as ROBOT_VERSION
 from robot.errors import DataError
@@ -8,36 +8,68 @@ from robot.utils import PY2, is_unicode
 import re
 
 
-def create_dependency_tree(items):  
+def create_dependency_tree(items):
     # type: (List[ExecutionItem]) -> List[List[ExecutionItem]]
-    independent_tests = list(filter(lambda item: not item.depends, items))
-    dependency_tree = [independent_tests]
-    dependent_tests = list(filter(lambda item: item.depends, items))
-    unknown_dependent_tests = dependent_tests
-    while len(unknown_dependent_tests) > 0:
-        run_in_this_stage, run_later = [], []
-        for d in unknown_dependent_tests:
-            stage_indexes = []
-            for i, stage in enumerate(dependency_tree):
-                for test in stage:
-                    if test.name in d.depends:
-                        stage_indexes.append(i)
-            # All #DEPENDS test are already run:
-            if len(stage_indexes) == len(d.depends):
-                run_in_this_stage.append(d)
+    dependency_tree = []  # type: List[List[ExecutionItem]]
+    scheduled = set()  # type: Set[str]
+    name_to_item = {item.name: item for item in items}  # type: Dict[str, ExecutionItem]
+
+    while items:
+        stage = []  #type: List[ExecutionItem]
+        stage_names = set()  # type: Set[str]
+
+        for item in items:
+            if all(dep in scheduled for dep in item.depends):
+                stage.append(item)
+                stage_names.add(item.name)
             else:
-                run_later.append(d)
-        unknown_dependent_tests = run_later
-        if len(run_in_this_stage) == 0:
-            text = "There are circular or unmet dependencies using #DEPENDS. Check this/these test(s): " + str(run_later)
-            raise DataError(text)
-        else:
-            dependency_tree.append(run_in_this_stage)
-    flattened_dependency_tree = sum(dependency_tree, [])
-    if len(flattened_dependency_tree) != len(items):
-        raise DataError(
-            "Invalid test configuration: Circular or unmet dependencies detected between test suites. Please check your #DEPENDS definitions."
-        )
+                break  # Preserve input order
+
+        if not stage:
+            # Try to find any schedulable item even if it's out of order
+            for item in items:
+                if all(dep in scheduled for dep in item.depends):
+                    stage = [item]
+                    stage_names = {item.name}
+                    break
+
+        if not stage:
+            # Prepare a detailed error message
+            unscheduled_items = [item.name for item in items]
+            unsatisfied_deps = {
+                item.name: [d for d in item.depends if d not in scheduled and d not in name_to_item]
+                for item in items
+            }
+            potential_cycles = {
+                item.name: [d for d in item.depends if d in unscheduled_items]
+                for item in items if item.depends
+            }
+
+            message = ["Invalid test configuration:"]
+
+            message_unsatisfied = []
+            for item, deps in unsatisfied_deps.items():
+                if deps:
+                    message_unsatisfied.append(f"    - {item} depends on missing: {', '.join(deps)}")
+            if message_unsatisfied:
+                message.append("  Unsatisfied dependencies:")
+                message.extend(message_unsatisfied)
+                message.append("  For these tests, check that there is not #WAIT between them and that they are not inside different groups { }")
+
+            message_cycles = []
+            for item, deps in potential_cycles.items():
+                if deps:
+                    message_cycles.append(f"    - {item} <-> {', '.join(deps)}")
+            if message_cycles:
+                message.append("  Possible circular dependencies:")
+                message.extend(message_cycles)
+
+            raise DataError("\n".join(message))
+
+        dependency_tree.append(stage)
+        scheduled.update(stage_names)
+        items = [item for item in items if item.name not in stage_names]
+
     return dependency_tree
 
 
@@ -47,6 +79,7 @@ class ExecutionItem(object):
     type = None  # type: str
     name = None  # type: str
     sleep = 0  # type: int
+    depends = []  # type: List[str]  # Note that depends is used by RunnableItems.
 
     def top_name(self):
         # type: () -> str
@@ -156,7 +189,6 @@ class GroupItem(ExecutionItem):
 class RunnableItem(ExecutionItem):
     pass
 
-    depends = None  # type: List[str]
     depends_keyword = "#DEPENDS"
 
     def _split_dependencies(self, line_name, depends_indexes):
@@ -182,7 +214,7 @@ class RunnableItem(ExecutionItem):
         self.depends = (
             self._split_dependencies(line_name, depends_indexes)
             if len(depends_indexes) != 0
-            else None
+            else []
         )
 
     def line(self):
@@ -242,6 +274,10 @@ class SuiteItem(RunnableItem):
     def tags(self):
         # TODO Make this happen
         return []
+
+    def modify_options_for_executor(self, options):
+        if not(options.get("runemptysuite") and options.get("suite")):
+            options[self.type] = self.name
 
 
 class TestItem(RunnableItem):

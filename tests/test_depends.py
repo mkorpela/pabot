@@ -164,7 +164,10 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"circular or unmet dependencies using #DEPENDS. Check this/these test(s): [<test:Test.The Test S1Test 01>, <test:Test.The Test S1Test 02>]", stdout)
+        self.assertIn(b"Invalid test configuration:", stdout)
+        self.assertIn(b"Possible circular dependencies:", stdout)
+        self.assertIn(b"- Test.The Test S1Test 01 <-> Test.The Test S1Test 02", stdout)
+        self.assertIn(b"- Test.The Test S1Test 02 <-> Test.The Test S1Test 01", stdout)
         self.assertEqual(b"", stderr)
 
     def test_circular_dependency_with_multiple_depends(self):
@@ -178,7 +181,10 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 09 #DEPENDS Test.The Test S1Test 01 #DEPENDS Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"circular or unmet dependencies using #DEPENDS. Check this/these test(s): [<test:Test.The Test S1Test 08>, <test:Test.The Test S1Test 09>]", stdout)
+        self.assertIn(b"Invalid test configuration:", stdout)
+        self.assertIn(b"Possible circular dependencies:", stdout)
+        self.assertIn(b"- Test.The Test S1Test 08 <-> Test.The Test S1Test 09", stdout)
+        self.assertIn(b"- Test.The Test S1Test 09 <-> Test.The Test S1Test 08", stdout)
         self.assertEqual(b"", stderr)
 
     def test_unmet_dependency(self):
@@ -215,8 +221,26 @@ class DependsTest(unittest.TestCase):
         --test Test.The Test S1Test 08
         """,
         )
-        self.assertIn(b"circular or unmet dependencies using #DEPENDS. Check this/these test(s): [<test:Test.The Test S1Test 02>]", stdout)
+        self.assertIn(b"Invalid test configuration:", stdout)
+        self.assertIn(b"Unsatisfied dependencies:", stdout)
+        self.assertIn(b"- Test.The Test S1Test 02 depends on missing: Test.The Test S1Test 08", stdout)
         self.assertEqual(b"", stderr)
+
+    def test_dependency_inside_group(self):
+        stdout, stderr = self._run_tests_with(
+            self.test_file,
+        """
+        {
+        --test Test.The Test S1Test 01
+        --test Test.The Test S1Test 02 #DEPENDS Test.The Test S1Test 08
+        }
+        --test Test.The Test S1Test 08
+        """,
+        )
+        self.assertIn(b"Invalid test configuration:", stdout)
+        self.assertIn(b"Unsatisfied dependencies:", stdout)
+        self.assertIn(b"- Test.The Test S1Test 02 depends on missing: Test.The Test S1Test 08", stdout)
+        self.assertEqual(b"", stderr)    
 
     def test_complex_ordering_file_ok(self):
         stdout, stderr = self._run_tests_with(
@@ -290,3 +314,112 @@ class DependsTest(unittest.TestCase):
         self.assertTrue(test_11_index_exe > group_07_08_09_index_pass)
         self.assertTrue(test_12_index_exe > test_10_index_pass)
         self.assertTrue(test_12_index_exe > group_07_08_09_index_pass)
+
+    def test_depends_sorting_order(self):
+        stdout, stderr = self._run_tests_with(
+            self.test_file,
+            """
+        --test Test.The Test S1Test 12 #DEPENDS Test.The Test S1Test 11
+        --test Test.The Test S1Test 11
+        --test Test.The Test S1Test 10 #DEPENDS Test.The Test S1Test 12
+        --test Test.The Test S1Test 09 
+        --test Test.The Test S1Test 08 #DEPENDS Test.The Test S1Test 07
+        --test Test.The Test S1Test 07
+        #WAIT
+        --test Test.The Test S1Test 06 #DEPENDS Test.The Test S1Test 04
+        --test Test.The Test S1Test 05 #DEPENDS Test.The Test S1Test 03 #DEPENDS Test.The Test S1Test 06
+        --test Test.The Test S1Test 04 #DEPENDS Test.The Test S1Test 03 
+        --test Test.The Test S1Test 03
+        #WAIT
+        """,
+        )
+        # Execution order is (space or #WAIT means next stage):
+        """
+        --test Test.The Test S1Test 11
+
+        --test Test.The Test S1Test 12 #DEPENDS Test.The Test S1Test 11
+        
+        --test Test.The Test S1Test 10 #DEPENDS Test.The Test S1Test 12
+        --test Test.The Test S1Test 09 
+        --test Test.The Test S1Test 07
+
+        --test Test.The Test S1Test 08 #DEPENDS Test.The Test S1Test 07
+        #WAIT
+        --test Test.The Test S1Test 03
+
+        --test Test.The Test S1Test 04 #DEPENDS Test.The Test S1Test 03
+
+        --test Test.The Test S1Test 06 #DEPENDS Test.The Test S1Test 04
+        
+        --test Test.The Test S1Test 05 #DEPENDS Test.The Test S1Test 03 #DEPENDS Test.The Test S1Test 06
+        #WAIT
+        """
+        self.assertIn(self.passed, stdout, stderr)
+        self.assertNotIn(self.failed, stdout, stderr)
+        self.assertEqual(b"", stderr)
+        # Note that there are Test01 and Test02 after second wait also,
+        # so total 12 tests, and 12 "groups".
+        self.assertEqual(stdout.count(self.passed), 12)
+        self.assertIn(b"12 tests, 12 passed, 0 failed, 0 skipped.", stdout)
+        test_01_index_exe = stdout.find(_string_convert(b"EXECUTING Test.The Test S1Test 01"))
+        test_01_index_pass = stdout.find(_string_convert(b"PASSED Test.The Test S1Test 01"))
+        test_02_index_exe = stdout.find(_string_convert(b"EXECUTING Test.The Test S1Test 02"))
+        test_02_index_pass = stdout.find(_string_convert(b"PASSED Test.The Test S1Test 02"))
+        test_03_index_exe = stdout.find(_string_convert(b"EXECUTING Test.The Test S1Test 03"))
+        test_03_index_pass = stdout.find(_string_convert(b"PASSED Test.The Test S1Test 03"))
+        test_04_index_pass = stdout.find(_string_convert(b"PASSED Test.The Test S1Test 03"))
+        test_04_index_exe = stdout.find(_string_convert(b"EXECUTING Test.The Test S1Test 04"))
+        test_04_index_pass = stdout.find(_string_convert(b"PASSED Test.The Test S1Test 04"))
+        test_05_index_exe = stdout.find(_string_convert(b"EXECUTING Test.The Test S1Test 05"))
+        test_05_index_pass = stdout.find(_string_convert(b"PASSED Test.The Test S1Test 05"))
+        test_06_index_exe = stdout.find(_string_convert(b"EXECUTING Test.The Test S1Test 06"))
+        test_06_index_pass = stdout.find(_string_convert(b"PASSED Test.The Test S1Test 06"))
+        test_07_index_exe = stdout.find(_string_convert(b"EXECUTING Test.The Test S1Test 07"))
+        test_07_index_pass = stdout.find(_string_convert(b"PASSED Test.The Test S1Test 07"))
+        test_08_index_exe = stdout.find(_string_convert(b"EXECUTING Test.The Test S1Test 08"))
+        test_08_index_pass = stdout.find(_string_convert(b"PASSED Test.The Test S1Test 08"))
+        test_09_index_exe = stdout.find(_string_convert(b"EXECUTING Test.The Test S1Test 09"))
+        test_09_index_pass = stdout.find(_string_convert(b"PASSED Test.The Test S1Test 09"))
+        test_10_index_exe = stdout.find(_string_convert(b"EXECUTING Test.The Test S1Test 10"))
+        test_10_index_pass = stdout.find(_string_convert(b"PASSED Test.The Test S1Test 10"))
+        test_11_index_exe = stdout.find(_string_convert(b"EXECUTING Test.The Test S1Test 11"))
+        test_11_index_pass = stdout.find(_string_convert(b"PASSED Test.The Test S1Test 11"))
+        test_12_index_exe = stdout.find(_string_convert(b"EXECUTING Test.The Test S1Test 12"))
+        test_12_index_pass = stdout.find(_string_convert(b"PASSED Test.The Test S1Test 12"))
+        self.assertNotEqual(test_01_index_exe, -1)
+        self.assertNotEqual(test_02_index_exe, -1)
+        self.assertNotEqual(test_03_index_exe, -1)
+        self.assertNotEqual(test_04_index_exe, -1)
+        self.assertNotEqual(test_05_index_exe, -1)
+        self.assertNotEqual(test_06_index_exe, -1)
+        self.assertNotEqual(test_07_index_exe, -1)
+        self.assertNotEqual(test_08_index_exe, -1)
+        self.assertNotEqual(test_09_index_exe, -1)
+        self.assertNotEqual(test_10_index_exe, -1)
+        self.assertNotEqual(test_11_index_exe, -1)
+        self.assertNotEqual(test_12_index_exe, -1)
+        self.assertNotEqual(test_01_index_pass, -1)
+        self.assertNotEqual(test_02_index_pass, -1)
+        self.assertNotEqual(test_03_index_pass, -1)
+        self.assertNotEqual(test_04_index_pass, -1)
+        self.assertNotEqual(test_05_index_pass, -1)
+        self.assertNotEqual(test_06_index_pass, -1)
+        self.assertNotEqual(test_07_index_pass, -1)
+        self.assertNotEqual(test_08_index_pass, -1)
+        self.assertNotEqual(test_09_index_pass, -1)
+        self.assertNotEqual(test_10_index_pass, -1)
+        self.assertNotEqual(test_11_index_pass, -1)
+        self.assertNotEqual(test_12_index_pass, -1)
+        self.assertTrue(test_12_index_exe > test_11_index_pass)
+        self.assertTrue(test_10_index_exe > test_12_index_pass)
+        self.assertTrue(test_09_index_exe > test_12_index_pass)
+        self.assertTrue(test_07_index_exe > test_12_index_pass)
+        self.assertTrue(test_08_index_exe > test_07_index_pass)
+        self.assertTrue(test_08_index_exe > test_09_index_pass)
+        self.assertTrue(test_08_index_exe > test_10_index_pass)
+        self.assertTrue(test_03_index_exe > test_08_index_pass)
+        self.assertTrue(test_04_index_exe > test_03_index_pass)
+        self.assertTrue(test_06_index_exe > test_04_index_pass)
+        self.assertTrue(test_05_index_exe > test_06_index_pass)
+        self.assertTrue(test_02_index_exe > test_05_index_pass)
+        self.assertTrue(test_01_index_exe > test_05_index_pass)
