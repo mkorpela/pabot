@@ -28,6 +28,7 @@ class ResultMergerTests(unittest.TestCase):
             {},
             "root",
             [],
+            "some_timestamp_id"
         )
         visitor = ResultStats()
         result.visit(visitor)
@@ -38,7 +39,7 @@ class ResultMergerTests(unittest.TestCase):
 
     def test_suite_level_run_merge(self):
         result = result_merger.merge(
-            ["tests/outputs/tests.xml", "tests/outputs/tests2.xml"], {}, "root", []
+            ["tests/outputs/tests.xml", "tests/outputs/tests2.xml"], {}, "root", [], "some_timestamp_id"
         )
         visitor = ResultStats()
         result.visit(visitor)
@@ -57,13 +58,23 @@ class ResultMergerTests(unittest.TestCase):
 
     def test_prefixing(self):
         self.assertEqual(
-            result_merger.prefix(os.path.join("foo", "bar", "zoo", "ba2r.xml")), "zoo"
+            result_merger.prefix(os.path.join("foo", "bar", "pabot_results", "ba2r.xml"), "some_timestamp_id"), "some_timestamp_id-bar-pabot_results"
         )
         self.assertEqual(
-            result_merger.prefix(os.path.join("/zoo", "baa", "floo.txt")), "baa"
+            result_merger.prefix(os.path.join("foo", "bar", "pabot_results", "zoo", "ba2r.xml"), "some_timestamp_id"), "some_timestamp_id-zoo"
         )
-        self.assertEqual(result_merger.prefix(os.path.join("koo", "foo.bar")), "koo")
-        self.assertEqual(result_merger.prefix("hui.txt"), "")
+        self.assertEqual(
+            result_merger.prefix(os.path.join("foo", "bar", "pabot_results", "zoo", "koo", "ba2r.xml"), "some_timestamp_id"), "some_timestamp_id-zoo-koo"
+        )
+        self.assertEqual(
+            result_merger.prefix(os.path.join("foo", "pabot_results", "bar", "zoo", "koo", "ba2r.xml"), "some_timestamp_id"), "some_timestamp_id-zoo-koo"
+        )
+        self.assertEqual(
+            result_merger.prefix(os.path.join("/zoo", "/pabot_results", "baa", "floo.txt"), "some_timestamp_id"), "some_timestamp_id-baa"
+        )
+        self.assertEqual(result_merger.prefix(os.path.join("zoo", "koo", "foo.bar"), "some_timestamp_id"), "some_timestamp_id-zoo-koo")
+        self.assertEqual(result_merger.prefix(os.path.join("koo", "foo.bar"), "some_timestamp_id"), "")
+        self.assertEqual(result_merger.prefix("hui.txt", "some_timestamp_id"), "")
 
     def test_elapsed_time(self):
         # output.xml generated based on robotframework >= 7.0 without --legacyoutput option
@@ -77,6 +88,7 @@ class ResultMergerTests(unittest.TestCase):
                 {},
                 "root",
                 [],
+                "some_timestamp_id"
             )
             visitor_1 = ResultStats()
             result_1.visit(visitor_1)
@@ -95,6 +107,7 @@ class ResultMergerTests(unittest.TestCase):
                 {'legacyoutput': True},
                 "root",
                 [],
+                "some_timestamp_id",
             )
             visitor_2 = ResultStats()
             result_2.visit(visitor_2)
@@ -113,6 +126,7 @@ class ResultMergerTests(unittest.TestCase):
                 {},
                 "root",
                 [],
+                "some_timestamp_id",
                 True
             )
             visitor = ResultStats()

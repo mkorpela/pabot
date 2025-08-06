@@ -35,7 +35,7 @@ from robot.model import SuiteVisitor
 
 
 class ResultMerger(SuiteVisitor):
-    def __init__(self, result, tests_root_name, out_dir, copied_artifacts, legacy_output):
+    def __init__(self, result, tests_root_name, out_dir, copied_artifacts, timestamp_id, legacy_output):
         self.root = result.suite
         self.errors = result.errors
         self.current = None
@@ -44,6 +44,7 @@ class ResultMerger(SuiteVisitor):
         self._prefix = ""
         self._out_dir = out_dir
         self.legacy_output = legacy_output
+        self.timestamp_id = timestamp_id
 
         self._patterns = []
         regexp_template = (
@@ -65,7 +66,7 @@ class ResultMerger(SuiteVisitor):
             raise
 
     def _set_prefix(self, source):
-        self._prefix = prefix(source)
+        self._prefix = prefix(source, self.timestamp_id)
 
     def start_suite(self, suite):
         if self._skip_until and self._skip_until != suite:
@@ -194,9 +195,19 @@ class ResultsCombiner(CombinedResult):
         self.errors.add(other.errors)
 
 
-def prefix(source):
+def prefix(source, timestamp_id):
     try:
-        return os.path.split(os.path.dirname(source))[1]
+        path_without_id, id = os.path.split(os.path.dirname(source))
+        if not id:
+            return ""
+        if os.path.split(path_without_id)[1] == 'pabot_results':
+            return "-".join([timestamp_id, id])
+        else:
+            # --argumentfileN in use: (there should be one subdir level more)
+            _, index = os.path.split(path_without_id)
+            if not index:
+                return ""
+            return "-".join([timestamp_id, index, id])
     except:
         return ""
 
@@ -225,6 +236,7 @@ def merge_groups(
     invalid_xml_callback,
     out_dir,
     copied_artifacts,
+    timestamp_id,
     legacy_output
 ):
     merged = []
@@ -232,7 +244,7 @@ def merge_groups(
         results, critical_tags, non_critical_tags, invalid_xml_callback
     ).values():
         base = group[0]
-        merger = ResultMerger(base, tests_root_name, out_dir, copied_artifacts, legacy_output)
+        merger = ResultMerger(base, tests_root_name, out_dir, copied_artifacts, timestamp_id, legacy_output)
         for out in group:
             merger.merge(out)
         merged.append(base)
@@ -244,6 +256,7 @@ def merge(
     rebot_options,
     tests_root_name,
     copied_artifacts,
+    timestamp_id,
     invalid_xml_callback=None,
 ):
     assert len(result_files) > 0
@@ -263,6 +276,7 @@ def merge(
         invalid_xml_callback,
         settings.output_directory,
         copied_artifacts,
+        timestamp_id,
         rebot_options.get('legacyoutput')
     )
     if len(merged) == 1:

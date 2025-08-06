@@ -109,10 +109,6 @@ EXECUTION_POOL_ID_LOCK = threading.Lock()
 POPEN_LOCK = threading.Lock()
 _PABOTLIBURI = "127.0.0.1:8270"
 _PABOTLIBPROCESS = None  # type: Optional[subprocess.Popen]
-_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE = (
-    "!#$^&*?[(){}<>~;'`\\|= \t\n"  # does not contain '"'
-)
-_BAD_CHARS_SET = set(_BOURNELIKE_SHELL_BAD_CHARS_WITHOUT_DQUOTE)
 _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
 _ABNORMAL_EXIT_HAPPENED = False
 
@@ -213,16 +209,6 @@ class Color:
     YELLOW = "\033[93m"
 
 
-def _mapOptionalQuote(command_args):
-    # type: (List[str]) -> List[str]
-    if os.name == "posix":
-        return [quote(arg) for arg in command_args]
-    return [
-        arg if set(arg).isdisjoint(_BAD_CHARS_SET) else '"%s"' % arg
-        for arg in command_args
-    ]
-
-
 def execute_and_wait_with(item):
     # type: ('QueueItem') -> None
     global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
@@ -240,13 +226,13 @@ def execute_and_wait_with(item):
         name = item.display_name
         outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
         os.makedirs(outs_dir)
-        cmd = _create_command_for_execution(
+        run_cmd, run_options = _create_command_for_execution(
             caller_id, datasources, is_last, item, outs_dir
         )
         if item.hive:
             _hived_execute(
                 item.hive,
-                cmd,
+                run_cmd + run_options,
                 outs_dir,
                 name,
                 item.verbose,
@@ -256,7 +242,8 @@ def execute_and_wait_with(item):
             )
         else:
             _try_execute_and_wait(
-                cmd,
+                run_cmd,
+                run_options,
                 outs_dir,
                 name,
                 item.verbose,
@@ -268,7 +255,7 @@ def execute_and_wait_with(item):
                 sleep_before_start=item.sleep_before_start
             )
         outputxml_preprocessing(
-            item.options, outs_dir, name, item.verbose, _make_id(), caller_id
+            item.options, outs_dir, name, item.verbose, _make_id(), caller_id, item.index
         )
     except:
         _write(traceback.format_exc())
@@ -278,9 +265,8 @@ def _create_command_for_execution(caller_id, datasources, is_last, item, outs_di
     options = item.options.copy()
     if item.command == ["robot"] and not options["listener"]:
         options["listener"] = ["RobotStackTracer"]
-    cmd = (
-        item.command
-        + _options_for_custom_executor(
+    run_options = (
+        _options_for_custom_executor(
             options,
             outs_dir,
             item.execution_item,
@@ -291,12 +277,9 @@ def _create_command_for_execution(caller_id, datasources, is_last, item, outs_di
             item.last_level,
             item.processes,
         )
-        # If the datasource ends with a backslash '\', it is deleted to ensure 
-        # correct handling of the escape character later on.
-        + [os.path.normpath(s) for s in datasources]
+        + datasources
     )
-    return _mapOptionalQuote(cmd)
-
+    return item.command, run_options
 
 def _pabotlib_in_use():
     return _PABOTLIBPROCESS or _PABOTLIBURI != "127.0.0.1:8270"
@@ -317,7 +300,8 @@ def _hived_execute(
 
 
 def _try_execute_and_wait(
-    cmd,
+    run_cmd,
+    run_options,
     outs_dir,
     item_name,
     verbose,
@@ -328,16 +312,17 @@ def _try_execute_and_wait(
     process_timeout=None,
     sleep_before_start=0
 ):
-    # type: (List[str], str, str, bool, int, str, int, bool, Optional[int], int) -> None
+    # type: (List[str], List[str], str, str, bool, int, str, int, bool, Optional[int], int) -> None
     plib = None
     is_ignored = False
     if _pabotlib_in_use():
         plib = Remote(_PABOTLIBURI)
     try:
-        with open(os.path.join(outs_dir, cmd[0] + "_stdout.out"), "w") as stdout:
-            with open(os.path.join(outs_dir, cmd[0] + "_stderr.out"), "w") as stderr:
+        with open(os.path.join(outs_dir, run_cmd[-1] + "_stdout.out"), "w") as stdout:
+            with open(os.path.join(outs_dir, run_cmd[-1] + "_stderr.out"), "w") as stderr:
                 process, (rc, elapsed) = _run(
-                    cmd,
+                    run_cmd,
+                    run_options,
                     stderr,
                     stdout,
                     item_name,
@@ -418,8 +403,8 @@ def _is_ignored(plib, caller_id):  # type: (Remote, str) -> bool
 
 # optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords
 # and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
-def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, caller_id):
-    # type: (Dict[str, Any], str, str, bool, int, str) -> None
+def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, caller_id, item_id):
+    # type: (Dict[str, Any], str, str, bool, int, str, int) -> None
     try:
         remove_keywords = options["removekeywords"]
         flatten_keywords = options["flattenkeywords"]
@@ -432,11 +417,15 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
             remove_keywords_args += ["--removekeywords", k]
         for k in flatten_keywords:
             flatten_keywords_args += ["--flattenkeywords", k]
-        outputxmlfile = os.path.join(outs_dir, "output.xml")
+        output_name = options.get("output", "output.xml")
+        outputxmlfile = os.path.join(outs_dir, output_name)
+        if not os.path.isfile(outputxmlfile):
+            raise DataError(f"Preprosessing cannot be done because file {outputxmlfile} not exists.")
         oldsize = os.path.getsize(outputxmlfile)
-        cmd = (
+        process_empty = ["--processemptysuite"] if options.get("runemptysuite") else []
+        run_cmd = ["rebot"]
+        run_options = (
             [
-                "rebot",
                 "--log",
                 "NONE",
                 "--report",
@@ -447,18 +436,20 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
                 "off",
                 "--NoStatusRC",
             ]
+            + process_empty
             + remove_keywords_args
             + flatten_keywords_args
             + ["--output", outputxmlfile, outputxmlfile]
         )
-        cmd = _mapOptionalQuote(cmd)
         _try_execute_and_wait(
-            cmd,
+            run_cmd,
+            run_options,
             outs_dir,
-            "preprocessing output.xml on " + item_name,
+            f"preprocessing {output_name} on " + item_name,
             verbose,
             pool_id,
             caller_id,
+            item_id,
         )
         newsize = os.path.getsize(outputxmlfile)
         perc = 100 * newsize / oldsize
@@ -519,8 +510,37 @@ def _increase_completed(plib, my_index):
             )
 
 
+def _write_internal_argument_file(cmd_args, filename):
+    # type: (List[str], str) -> None
+    """
+    Writes a list of command-line arguments to a file.
+    If an argument starts with '-' or '--', its value (the next item) is written on the same line.
+
+    Example:
+        ['--name', 'value', '--flag', '--other', 'x']
+        becomes:
+            --name value
+            --flag
+            --other x
+
+    :param cmd_args: List of argument strings to write
+    :param filename: Target filename
+    """
+    with open(filename, "w", encoding="utf-8") as f:
+        i = 0
+        while i < len(cmd_args):
+            current = cmd_args[i]
+            if current.startswith("-") and i + 1 < len(cmd_args) and not cmd_args[i + 1].startswith("-"):
+                f.write(f"{current} {cmd_args[i + 1]}\n")
+                i += 2
+            else:
+                f.write(f"{current}\n")
+                i += 1
+
+
 def _run(
-    command,
+    run_command,
+    run_options,
     stderr,
     stdout,
     item_name,
@@ -531,7 +551,7 @@ def _run(
     process_timeout,
     sleep_before_start,
 ):
-    # type: (List[str], IO[Any], IO[Any], str, bool, int, int, str, Optional[int], int) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
+    # type: (List[str], List[str], IO[Any], IO[Any], str, bool, int, int, str, Optional[int], int) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
     timestamp = datetime.datetime.now()
     if sleep_before_start > 0:
         _write(
@@ -540,7 +560,10 @@ def _run(
         )
         time.sleep(sleep_before_start)
     timestamp = datetime.datetime.now()
-    cmd = " ".join(command)
+    command_name = run_command[-1].replace(" ", "_")
+    argfile_path = os.path.join(outs_dir, f"{command_name}_argfile.txt")
+    _write_internal_argument_file(run_options, filename=argfile_path)
+    cmd = ' '.join(run_command + ['-A'] + [argfile_path])
     if PY2:
         cmd = cmd.decode("utf-8").encode(SYSTEM_ENCODING)
     # avoid hitting https://bugs.python.org/issue10394
@@ -701,14 +724,14 @@ def _options_for_executor(
         if pabotLastLevel not in options["variable"]:
             options["variable"].append(pabotLastLevel)
     if argfile:
-        _modify_options_for_argfile_use(argfile, options, execution_item.top_name())
+        _modify_options_for_argfile_use(argfile, options)
         options["argumentfile"] = argfile
     if options.get("test", False) and options.get("include", []):
         del options["include"]
     return _set_terminal_coloring_options(options)
 
 
-def _modify_options_for_argfile_use(argfile, options, root_name):
+def _modify_options_for_argfile_use(argfile, options):
     argfile_opts, _ = ArgumentParser(
         USAGE,
         **_filter_argument_parser_options(
@@ -717,21 +740,20 @@ def _modify_options_for_argfile_use(argfile, options, root_name):
             env_options="ROBOT_OPTIONS",
         ),
     ).parse_args(["--argumentfile", argfile])
-    old_name = options.get("name", root_name)
     if argfile_opts["name"]:
         new_name = argfile_opts["name"]
-        _replace_base_name(new_name, old_name, options, "suite")
+        _replace_base_name(new_name, options, "suite")
         if not options["suite"]:
-            _replace_base_name(new_name, old_name, options, "test")
+            _replace_base_name(new_name, options, "test")
         if "name" in options:
             del options["name"]
 
 
-def _replace_base_name(new_name, old_name, options, key):
+def _replace_base_name(new_name, options, key):
     if isinstance(options.get(key, None), str):
-        options[key] = new_name + options[key][len(old_name) :]
+        options[key] = new_name + '.' + options[key].split('.', 1)[1]
     elif key in options:
-        options[key] = [new_name + s[len(old_name) :] for s in options.get(key, [])]
+        options[key] = [new_name + '.' + s.split('.', 1)[1] for s in options.get(key, [])]
 
 
 def _set_terminal_coloring_options(options):
@@ -985,7 +1007,9 @@ def _levelsplit(
         tests = []  # type: List[ExecutionItem]
         for s in suites:
             tests.extend(s.tests)
-        return tests
+        # If there are no tests, it may be that --runemptysuite option is used, so fallback suites
+        if tests:
+            return tests
     return list(suites)
 
 
@@ -1453,16 +1477,23 @@ def _output_dir(options, cleanup=True):
     return outpath
 
 
-def _copy_output_artifacts(options, file_extensions=None, include_subfolders=False):
+def _get_timestamp_id(timestamp_str):
+    return datetime.datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").strftime("%Y%m%d_%H%M%S")
+
+
+def _copy_output_artifacts(options, timestamp_id, file_extensions=None, include_subfolders=False, index=None):
     file_extensions = file_extensions or ["png"]
     pabot_outputdir = _output_dir(options, cleanup=False)
     outputdir = options.get("outputdir", ".")
     copied_artifacts = []
-    for location, _, file_names in os.walk(pabot_outputdir):
+    one_run_outputdir = pabot_outputdir
+    if index:  # For argumentfileN option:
+        one_run_outputdir = os.path.join(pabot_outputdir, index)
+    for location, _, file_names in os.walk(one_run_outputdir):
         for file_name in file_names:
             file_ext = file_name.split(".")[-1]
             if file_ext in file_extensions:
-                rel_path = os.path.relpath(location, pabot_outputdir)
+                rel_path = os.path.relpath(location, one_run_outputdir)
                 prefix = rel_path.split(os.sep)[0]  # folders named "process-id"
                 dst_folder_path = outputdir
                 # if it is a file from sub-folders of "location"
@@ -1474,7 +1505,9 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
                     dst_folder_path = os.path.join(outputdir, subfolder_path)
                     if not os.path.isdir(dst_folder_path):
                         os.makedirs(dst_folder_path)
-                dst_file_name = "-".join([prefix, file_name])
+                dst_file_name = "-".join([timestamp_id, prefix, file_name])
+                if index:
+                    dst_file_name = "-".join([timestamp_id, index, prefix, file_name])
                 shutil.copy2(
                     os.path.join(location, file_name),
                     os.path.join(dst_folder_path, dst_file_name),
@@ -1483,20 +1516,22 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
     return copied_artifacts
 
 
-def _check_pabot_results_for_missing_xml(base_dir):
+def _check_pabot_results_for_missing_xml(base_dir, command_name, output_xml_name):
     missing = []
     for root, dirs, _ in os.walk(base_dir):
         if root == base_dir:
             for subdir in dirs:
                 subdir_path = os.path.join(base_dir, subdir)
-                has_xml = any(fname.endswith('.xml') for fname in os.listdir(subdir_path))
+                has_xml = any(fname.endswith(output_xml_name) for fname in os.listdir(subdir_path))
                 if not has_xml:
-                    missing.append(os.path.join(subdir_path, 'robot_stderr.out'))
+                    command_name = command_name.replace(" ", "_")
+                    missing.append(os.path.join(subdir_path, f'{command_name}_stderr.out'))
             break
     return missing
 
 
 def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root_name):
+    output_xml_name = options.get("output") or "output.xml"
     if "pythonpath" in options:
         del options["pythonpath"]
     if ROBOT_VERSION < "4.0":
@@ -1516,7 +1551,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
         outputs = []  # type: List[str]
         for index, _ in pabot_args["argumentfiles"]:
             copied_artifacts = _copy_output_artifacts(
-                options, pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
+                options, _get_timestamp_id(start_time_string), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"], index
             )
             outputs += [
                 _merge_one_run(
@@ -1525,10 +1560,11 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
                     tests_root_name,
                     stats,
                     copied_artifacts,
+                    timestamp_id=_get_timestamp_id(start_time_string),
                     outputfile=os.path.join("pabot_results", "output%s.xml" % index),
                 )
             ]
-            missing_outputs.extend(_check_pabot_results_for_missing_xml(os.path.join(outs_dir, index)))
+            missing_outputs.extend(_check_pabot_results_for_missing_xml(os.path.join(outs_dir, index), pabot_args.get('command')[-1], output_xml_name))
         if "output" not in options:
             options["output"] = "output.xml"
         _write_stats(stats)
@@ -1537,7 +1573,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
         exit_code = _report_results_for_one_run(
             outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
         )
-        missing_outputs.extend(_check_pabot_results_for_missing_xml(outs_dir))
+        missing_outputs.extend(_check_pabot_results_for_missing_xml(outs_dir, pabot_args.get('command')[-1], output_xml_name))
     if missing_outputs:
         _write(("[ " + _wrap_with(Color.YELLOW, 'WARNING') + " ] "
                 "One or more subprocesses encountered an error and the "
@@ -1575,10 +1611,10 @@ def _report_results_for_one_run(
     outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
 ):
     copied_artifacts = _copy_output_artifacts(
-        options, pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
+        options, _get_timestamp_id(start_time_string), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
     )
     output_path = _merge_one_run(
-        outs_dir, options, tests_root_name, stats, copied_artifacts
+        outs_dir, options, tests_root_name, stats, copied_artifacts, _get_timestamp_id(start_time_string)
     )
     _write_stats(stats)
     if (
@@ -1597,13 +1633,14 @@ def _report_results_for_one_run(
 
 
 def _merge_one_run(
-    outs_dir, options, tests_root_name, stats, copied_artifacts, outputfile=None
+    outs_dir, options, tests_root_name, stats, copied_artifacts, timestamp_id, outputfile=None
 ):
     outputfile = outputfile or options.get("output", "output.xml")
     output_path = os.path.abspath(
         os.path.join(options.get("outputdir", "."), outputfile)
     )
-    files = natsorted(glob(os.path.join(_glob_escape(outs_dir), "**/*.xml")))
+    filename = options.get("output") or "output.xml"
+    files = natsorted(glob(os.path.join(_glob_escape(outs_dir), f"**/*{filename}"), recursive=True))
     if not files:
         _write('WARN: No output files in "%s"' % outs_dir, Color.YELLOW)
         return ""
@@ -1615,7 +1652,7 @@ def _merge_one_run(
     if PY2:
         files = [f.decode(SYSTEM_ENCODING) if not is_unicode(f) else f for f in files]
     resu = merge(
-        files, options, tests_root_name, copied_artifacts, invalid_xml_callback
+        files, options, tests_root_name, copied_artifacts, timestamp_id, invalid_xml_callback
     )
     _update_stats(resu, stats)
     if ROBOT_VERSION >= "7.0" and options.get("legacyoutput"):
@@ -2122,10 +2159,11 @@ def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
         raise DataError("Error parsing ordering file '%s'" % filename)
 
 
-# TODO: After issue #646, it seems necessary to thoroughly rethink how this functionality should work.
 def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], List[ExecutionItem]) -> None
     list_of_suite_names = [s.name for s in suite_names]
     skipped_runnable_items = []
+    suite_and_test_names = []
+    duplicates = []
     if ordering_file:
         for item in ordering_file:
             if item.type in ['suite', 'test']:
@@ -2135,9 +2173,16 @@ def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], 
                     # the --suite option, and the given name is part of the full name of any test or suite.
                     if item.name != ' Invalid' and not (item.type == 'suite' and any((s == item.name or s.startswith(item.name + ".")) for s in list_of_suite_names)):
                         skipped_runnable_items.append(f"{item.type.title()} item: '{item.name}'")
+                if item.name in suite_and_test_names:
+                    duplicates.append(f"{item.type.title()} item: '{item.name}'")
+                suite_and_test_names.append(item.name)
     if skipped_runnable_items:
         _write("Note: The ordering file contains test or suite items that are not included in the current test run. The following items will be ignored/skipped:")
         for item in skipped_runnable_items:
+            _write(f"  - {item}")
+    if duplicates:
+        _write("Note: The ordering file contains duplicate suite or test items. Only the first occurrence is taken into account. These are duplicates:")
+        for item in duplicates:
             _write(f"  - {item}")
 
 
@@ -2147,8 +2192,15 @@ def _group_suites(outs_dir, datasources, options, pabot_args):
     ordering_arg = _parse_ordering(pabot_args.get("ordering")) if (pabot_args.get("ordering")) is not None else None
     if ordering_arg:
         _verify_depends(ordering_arg)
-        # TODO: After issue #646, it seems necessary to thoroughly rethink how this functionality should work.
-        #_check_ordering(ordering_arg, suite_names)
+        if options.get("name"):
+            ordering_arg = _update_ordering_names(ordering_arg, options['name'])
+        _check_ordering(ordering_arg, suite_names)
+    if pabot_args.get("testlevelsplit") and ordering_arg and any(item.type == 'suite' for item in ordering_arg):
+        reduced_suite_names = _reduce_items(suite_names, ordering_arg)
+        if options.get("runemptysuite") and not reduced_suite_names:
+            return [suite_names]
+        if reduced_suite_names:
+            suite_names = reduced_suite_names
     ordering_arg_with_sleep = _set_sleep_times(ordering_arg)
     ordered_suites = _preserve_order(suite_names, ordering_arg_with_sleep)
     shard_suites = solve_shard_suites(ordered_suites, pabot_args)
@@ -2159,6 +2211,58 @@ def _group_suites(outs_dir, datasources, options, pabot_args):
     )
     grouped_by_depend = _all_grouped_suites_by_depend(grouped_suites)
     return grouped_by_depend
+
+
+def _update_ordering_names(ordering, new_top_name):
+    # type: (List[ExecutionItem], str) -> List[ExecutionItem]
+    output = []
+    for item in ordering:
+        if item.type in ['suite', 'test']:
+            splitted_name = item.name.split('.')
+            splitted_name[0] = new_top_name
+            item.name = '.'.join(splitted_name)
+        output.append(item)
+    return output
+
+
+def _reduce_items(items, selected_suites):
+    # type: (List[ExecutionItem], List[ExecutionItem]) -> List[ExecutionItem]
+    """
+    Reduce a list of test items by replacing covered test cases with suite items from selected_suites.
+    Raises DataError if:
+    - Any test is covered by more than one selected suite.
+    """
+    reduced = []
+    suite_coverage = {}
+    test_to_suite = {}
+
+    for suite in selected_suites:
+        if suite.type == 'suite':
+            suite_name = str(suite.name)
+            covered_tests = [
+                item for item in items
+                if item.type == "test" and str(item.name).startswith(suite_name + ".")
+            ]
+
+            if covered_tests:
+                for test in covered_tests:
+                    test_name = str(test.name)
+                    if test_name in test_to_suite:
+                        raise DataError(
+                            f"Invalid test configuration: Test '{test_name}' is matched by multiple suites: "
+                            f"'{test_to_suite[test_name]}' and '{suite_name}'."
+                        )
+                    test_to_suite[test_name] = suite_name
+
+                suite_coverage[suite_name] = set(str(t.name) for t in covered_tests)
+                reduced.append(suite)
+
+    # Add tests not covered by any suite
+    for item in items:
+        if item.type == "test" and str(item.name) not in test_to_suite:
+            reduced.append(item)
+
+    return reduced
 
 
 def _set_sleep_times(ordering_arg):
@@ -2227,23 +2331,11 @@ def _verify_depends(suite_names):
         )
 
 
-def _group_by_depend(suite_names):
-    # type: (List[ExecutionItem]) -> List[List[ExecutionItem]]
-    group_items = list(filter(lambda suite: isinstance(suite, GroupItem), suite_names))
-    runnable_suites = list(
-        filter(lambda suite: isinstance(suite, RunnableItem), suite_names)
-    )
-    dependency_tree = create_dependency_tree(runnable_suites)
-    # Since groups cannot depend on others, they are placed at the beginning.
-    dependency_tree[0][0:0] = group_items
-    return dependency_tree
-
-
 def _all_grouped_suites_by_depend(grouped_suites):
     # type: (List[List[ExecutionItem]]) -> List[List[ExecutionItem]]
     grouped_by_depend = []
     for group_suite in grouped_suites:  # These groups are divided by #WAIT
-        grouped_by_depend.extend(_group_by_depend(group_suite))
+        grouped_by_depend.extend(create_dependency_tree(group_suite))
     return grouped_by_depend
 
 

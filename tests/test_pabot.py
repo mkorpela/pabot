@@ -205,11 +205,11 @@ class PabotTests(unittest.TestCase):
             "simplestring": "old.simple",
             "listofstrings": ["old.first", "old.second"],
         }
-        pabot._replace_base_name("new", "old", opts, "simplestring")
+        pabot._replace_base_name("new", opts, "simplestring")
         self.assertEqual(opts["simplestring"], "new.simple")
-        pabot._replace_base_name("new", "old", opts, "listofstrings")
+        pabot._replace_base_name("new", opts, "listofstrings")
         self.assertEqual(opts["listofstrings"], ["new.first", "new.second"])
-        pabot._replace_base_name("new", "old", opts, "nonexisting")
+        pabot._replace_base_name("new", opts, "nonexisting")
         self.assertTrue("nonexisting" not in opts)
 
     def test_solve_suite_names_works_without_pabotsuitenames_file(self):
@@ -1180,10 +1180,11 @@ class PabotTests(unittest.TestCase):
             "outputs/outputs_with_artifacts/out_dir",
         )
         _opts = {"outputdir": out_dir}
-        pabot._copy_output_artifacts(options=_opts)
+        test_time_id = "12345678_987654"
+        pabot._copy_output_artifacts(options=_opts, timestamp_id=test_time_id)
         files_should_be_copied = [
-            "0-fake_screenshot_root.png",
-            "1-fake_screenshot_root.png",
+            f"{test_time_id}-0-fake_screenshot_root.png",
+            f"{test_time_id}-1-fake_screenshot_root.png",
         ]
 
         for f in files_should_be_copied:
@@ -1192,14 +1193,14 @@ class PabotTests(unittest.TestCase):
             os.remove(file_path)  # clean up
 
         files_should_not_be_copied = [
-            "screenshots/0-fake_screenshot_subfolder_1.png",
-            "screenshots/0-fake_screenshot_subfolder_2.png"
-            "screenshots/1-fake_screenshot_subfolder_1.png",
-            "screenshots/2-fake_screenshot_subfolder_2.png",
-            "other_artifacts/0-some_artifact.foo",
-            "other_artifacts/0-another_artifact.bar",
-            "other_artifacts/1-some_artifact.foo",
-            "other_artifacts/1-another_artifact.bar",
+            f"screenshots/{test_time_id}-0-fake_screenshot_subfolder_1.png",
+            f"screenshots/{test_time_id}-0-fake_screenshot_subfolder_2.png"
+            f"screenshots/{test_time_id}-1-fake_screenshot_subfolder_1.png",
+            f"screenshots/{test_time_id}-2-fake_screenshot_subfolder_2.png",
+            f"other_artifacts/{test_time_id}-0-some_artifact.foo",
+            f"other_artifacts/{test_time_id}-0-another_artifact.bar",
+            f"other_artifacts/{test_time_id}-1-some_artifact.foo",
+            f"other_artifacts/{test_time_id}-1-another_artifact.bar",
         ]
         for f in files_should_not_be_copied:
             self.assertFalse(
@@ -1213,22 +1214,24 @@ class PabotTests(unittest.TestCase):
             "outputs/outputs_with_artifacts/out_dir",
         )
         _opts = {"outputdir": out_dir}
+        test_time_id = "12345678_987654"
         pabot._copy_output_artifacts(
             options=_opts,
+            timestamp_id=test_time_id,
             file_extensions=["png", "foo", "bar"],
             include_subfolders=True,
         )
         files_should_be_copied = [
-            "0-fake_screenshot_root.png",
-            "1-fake_screenshot_root.png",
-            "screenshots/0-fake_screenshot_subfolder_1.png",
-            "screenshots/0-fake_screenshot_subfolder_2.png",
-            "screenshots/1-fake_screenshot_subfolder_1.png",
-            "screenshots/1-fake_screenshot_subfolder_2.png",
-            "other_artifacts/0-some_artifact.foo",
-            "other_artifacts/0-another_artifact.bar",
-            "other_artifacts/1-some_artifact.foo",
-            "other_artifacts/1-another_artifact.bar",
+            f"{test_time_id}-0-fake_screenshot_root.png",
+            f"{test_time_id}-1-fake_screenshot_root.png",
+            f"screenshots/{test_time_id}-0-fake_screenshot_subfolder_1.png",
+            f"screenshots/{test_time_id}-0-fake_screenshot_subfolder_2.png",
+            f"screenshots/{test_time_id}-1-fake_screenshot_subfolder_1.png",
+            f"screenshots/{test_time_id}-1-fake_screenshot_subfolder_2.png",
+            f"other_artifacts/{test_time_id}-0-some_artifact.foo",
+            f"other_artifacts/{test_time_id}-0-another_artifact.bar",
+            f"other_artifacts/{test_time_id}-1-some_artifact.foo",
+            f"other_artifacts/{test_time_id}-1-another_artifact.bar",
         ]
         for f in files_should_be_copied:
             file_path = os.path.join(_opts["outputdir"], f)
@@ -1308,6 +1311,7 @@ class PabotTests(unittest.TestCase):
                     "skipped": 0,
                 },
                 copied_artifacts=[],
+                timestamp_id="",
                 outputfile="merged_output.xml",
             )  # Use different name to avoid confusion
             self.assertTrue(
@@ -1334,6 +1338,7 @@ class PabotTests(unittest.TestCase):
                         "skipped": 0,
                     },
                     copied_artifacts=[],
+                    timestamp_id="",
                     outputfile="merged_2_output.xml",
                 )  # Use different name to avoid confusion
                 self.assertTrue(
