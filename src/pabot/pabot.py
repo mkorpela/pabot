@@ -560,7 +560,8 @@ def _run(
         )
         time.sleep(sleep_before_start)
     timestamp = datetime.datetime.now()
-    argfile_path = os.path.join(outs_dir, f"{run_command[-1].replace(" ", "_")}_argfile.txt")
+    command_name = run_command[-1].replace(" ", "_")
+    argfile_path = os.path.join(outs_dir, f"{command_name}_argfile.txt")
     _write_internal_argument_file(run_options, filename=argfile_path)
     cmd = f"{" ".join(run_command)} -A {argfile_path}"
     if PY2:
@@ -1523,7 +1524,8 @@ def _check_pabot_results_for_missing_xml(base_dir, command_name, output_xml_name
                 subdir_path = os.path.join(base_dir, subdir)
                 has_xml = any(fname.endswith(output_xml_name) for fname in os.listdir(subdir_path))
                 if not has_xml:
-                    missing.append(os.path.join(subdir_path, f'{command_name.replace(" ", "_")}_stderr.out'))
+                    command_name = command_name.replace(" ", "_")
+                    missing.append(os.path.join(subdir_path, f'{command_name}_stderr.out'))
             break
     return missing
 
