@@ -563,7 +563,7 @@ def _run(
     command_name = run_command[-1].replace(" ", "_")
     argfile_path = os.path.join(outs_dir, f"{command_name}_argfile.txt")
     _write_internal_argument_file(run_options, filename=argfile_path)
-    cmd = f"{" ".join(run_command)} -A {argfile_path}"
+    cmd = ' '.join(run_command + ['-A'] + [argfile_path])
     if PY2:
         cmd = cmd.decode("utf-8").encode(SYSTEM_ENCODING)
     # avoid hitting https://bugs.python.org/issue10394
