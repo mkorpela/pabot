@@ -226,13 +226,13 @@ def execute_and_wait_with(item):
         name = item.display_name
         outs_dir = os.path.join(item.outs_dir, item.argfile_index, str(item.index))
         os.makedirs(outs_dir)
-        cmd = _create_command_for_execution(
+        run_cmd, run_options = _create_command_for_execution(
             caller_id, datasources, is_last, item, outs_dir
         )
         if item.hive:
             _hived_execute(
                 item.hive,
-                cmd,
+                run_cmd + run_options,
                 outs_dir,
                 name,
                 item.verbose,
@@ -242,7 +242,8 @@ def execute_and_wait_with(item):
             )
         else:
             _try_execute_and_wait(
-                cmd,
+                run_cmd,
+                run_options,
                 outs_dir,
                 name,
                 item.verbose,
@@ -264,9 +265,8 @@ def _create_command_for_execution(caller_id, datasources, is_last, item, outs_di
     options = item.options.copy()
     if item.command == ["robot"] and not options["listener"]:
         options["listener"] = ["RobotStackTracer"]
-    cmd = (
-        item.command
-        + _options_for_custom_executor(
+    run_options = (
+        _options_for_custom_executor(
             options,
             outs_dir,
             item.execution_item,
@@ -279,8 +279,7 @@ def _create_command_for_execution(caller_id, datasources, is_last, item, outs_di
         )
         + datasources
     )
-    return cmd
-
+    return item.command, run_options
 
 def _pabotlib_in_use():
     return _PABOTLIBPROCESS or _PABOTLIBURI != "127.0.0.1:8270"
@@ -301,7 +300,8 @@ def _hived_execute(
 
 
 def _try_execute_and_wait(
-    cmd,
+    run_cmd,
+    run_options,
     outs_dir,
     item_name,
     verbose,
@@ -312,16 +312,17 @@ def _try_execute_and_wait(
     process_timeout=None,
     sleep_before_start=0
 ):
-    # type: (List[str], str, str, bool, int, str, int, bool, Optional[int], int) -> None
+    # type: (List[str], List[str], str, str, bool, int, str, int, bool, Optional[int], int) -> None
     plib = None
     is_ignored = False
     if _pabotlib_in_use():
         plib = Remote(_PABOTLIBURI)
     try:
-        with open(os.path.join(outs_dir, cmd[0] + "_stdout.out"), "w") as stdout:
-            with open(os.path.join(outs_dir, cmd[0] + "_stderr.out"), "w") as stderr:
+        with open(os.path.join(outs_dir, run_cmd[-1] + "_stdout.out"), "w") as stdout:
+            with open(os.path.join(outs_dir, run_cmd[-1] + "_stderr.out"), "w") as stderr:
                 process, (rc, elapsed) = _run(
-                    cmd,
+                    run_cmd,
+                    run_options,
                     stderr,
                     stdout,
                     item_name,
@@ -422,9 +423,9 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
             raise DataError(f"Preprosessing cannot be done because file {outputxmlfile} not exists.")
         oldsize = os.path.getsize(outputxmlfile)
         process_empty = ["--processemptysuite"] if options.get("runemptysuite") else []
-        cmd = (
+        run_cmd = ["rebot"]
+        run_options = (
             [
-                "rebot",
                 "--log",
                 "NONE",
                 "--report",
@@ -441,7 +442,8 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
             + ["--output", outputxmlfile, outputxmlfile]
         )
         _try_execute_and_wait(
-            cmd,
+            run_cmd,
+            run_options,
             outs_dir,
             f"preprocessing {output_name} on " + item_name,
             verbose,
@@ -537,7 +539,8 @@ def _write_internal_argument_file(cmd_args, filename):
 
 
 def _run(
-    command,
+    run_command,
+    run_options,
     stderr,
     stdout,
     item_name,
@@ -548,7 +551,7 @@ def _run(
     process_timeout,
     sleep_before_start,
 ):
-    # type: (List[str], IO[Any], IO[Any], str, bool, int, int, str, Optional[int], int) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
+    # type: (List[str], List[str], IO[Any], IO[Any], str, bool, int, int, str, Optional[int], int) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
     timestamp = datetime.datetime.now()
     if sleep_before_start > 0:
         _write(
@@ -557,9 +560,9 @@ def _run(
         )
         time.sleep(sleep_before_start)
     timestamp = datetime.datetime.now()
-    argfile_path = os.path.join(outs_dir, f"{command[0]}_argfile.txt")
-    _write_internal_argument_file(command[1:], filename=argfile_path)
-    cmd = f"{command[0]} -A {argfile_path}"
+    argfile_path = os.path.join(outs_dir, f"{run_command[-1].replace(" ", "_")}_argfile.txt")
+    _write_internal_argument_file(run_options, filename=argfile_path)
+    cmd = f"{" ".join(run_command)} -A {argfile_path}"
     if PY2:
         cmd = cmd.decode("utf-8").encode(SYSTEM_ENCODING)
     # avoid hitting https://bugs.python.org/issue10394
@@ -1473,16 +1476,23 @@ def _output_dir(options, cleanup=True):
     return outpath
 
 
-def _copy_output_artifacts(options, file_extensions=None, include_subfolders=False):
+def _get_timestamp_id(timestamp_str):
+    return datetime.datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").strftime("%Y%m%d_%H%M%S")
+
+
+def _copy_output_artifacts(options, timestamp_id, file_extensions=None, include_subfolders=False, index=None):
     file_extensions = file_extensions or ["png"]
     pabot_outputdir = _output_dir(options, cleanup=False)
     outputdir = options.get("outputdir", ".")
     copied_artifacts = []
-    for location, _, file_names in os.walk(pabot_outputdir):
+    one_run_outputdir = pabot_outputdir
+    if index:  # For argumentfileN option:
+        one_run_outputdir = os.path.join(pabot_outputdir, index)
+    for location, _, file_names in os.walk(one_run_outputdir):
         for file_name in file_names:
             file_ext = file_name.split(".")[-1]
             if file_ext in file_extensions:
-                rel_path = os.path.relpath(location, pabot_outputdir)
+                rel_path = os.path.relpath(location, one_run_outputdir)
                 prefix = rel_path.split(os.sep)[0]  # folders named "process-id"
                 dst_folder_path = outputdir
                 # if it is a file from sub-folders of "location"
@@ -1494,7 +1504,9 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
                     dst_folder_path = os.path.join(outputdir, subfolder_path)
                     if not os.path.isdir(dst_folder_path):
                         os.makedirs(dst_folder_path)
-                dst_file_name = "-".join([prefix, file_name])
+                dst_file_name = "-".join([timestamp_id, prefix, file_name])
+                if index:
+                    dst_file_name = "-".join([timestamp_id, index, prefix, file_name])
                 shutil.copy2(
                     os.path.join(location, file_name),
                     os.path.join(dst_folder_path, dst_file_name),
@@ -1503,20 +1515,21 @@ def _copy_output_artifacts(options, file_extensions=None, include_subfolders=Fal
     return copied_artifacts
 
 
-def _check_pabot_results_for_missing_xml(base_dir, command_name):
+def _check_pabot_results_for_missing_xml(base_dir, command_name, output_xml_name):
     missing = []
     for root, dirs, _ in os.walk(base_dir):
         if root == base_dir:
             for subdir in dirs:
                 subdir_path = os.path.join(base_dir, subdir)
-                has_xml = any(fname.endswith('.xml') for fname in os.listdir(subdir_path))
+                has_xml = any(fname.endswith(output_xml_name) for fname in os.listdir(subdir_path))
                 if not has_xml:
-                    missing.append(os.path.join(subdir_path, f'{command_name}_stderr.out'))
+                    missing.append(os.path.join(subdir_path, f'{command_name.replace(" ", "_")}_stderr.out'))
             break
     return missing
 
 
 def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root_name):
+    output_xml_name = options.get("output") or "output.xml"
     if "pythonpath" in options:
         del options["pythonpath"]
     if ROBOT_VERSION < "4.0":
@@ -1536,7 +1549,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
         outputs = []  # type: List[str]
         for index, _ in pabot_args["argumentfiles"]:
             copied_artifacts = _copy_output_artifacts(
-                options, pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
+                options, _get_timestamp_id(start_time_string), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"], index
             )
             outputs += [
                 _merge_one_run(
@@ -1545,10 +1558,11 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
                     tests_root_name,
                     stats,
                     copied_artifacts,
+                    timestamp_id=_get_timestamp_id(start_time_string),
                     outputfile=os.path.join("pabot_results", "output%s.xml" % index),
                 )
             ]
-            missing_outputs.extend(_check_pabot_results_for_missing_xml(os.path.join(outs_dir, index), pabot_args.get('command')[0]))
+            missing_outputs.extend(_check_pabot_results_for_missing_xml(os.path.join(outs_dir, index), pabot_args.get('command')[-1], output_xml_name))
         if "output" not in options:
             options["output"] = "output.xml"
         _write_stats(stats)
@@ -1557,7 +1571,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
         exit_code = _report_results_for_one_run(
             outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
         )
-        missing_outputs.extend(_check_pabot_results_for_missing_xml(outs_dir, pabot_args.get('command')[0]))
+        missing_outputs.extend(_check_pabot_results_for_missing_xml(outs_dir, pabot_args.get('command')[-1], output_xml_name))
     if missing_outputs:
         _write(("[ " + _wrap_with(Color.YELLOW, 'WARNING') + " ] "
                 "One or more subprocesses encountered an error and the "
@@ -1595,10 +1609,10 @@ def _report_results_for_one_run(
     outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
 ):
     copied_artifacts = _copy_output_artifacts(
-        options, pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
+        options, _get_timestamp_id(start_time_string), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
     )
     output_path = _merge_one_run(
-        outs_dir, options, tests_root_name, stats, copied_artifacts
+        outs_dir, options, tests_root_name, stats, copied_artifacts, _get_timestamp_id(start_time_string)
     )
     _write_stats(stats)
     if (
@@ -1617,13 +1631,14 @@ def _report_results_for_one_run(
 
 
 def _merge_one_run(
-    outs_dir, options, tests_root_name, stats, copied_artifacts, outputfile=None
+    outs_dir, options, tests_root_name, stats, copied_artifacts, timestamp_id, outputfile=None
 ):
     outputfile = outputfile or options.get("output", "output.xml")
     output_path = os.path.abspath(
         os.path.join(options.get("outputdir", "."), outputfile)
     )
-    files = natsorted(glob(os.path.join(_glob_escape(outs_dir), "**/*.xml")))
+    filename = options.get("output") or "output.xml"
+    files = natsorted(glob(os.path.join(_glob_escape(outs_dir), f"**/*{filename}"), recursive=True))
     if not files:
         _write('WARN: No output files in "%s"' % outs_dir, Color.YELLOW)
         return ""
@@ -1635,7 +1650,7 @@ def _merge_one_run(
     if PY2:
         files = [f.decode(SYSTEM_ENCODING) if not is_unicode(f) else f for f in files]
     resu = merge(
-        files, options, tests_root_name, copied_artifacts, invalid_xml_callback
+        files, options, tests_root_name, copied_artifacts, timestamp_id, invalid_xml_callback
     )
     _update_stats(resu, stats)
     if ROBOT_VERSION >= "7.0" and options.get("legacyoutput"):
