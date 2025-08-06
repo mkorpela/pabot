@@ -70,17 +70,3 @@ jobs:
                 });
               }
             }
-
-            // Handle PR labels only (no external issue modifications)
-            if (context.eventName === 'pull_request') {
-              const pr = context.payload.pull_request;
-              const prNumber = pr.number;
-              await removeOldStatusLabels(prNumber);
-              if (context.payload.action === 'closed' && pr.merged) {
-                await github.rest.issues.addLabels({
-                  ...context.repo,
-                  issue_number: prNumber,
-                  labels: [issueLabels.completed]
-                });
-              }
-            }
