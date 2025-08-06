@@ -20,9 +20,12 @@ def check_robot_version_and_return_name():
 
 
 def get_tmpdir_name(input: str) -> str:
+    # Remove all underscores from the end
+    result = input.rstrip('_')
+
     # Remove everything before the first occurrence of two or more consecutive underscores,
     # while preserving underscores as spaces with the same count
-    result = re.sub(r'^.*?(__+)', lambda m: ' ' * len(m.group(1)), input).strip()
+    result = re.sub(r'^.*?(__+)', lambda m: ' ' * len(m.group(1)), result).strip()
 
     # Capitalize letters following space, underscores or digits (e.g. after ' ', '_', '1')
     result = re.sub(r'([ _\d])([a-z])', lambda m: m.group(1) + m.group(2).upper(), result)
