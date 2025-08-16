@@ -354,7 +354,7 @@ def _try_execute_and_wait(
         show_stdout_on_failure,
     )
     if is_ignored and os.path.isdir(outs_dir):
-        shutil.rmtree(outs_dir)
+        _rmtree_with_path(outs_dir)
 
 
 def _result_to_stdout(
@@ -1473,8 +1473,20 @@ def _output_dir(options, cleanup=True):
     outputdir = options.get("outputdir", ".")
     outpath = os.path.join(outputdir, "pabot_results")
     if cleanup and os.path.isdir(outpath):
-        shutil.rmtree(outpath)
+        _rmtree_with_path(outpath)
     return outpath
+
+
+def _rmtree_with_path(path):
+    """
+    Remove a directory tree and, if a PermissionError occurs,
+    re-raise it with the absolute path included in the message.
+    """
+    try:
+        shutil.rmtree(path)
+    except PermissionError as e:
+        abs_path = os.path.abspath(path)
+        raise PermissionError(f"Failed to delete path {abs_path}") from e
 
 
 def _get_timestamp_id(timestamp_str):
