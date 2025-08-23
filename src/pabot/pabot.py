@@ -1741,9 +1741,19 @@ def _stop_message_writer():
     MESSAGE_QUEUE.join()
 
 
-def _get_free_port(pabot_args):
-    if pabot_args["pabotlibport"] != 0:
-        return pabot_args["pabotlibport"]
+def _is_port_available(port):
+    """Check if a given port on localhost is available."""
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        try:
+            s.bind(("localhost", port))
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            return True
+        except OSError:
+            return False
+
+
+def _get_free_port():
+    """Return a free TCP port on localhost."""
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
         s.bind(("localhost", 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -1752,10 +1762,25 @@ def _get_free_port(pabot_args):
 
 def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Popen]
     global _PABOTLIBURI
-    free_port = _get_free_port(pabot_args)
-    _PABOTLIBURI = "%s:%s" % (pabot_args["pabotlibhost"], free_port)
-    if not pabot_args["pabotlib"]:
+    # If pabotlib is not enabled, do nothing
+    if not pabot_args.get("pabotlib"):
         return None
+
+    host = pabot_args.get("pabotlibhost", "127.0.0.1")
+    port = pabot_args.get("pabotlibport", 8270)
+
+    # If host is default and user specified a non-zero port, check if it's available
+    if host == "127.0.0.1" and port != 0 and not _is_port_available(port):
+        raise DataError(
+            f"Specified pabotlibport {port} is already in use. "
+            "Please choose a different port or set pabotlibport to 0 to auto-assign a free port."
+        )
+
+    # If host is default and port = 0, assign a free port
+    if host == "127.0.0.1" and port == 0:
+        port = _get_free_port()
+
+    _PABOTLIBURI = f"{host}:{port}"
     resourcefile = pabot_args.get("resourcefile") or ""
     if resourcefile and not os.path.exists(resourcefile):
         _write(
@@ -1769,7 +1794,7 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Po
         "-m", pabotlib.__name__,
         resourcefile,
         pabot_args["pabotlibhost"],
-        str(free_port),
+        str(port),
     ]
     return subprocess.Popen(cmd)
 
