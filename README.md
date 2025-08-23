@@ -114,15 +114,22 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   
       pabot --pabotlibhost 192.168.1.123 --pabotlibport 8271 tests/
 
-  The remote server can be also started and executed separately from pabot instances:
+  The remote server can also be started and executed separately from pabot instances:
   
       python -m pabot.pabotlib <path_to_resourcefile> <host> <port>
       python -m pabot.pabotlib resource.txt 192.168.1.123 8271
   
   This enables sharing a resource with multiple Robot Framework instances.
 
+  Additional details:
+  - The default value for --pabotlibhost is 127.0.0.1.
+  - If you provide a hostname other than 127.0.0.1, the local PabotLib server startup is automatically disabled.
+
 --pabotlibport [PORT]          
   Port number of the PabotLib remote server (default is 8270). See --pabotlibhost for more information.
+
+  Behavior with port and host settings:
+  - If you set the port value to 0 and --pabotlibhost is 127.0.0.1 (default), a free port on localhost will be assigned automatically.
 
 --processtimeout [TIMEOUT]          
   Maximum time in seconds to wait for a process before killing it. If not set, there's no timeout.
