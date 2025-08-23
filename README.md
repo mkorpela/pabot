@@ -73,7 +73,16 @@ There are several ways you can help in improving this tool:
    - Contribute by programming and making a pull request (easiest way is to work on an issue from the issue tracker)
 
 ## Command-line options
+<!-- NOTE: 
+The sections inside these docstring markers are also used in Pabot's --help output.
+Currently, the following transformations are applied:
+- Remove Markdown links but keep the text
+- Remove ** and backticks `
+
+If you modify this part, make sure the Markdown section still looks clean and readable in the --help output.  -->
+
 <!-- START DOCSTRING -->
+```
 pabot [--verbose|--testlevelsplit|--command .. --end-command|
         --processes num|--no-pabotlib|--pabotlibhost host|--pabotlibport port|
         --processtimeout num|
@@ -85,30 +94,31 @@ pabot [--verbose|--testlevelsplit|--command .. --end-command|
         --no-rebot|
         --help|--version]
       [robot options] [path ...]
+```
 
 PabotLib remote server is started by default to enable locking and resource distribution between parallel test executions.
 
 Supports all [Robot Framework command line options](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options) and also following pabot options:
 
---verbose     
+**--verbose**     
   More output from the parallel execution.
 
---testlevelsplit          
+**--testlevelsplit**          
   Split execution on test level instead of default suite level. If .pabotsuitenames contains both tests and suites then
   this will only affect new suites and split only them. Leaving this flag out when both suites and tests in 
   .pabotsuitenames file will also only affect new suites and add them as suite files.
 
---command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command    
+**--command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command**    
   RF script for situations where robot is not used directly.
 
---processes [NUMBER OF PROCESSES]          
+**--processes [NUMBER OF PROCESSES]**          
   How many parallel executors to use (default max of 2 and cpu count). Special option "all" will use as many processes as 
   there are executable suites or tests.
 
---no-pabotlib  
+**--no-pabotlib**  
   Disable the PabotLib remote server if you don't need locking or resource distribution features.
 
---pabotlibhost [HOSTNAME]          
+**--pabotlibhost [HOSTNAME]**          
   Connect to an already running instance of the PabotLib remote server at the given host (disables the local PabotLib 
   server start). For example, to connect to a remote PabotLib server running on another machine:
   
@@ -125,19 +135,19 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   - The default value for --pabotlibhost is 127.0.0.1.
   - If you provide a hostname other than 127.0.0.1, the local PabotLib server startup is automatically disabled.
 
---pabotlibport [PORT]          
+**--pabotlibport [PORT]**          
   Port number of the PabotLib remote server (default is 8270). See --pabotlibhost for more information.
 
   Behavior with port and host settings:
   - If you set the port value to 0 and --pabotlibhost is 127.0.0.1 (default), a free port on localhost will be assigned automatically.
 
---processtimeout [TIMEOUT]          
+**--processtimeout [TIMEOUT]**          
   Maximum time in seconds to wait for a process before killing it. If not set, there's no timeout.
 
---shard [INDEX]/[TOTAL]   
+**--shard [INDEX]/[TOTAL]**   
   Optionally split execution into smaller pieces. This can be used for distributing testing to multiple machines.
   
---artifacts [FILE EXTENSIONS]   
+**--artifacts [FILE EXTENSIONS]**   
   List of file extensions (comma separated). Defines which files (screenshots, videos etc.) from separate reporting 
   directories would be copied and included in a final report. Possible links to copied files in RF log would be updated 
   (only relative paths supported). The default value is `png`.
@@ -146,49 +156,49 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
 
      --artifacts png,mp4,txt
 
---artifactsinsubfolders   
+**--artifactsinsubfolders**   
   Copy artifacts located not only directly in the RF output dir, but also in it's sub-folders.
 
---resourcefile [FILEPATH]          
+**--resourcefile [FILEPATH]**          
   Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with 
   pabotlib option. Resource file syntax is same as Windows ini files. Where a section is a shared set of variables.
 
---argumentfile[INTEGER] [FILEPATH]          
+**--argumentfile[INTEGER] [FILEPATH]**          
   Run same suites with multiple [argumentfile](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files) options.
 
   For example:
 
      --argumentfile1 arg1.txt --argumentfile2 arg2.txt
 
---suitesfrom [FILEPATH TO OUTPUTXML]          
+**--suitesfrom [FILEPATH TO OUTPUTXML]**          
   Optionally read suites from output.xml file. Failed suites will run first and longer running ones will be executed 
   before shorter ones.
 
---ordering [FILE PATH]   
+**--ordering [FILE PATH]**   
   Optionally give execution order from a file.
 
---chunk   
+**--chunk**   
   Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same 
   setups and teardowns.
 
---pabotprerunmodifier [PRERUNMODIFIER MODULE OR CLASS]   
+**--pabotprerunmodifier [PRERUNMODIFIER MODULE OR CLASS]**   
   Like Robot Framework's --prerunmodifier, but executed only once in the pabot's main process after all other 
   --prerunmodifiers. But unlike the regular --prerunmodifier command, --pabotprerunmodifier is not executed again in each 
   pabot subprocesses. Depending on the intended use, this may be desirable as well as more efficient. Can be used, for 
   example, to modify the list of tests to be performed.
 
---no-rebot    
+**--no-rebot**    
   If specified, the tests will execute as usual, but Rebot will not be called to merge the logs. This option is designed 
   for scenarios where Rebot should be run later due to large log files, ensuring better memory and resource availability. 
   Subprocess results are stored in the pabot_results folder.
 
---help             
+**--help**             
   Print usage instructions.
  
---version                
+**--version**                
   Print version information.
 
-Example usages:
+**Example usages:**
 
      pabot test_directory
      pabot --exclude FOO directory_to_tests
