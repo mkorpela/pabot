@@ -194,8 +194,11 @@ def extract_section(lines, start_marker="<!-- START DOCSTRING -->", end_marker="
         if end_marker in line:
             break
         if inside_section:
-            # Remove Markdown links but keep the text
-            extracted_lines.append(re.sub(r'\[([^\]]+)\]\(https?://[^\)]+\)', r'\1', line))
+            # Remove Markdown links but keep text
+            line = re.sub(r'\[([^\]]+)\]\(https?://[^\)]+\)', r'\1', line)
+            # Remove ** and backticks `
+            line = re.sub(r'(\*\*|`)', '', line)
+            extracted_lines.append(line)
 
     return "".join(extracted_lines).strip()
 
