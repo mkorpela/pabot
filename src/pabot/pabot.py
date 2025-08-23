@@ -750,10 +750,13 @@ def _modify_options_for_argfile_use(argfile, options):
 
 
 def _replace_base_name(new_name, options, key):
-    if isinstance(options.get(key, None), str):
-        options[key] = new_name + '.' + options[key].split('.', 1)[1]
+    if isinstance(options.get(key), str):
+        options[key] = f"{new_name}.{options[key].split('.', 1)[1]}" if '.' in options[key] else new_name
     elif key in options:
-        options[key] = [new_name + '.' + s.split('.', 1)[1] for s in options.get(key, [])]
+        options[key] = [
+            f"{new_name}.{s.split('.', 1)[1]}" if '.' in s else new_name
+            for s in options.get(key, [])
+        ]
 
 
 def _set_terminal_coloring_options(options):
