@@ -1774,10 +1774,12 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Po
 
     # If host is default and user specified a non-zero port, check if it's available
     if host == "127.0.0.1" and port != 0 and not _is_port_available(port):
-        raise DataError(
-            f"Specified pabotlibport {port} is already in use. "
-            "Please choose a different port or set pabotlibport to 0 to auto-assign a free port."
+        _write(
+            f"Warning: specified pabotlibport {port} is already in use. "
+            "A free port will be assigned automatically.",
+            Color.YELLOW,
         )
+        port = _get_free_port()
 
     # If host is default and port = 0, assign a free port
     if host == "127.0.0.1" and port == 0:
