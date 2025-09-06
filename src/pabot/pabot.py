@@ -194,8 +194,10 @@ def extract_section(lines, start_marker="<!-- START DOCSTRING -->", end_marker="
         if end_marker in line:
             break
         if inside_section:
-            # Remove Markdown links but keep text
+            # Remove Markdown hyperlinks but keep text
             line = re.sub(r'\[([^\]]+)\]\(https?://[^\)]+\)', r'\1', line)
+            # Remove Markdown section links but keep text
+            line = re.sub(r'\[([^\]]+)\]\(#[^\)]+\)', r'\1', line)
             # Remove ** and backticks `
             line = re.sub(r'(\*\*|`)', '', line)
             extracted_lines.append(line)
@@ -1495,11 +1497,14 @@ def _rmtree_with_path(path):
         raise PermissionError(f"Failed to delete path {abs_path}") from e
 
 
-def _get_timestamp_id(timestamp_str):
-    return datetime.datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").strftime("%Y%m%d_%H%M%S")
+def _get_timestamp_id(timestamp_str, add_timestamp):
+    # type: (str, bool) -> Optional[str]
+    if add_timestamp:
+        return str(datetime.datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").strftime("%Y%m%d_%H%M%S"))
+    return None
 
 
-def _copy_output_artifacts(options, timestamp_id, file_extensions=None, include_subfolders=False, index=None):
+def _copy_output_artifacts(options, timestamp_id=None, file_extensions=None, include_subfolders=False, index=None):
     file_extensions = file_extensions or ["png"]
     pabot_outputdir = _output_dir(options, cleanup=False)
     outputdir = options.get("outputdir", ".")
@@ -1523,9 +1528,9 @@ def _copy_output_artifacts(options, timestamp_id, file_extensions=None, include_
                     dst_folder_path = os.path.join(outputdir, subfolder_path)
                     if not os.path.isdir(dst_folder_path):
                         os.makedirs(dst_folder_path)
-                dst_file_name = "-".join([timestamp_id, prefix, file_name])
-                if index:
-                    dst_file_name = "-".join([timestamp_id, index, prefix, file_name])
+                dst_file_name_parts = [timestamp_id, index, prefix, file_name]
+                filtered_name = [str(p) for p in dst_file_name_parts if p is not None]
+                dst_file_name = "-".join(filtered_name)
                 shutil.copy2(
                     os.path.join(location, file_name),
                     os.path.join(dst_folder_path, dst_file_name),
@@ -1569,7 +1574,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
         outputs = []  # type: List[str]
         for index, _ in pabot_args["argumentfiles"]:
             copied_artifacts = _copy_output_artifacts(
-                options, _get_timestamp_id(start_time_string), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"], index
+                options, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"], index
             )
             outputs += [
                 _merge_one_run(
@@ -1578,7 +1583,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
                     tests_root_name,
                     stats,
                     copied_artifacts,
-                    timestamp_id=_get_timestamp_id(start_time_string),
+                    timestamp_id=_get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]),
                     outputfile=os.path.join("pabot_results", "output%s.xml" % index),
                 )
             ]
@@ -1628,11 +1633,12 @@ def _write_stats(stats):
 def _report_results_for_one_run(
     outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
 ):
+    _write(pabot_args)
     copied_artifacts = _copy_output_artifacts(
-        options, _get_timestamp_id(start_time_string), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
+        options, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
     )
     output_path = _merge_one_run(
-        outs_dir, options, tests_root_name, stats, copied_artifacts, _get_timestamp_id(start_time_string)
+        outs_dir, options, tests_root_name, stats, copied_artifacts, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"])
     )
     _write_stats(stats)
     if (
