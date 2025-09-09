@@ -452,20 +452,28 @@ class StandardStreamInterceptor(object):
         self.output = ""
         self.origout = sys.stdout
         self.origerr = sys.stderr
-        sys.stdout = StringIO()
-        sys.stderr = StringIO()
+        self.stdout_capture = StringIO()
+        self.stderr_capture = StringIO()
+        sys.stdout = self.stdout_capture
+        sys.stderr = self.stderr_capture
 
     def __enter__(self):
         return self
 
     def __exit__(self, *exc_info):
-        stdout = sys.stdout.getvalue()
-        stderr = sys.stderr.getvalue()
-        close = [sys.stdout, sys.stderr]
+        # Safely get output from captured streams, handling case where streams were restored
+        stdout = self._safe_getvalue(sys.stdout, self.stdout_capture)
+        stderr = self._safe_getvalue(sys.stderr, self.stderr_capture)
+        
+        # Close only our StringIO objects
+        for stream in [self.stdout_capture, self.stderr_capture]:
+            if hasattr(stream, 'close'):
+                stream.close()
+        
+        # Restore original streams
         sys.stdout = self.origout
         sys.stderr = self.origerr
-        for stream in close:
-            stream.close()
+
         if stdout and stderr:
             if not stderr.startswith(
                 ("*TRACE*", "*DEBUG*", "*INFO*", "*HTML*", "*WARN*", "*ERROR*")
@@ -474,6 +482,18 @@ class StandardStreamInterceptor(object):
             if not stdout.endswith("\n"):
                 stdout += "\n"
         self.output = stdout + stderr
+    
+    def _safe_getvalue(self, current_stream, original_capture):
+        """Safely get value from stream, handling case where stream was restored."""
+        # If current stream is still our StringIO, get value from it
+        if hasattr(current_stream, 'getvalue') and current_stream is original_capture:
+            return current_stream.getvalue()
+        # If current stream was restored but our capture still has data
+        print("*WARN* Stream capture was interrupted during library import", file=sys.stderr)
+        if hasattr(original_capture, 'getvalue'):
+            return original_capture.getvalue()
+        else:
+            return ""
 
 
 class KeywordResult(object):
