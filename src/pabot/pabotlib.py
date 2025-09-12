@@ -60,7 +60,7 @@ class _PabotLib(object):
         self, resourcefile
     ):  # type: (Optional[str]) -> Dict[str, Dict[str, Any]]
         vals = {}  # type: Dict[str, Dict[str, Any]]
-        if resourcefile is None:
+        if not resourcefile:
             return vals
         conf = configparser.ConfigParser()
         conf.read(resourcefile)

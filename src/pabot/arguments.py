@@ -142,6 +142,14 @@ def _parse_shard(arg):
     return int(parts[0]), int(parts[1])
 
 
+def _parse_artifacts(arg):
+    # type: (str) -> Tuple[List[str], bool]
+    artifacts = arg.split(',')
+    if artifacts[-1] == 'notimestamps':
+        return (artifacts[:-1], False)
+    return (artifacts, True)
+
+
 def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, object]]
     pabot_args = {
         "command": ["pybot" if ROBOT_VERSION < "3.1" else "robot"],
@@ -155,6 +163,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "processes": _processes_count(),
         "processtimeout": None,
         "artifacts": ["png"],
+        "artifactstimestamps": True,
         "artifactsinsubfolders": False,
         "shardindex": 0,
         "shardcount": 1,
@@ -181,7 +190,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "processtimeout": int,
         "ordering": str,
         "suitesfrom": str,
-        "artifacts": lambda x: x.split(","),
+        "artifacts": _parse_artifacts,
         "shard": _parse_shard,
     }
 
@@ -239,6 +248,9 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                 elif arg_name == "pabotlibhost":
                     pabot_args["pabotlib"] = False
                     pabot_args[arg_name] = value
+                elif arg_name == "artifacts":
+                    pabot_args["artifacts"] = value[0]
+                    pabot_args["artifactstimestamps"] = value[1]
                 else:
                     pabot_args[arg_name] = value
                 i += 2

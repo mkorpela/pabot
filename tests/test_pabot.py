@@ -1208,6 +1208,40 @@ class PabotTests(unittest.TestCase):
                 "file copied wrongly: {}".format(f),
             )
 
+    def test_copy_output_artifacts_direct_screenshots_only_without_timestamps(self):
+        out_dir = os.path.join(
+            os.path.abspath(os.path.dirname(__file__)),
+            "outputs/outputs_with_artifacts/out_dir",
+        )
+        _opts = {"outputdir": out_dir}
+        test_time_id = None
+        pabot._copy_output_artifacts(options=_opts, timestamp_id=test_time_id)
+        files_should_be_copied = [
+            "0-fake_screenshot_root.png",
+            "1-fake_screenshot_root.png",
+        ]
+
+        for f in files_should_be_copied:
+            file_path = os.path.join(_opts["outputdir"], f)
+            self.assertTrue(os.path.isfile(file_path), "file not copied: {}".format(f))
+            os.remove(file_path)  # clean up
+
+        files_should_not_be_copied = [
+            "screenshots/0-fake_screenshot_subfolder_1.png",
+            "screenshots/0-fake_screenshot_subfolder_2.png"
+            "screenshots/1-fake_screenshot_subfolder_1.png",
+            "screenshots/2-fake_screenshot_subfolder_2.png",
+            "other_artifacts/0-some_artifact.foo",
+            "other_artifacts/0-another_artifact.bar",
+            "other_artifacts/1-some_artifact.foo",
+            "other_artifacts/1-another_artifact.bar",
+        ]
+        for f in files_should_not_be_copied:
+            self.assertFalse(
+                os.path.isfile(os.path.join(_opts["outputdir"], f)),
+                "file copied wrongly: {}".format(f),
+            )
+
     def test_copy_output_artifacts_include_subfolders(self):
         out_dir = os.path.join(
             os.path.abspath(os.path.dirname(__file__)),

@@ -1,17 +1,14 @@
-name: Issue and PR Status Labels
+name: Issue Status Labels
 
 on:
   issues:
     types: [opened, closed]
-  pull_request:
-    types: [closed]
 
 jobs:
   update-status:
     runs-on: ubuntu-latest
     permissions:
       issues: write
-      pull-requests: write
 
     steps:
       - name: Set up Python (needed by GitHub Actions)
@@ -19,15 +16,13 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Update issue and PR status
+      - name: Update issue status
         uses: actions/github-script@v6
         with:
           script: |
             const issueLabels = {
               open: 'status: open',
-              completed: 'status: completed',
-              pr_submitted: 'status: pr submitted',
-              needs_review: 'status: needs review'
+              completed: 'status: completed'
             };
 
             async function removeOldStatusLabels(issue_number) {
@@ -66,20 +61,6 @@ jobs:
                 await github.rest.issues.addLabels({
                   ...context.repo,
                   issue_number: issueNumber,
-                  labels: [issueLabels.completed]
-                });
-              }
-            }
-
-            // Handle PR labels only (no external issue modifications)
-            if (context.eventName === 'pull_request') {
-              const pr = context.payload.pull_request;
-              const prNumber = pr.number;
-              await removeOldStatusLabels(prNumber);
-              if (context.payload.action === 'closed' && pr.merged) {
-                await github.rest.issues.addLabels({
-                  ...context.repo,
-                  issue_number: prNumber,
                   labels: [issueLabels.completed]
                 });
               }
