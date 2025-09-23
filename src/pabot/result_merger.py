@@ -201,13 +201,13 @@ def prefix(source, timestamp_id):
         if not id:
             return ""
         if os.path.split(path_without_id)[1] == 'pabot_results':
-            return "-".join([timestamp_id, id])
+            return "-".join([str(p) for p in [timestamp_id, id] if p is not None])
         else:
             # --argumentfileN in use: (there should be one subdir level more)
             _, index = os.path.split(path_without_id)
             if not index:
                 return ""
-            return "-".join([timestamp_id, index, id])
+            return "-".join([str(p) for p in [timestamp_id, index, id] if p is not None])
     except:
         return ""
 

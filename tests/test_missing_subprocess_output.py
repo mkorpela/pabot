@@ -78,6 +78,7 @@ Testing 3
             'processes': 3, 
             'processtimeout': None, 
             'artifacts': ['png'], 
+            "artifactstimestamps": True,
             'artifactsinsubfolders': False, 
             'shardindex': 0, 
             'shardcount': 1, 

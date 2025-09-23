@@ -194,8 +194,13 @@ def extract_section(lines, start_marker="<!-- START DOCSTRING -->", end_marker="
         if end_marker in line:
             break
         if inside_section:
-            # Remove Markdown links but keep the text
-            extracted_lines.append(re.sub(r'\[([^\]]+)\]\(https?://[^\)]+\)', r'\1', line))
+            # Remove Markdown hyperlinks but keep text
+            line = re.sub(r'\[([^\]]+)\]\(https?://[^\)]+\)', r'\1', line)
+            # Remove Markdown section links but keep text
+            line = re.sub(r'\[([^\]]+)\]\(#[^\)]+\)', r'\1', line)
+            # Remove ** and backticks `
+            line = re.sub(r'(\*\*|`)', '', line)
+            extracted_lines.append(line)
 
     return "".join(extracted_lines).strip()
 
@@ -354,7 +359,7 @@ def _try_execute_and_wait(
         show_stdout_on_failure,
     )
     if is_ignored and os.path.isdir(outs_dir):
-        shutil.rmtree(outs_dir)
+        _rmtree_with_path(outs_dir)
 
 
 def _result_to_stdout(
@@ -750,10 +755,13 @@ def _modify_options_for_argfile_use(argfile, options):
 
 
 def _replace_base_name(new_name, options, key):
-    if isinstance(options.get(key, None), str):
-        options[key] = new_name + '.' + options[key].split('.', 1)[1]
+    if isinstance(options.get(key), str):
+        options[key] = f"{new_name}.{options[key].split('.', 1)[1]}" if '.' in options[key] else new_name
     elif key in options:
-        options[key] = [new_name + '.' + s.split('.', 1)[1] for s in options.get(key, [])]
+        options[key] = [
+            f"{new_name}.{s.split('.', 1)[1]}" if '.' in s else new_name
+            for s in options.get(key, [])
+        ]
 
 
 def _set_terminal_coloring_options(options):
@@ -1473,15 +1481,30 @@ def _output_dir(options, cleanup=True):
     outputdir = options.get("outputdir", ".")
     outpath = os.path.join(outputdir, "pabot_results")
     if cleanup and os.path.isdir(outpath):
-        shutil.rmtree(outpath)
+        _rmtree_with_path(outpath)
     return outpath
 
 
-def _get_timestamp_id(timestamp_str):
-    return datetime.datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").strftime("%Y%m%d_%H%M%S")
+def _rmtree_with_path(path):
+    """
+    Remove a directory tree and, if a PermissionError occurs,
+    re-raise it with the absolute path included in the message.
+    """
+    try:
+        shutil.rmtree(path)
+    except PermissionError as e:
+        abs_path = os.path.abspath(path)
+        raise PermissionError(f"Failed to delete path {abs_path}") from e
 
 
-def _copy_output_artifacts(options, timestamp_id, file_extensions=None, include_subfolders=False, index=None):
+def _get_timestamp_id(timestamp_str, add_timestamp):
+    # type: (str, bool) -> Optional[str]
+    if add_timestamp:
+        return str(datetime.datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").strftime("%Y%m%d_%H%M%S"))
+    return None
+
+
+def _copy_output_artifacts(options, timestamp_id=None, file_extensions=None, include_subfolders=False, index=None):
     file_extensions = file_extensions or ["png"]
     pabot_outputdir = _output_dir(options, cleanup=False)
     outputdir = options.get("outputdir", ".")
@@ -1505,9 +1528,9 @@ def _copy_output_artifacts(options, timestamp_id, file_extensions=None, include_
                     dst_folder_path = os.path.join(outputdir, subfolder_path)
                     if not os.path.isdir(dst_folder_path):
                         os.makedirs(dst_folder_path)
-                dst_file_name = "-".join([timestamp_id, prefix, file_name])
-                if index:
-                    dst_file_name = "-".join([timestamp_id, index, prefix, file_name])
+                dst_file_name_parts = [timestamp_id, index, prefix, file_name]
+                filtered_name = [str(p) for p in dst_file_name_parts if p is not None]
+                dst_file_name = "-".join(filtered_name)
                 shutil.copy2(
                     os.path.join(location, file_name),
                     os.path.join(dst_folder_path, dst_file_name),
@@ -1551,7 +1574,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
         outputs = []  # type: List[str]
         for index, _ in pabot_args["argumentfiles"]:
             copied_artifacts = _copy_output_artifacts(
-                options, _get_timestamp_id(start_time_string), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"], index
+                options, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"], index
             )
             outputs += [
                 _merge_one_run(
@@ -1560,7 +1583,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
                     tests_root_name,
                     stats,
                     copied_artifacts,
-                    timestamp_id=_get_timestamp_id(start_time_string),
+                    timestamp_id=_get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]),
                     outputfile=os.path.join("pabot_results", "output%s.xml" % index),
                 )
             ]
@@ -1610,11 +1633,12 @@ def _write_stats(stats):
 def _report_results_for_one_run(
     outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
 ):
+    _write(pabot_args)
     copied_artifacts = _copy_output_artifacts(
-        options, _get_timestamp_id(start_time_string), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
+        options, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
     )
     output_path = _merge_one_run(
-        outs_dir, options, tests_root_name, stats, copied_artifacts, _get_timestamp_id(start_time_string)
+        outs_dir, options, tests_root_name, stats, copied_artifacts, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"])
     )
     _write_stats(stats)
     if (
@@ -1726,9 +1750,19 @@ def _stop_message_writer():
     MESSAGE_QUEUE.join()
 
 
-def _get_free_port(pabot_args):
-    if pabot_args["pabotlibport"] != 0:
-        return pabot_args["pabotlibport"]
+def _is_port_available(port):
+    """Check if a given port on localhost is available."""
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        try:
+            s.bind(("localhost", port))
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            return True
+        except OSError:
+            return False
+
+
+def _get_free_port():
+    """Return a free TCP port on localhost."""
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
         s.bind(("localhost", 0))
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -1737,29 +1771,43 @@ def _get_free_port(pabot_args):
 
 def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Popen]
     global _PABOTLIBURI
-    free_port = _get_free_port(pabot_args)
-    _PABOTLIBURI = "%s:%s" % (pabot_args["pabotlibhost"], free_port)
-    if not pabot_args["pabotlib"]:
+    # If pabotlib is not enabled, do nothing
+    if not pabot_args.get("pabotlib"):
         return None
-    if pabot_args.get("resourcefile") and not os.path.exists(
-        pabot_args["resourcefile"]
-    ):
+
+    host = pabot_args.get("pabotlibhost", "127.0.0.1")
+    port = pabot_args.get("pabotlibport", 8270)
+
+    # If host is default and user specified a non-zero port, check if it's available
+    if host == "127.0.0.1" and port != 0 and not _is_port_available(port):
+        _write(
+            f"Warning: specified pabotlibport {port} is already in use. "
+            "A free port will be assigned automatically.",
+            Color.YELLOW,
+        )
+        port = _get_free_port()
+
+    # If host is default and port = 0, assign a free port
+    if host == "127.0.0.1" and port == 0:
+        port = _get_free_port()
+
+    _PABOTLIBURI = f"{host}:{port}"
+    resourcefile = pabot_args.get("resourcefile") or ""
+    if resourcefile and not os.path.exists(resourcefile):
         _write(
             "Warning: specified resource file doesn't exist."
             " Some tests may fail or continue forever.",
             Color.YELLOW,
         )
-        pabot_args["resourcefile"] = None
-    return subprocess.Popen(
-        '"{python}" -m {pabotlibname} {resourcefile} {pabotlibhost} {pabotlibport}'.format(
-            python=sys.executable,
-            pabotlibname=pabotlib.__name__,
-            resourcefile=pabot_args.get("resourcefile"),
-            pabotlibhost=pabot_args["pabotlibhost"],
-            pabotlibport=free_port,
-        ),
-        shell=True,
-    )
+        resourcefile = ""
+    cmd = [
+        sys.executable,
+        "-m", pabotlib.__name__,
+        resourcefile,
+        pabot_args["pabotlibhost"],
+        str(port),
+    ]
+    return subprocess.Popen(cmd)
 
 
 def _stop_remote_library(process):  # type: (subprocess.Popen) -> None
