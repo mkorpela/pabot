@@ -193,33 +193,56 @@ class ProcessManager:
 
         self.writer.write(f"[ProcessManager] Terminating process tree PID={process.pid}", color=Color.YELLOW)
 
+        # Try using psutil first
         if psutil:
             try:
                 parent = psutil.Process(process.pid)
                 children = parent.children(recursive=True)
                 for child in children:
-                    child.terminate()
+                    try:
+                        child.terminate()
+                    except Exception:
+                        pass
                 psutil.wait_procs(children, timeout=3)
                 for child in children:
                     if child.is_running():
-                        child.kill()
-                parent.terminate()
-                parent.wait(timeout=3)
+                        try:
+                            child.kill()
+                        except Exception:
+                            pass
+                try:
+                    parent.terminate()
+                except Exception:
+                    pass
+                try:
+                    parent.wait(timeout=3)  # Ensures parent process does not become zombie
+                except psutil.TimeoutExpired:
+                    try:
+                        parent.kill()
+                    except Exception:
+                        pass
                 return
             except Exception:
                 pass
 
+        # Windows fallback
         if sys.platform == "win32":
             subprocess.run(["taskkill", "/PID", str(process.pid), "/T", "/F"],
-                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         else:
+            # Linux fallback if psutil fails
             try:
                 os.killpg(os.getpgid(process.pid), signal.SIGTERM)
                 time.sleep(2)
                 if process.poll() is None:
                     os.killpg(os.getpgid(process.pid), signal.SIGKILL)
             except Exception:
-                process.kill()
+                try:
+                    process.kill()
+                except Exception:
+                    pass
+
+        # Always wait for main process at the end
         try:
             process.wait(timeout=5)
         except Exception:
@@ -263,7 +286,7 @@ class ProcessManager:
         elapsed = 0
         ping_interval = 50  # Start value: 50 * 0.1s = 5s
         ping_time = ping_interval
-        
+
         while rc is None:
             rc = process.poll()
             if timeout and (time.time() - start_time) > timeout:
