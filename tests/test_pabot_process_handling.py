@@ -50,7 +50,7 @@ class PabotProcessHandlingTests(unittest.TestCase):
         )
 
         # --- Chain process & heartbeat ---
-        cls.heartbeat_file = cls.suites_dir / "heartbeat.txt"
+        cls.heartbeat_file = cls.suites_dir / f"heartbeat_{os.getpid()}.txt"
         chain_script = cls.suites_dir / "chain_process.py"
         chain_script_robot = str(chain_script).replace("/", "${/}").replace("\\", "${/}")
 
@@ -111,7 +111,20 @@ class PabotProcessHandlingTests(unittest.TestCase):
                 cmd += ["--processtimeout", str(timeout)]
             cmd += [str(s) for s in suites]
 
-            result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                        
+            if sys.platform == "win32":
+                creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
+            else:
+                creationflags = 0
+
+            result = subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                preexec_fn=os.setsid if sys.platform != "win32" else None,
+                creationflags=creationflags
+            )
             yield result, result_dir, proc_count
 
 
@@ -141,7 +154,7 @@ class PabotProcessHandlingTests(unittest.TestCase):
         """Ensure chain subprocesses terminate after --processtimeout; no zombie remains."""
         timeout = 3
         for result, _, _ in self._run_with_process_counts([self.chain_suite], timeout=timeout):
-            time.sleep(timeout)
+            time.sleep(2 * timeout)
             if self.heartbeat_file.exists():
                 lines = self.heartbeat_file.read_text().splitlines()
                 if lines and lines[0].startswith("PID:"):

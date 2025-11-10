@@ -203,7 +203,7 @@ class ProcessManager:
                         child.terminate()
                     except Exception:
                         pass
-                psutil.wait_procs(children, timeout=3)
+                psutil.wait_procs(children, timeout=5)
                 for child in children:
                     if child.is_running():
                         try:
@@ -215,7 +215,7 @@ class ProcessManager:
                 except Exception:
                     pass
                 try:
-                    parent.wait(timeout=3)  # Ensures parent process does not become zombie
+                    parent.wait(timeout=5)  # Ensures parent process does not become zombie
                 except psutil.TimeoutExpired:
                     try:
                         parent.kill()
@@ -231,16 +231,18 @@ class ProcessManager:
                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         else:
             # Linux fallback if psutil fails
-            try:
-                os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-                time.sleep(2)
-                if process.poll() is None:
-                    os.killpg(os.getpgid(process.pid), signal.SIGKILL)
-            except Exception:
+            if process.poll() is None:
                 try:
-                    process.kill()
+                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                    time.sleep(2)
+                    if process.poll() is None:
+                        os.killpg(os.getpgid(process.pid), signal.SIGKILL)
                 except Exception:
-                    pass
+                    if process.poll() is None:
+                        try:
+                            process.kill()
+                        except Exception:
+                            pass
 
         # Always wait for main process at the end
         try:
