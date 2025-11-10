@@ -1021,6 +1021,7 @@ class PabotTests(unittest.TestCase):
         if os.path.isfile(".pabotsuitenames"):
             os.remove(".pabotsuitenames")
         os.mkdir(".pabotsuitenames")
+        writer = pabot.get_writer()
         try:
             suite_names = pabot.solve_suite_names(
                 outs_dir=self._outs_dir,
@@ -1030,6 +1031,7 @@ class PabotTests(unittest.TestCase):
             )
             self._assert_equal_names([self._all_suites], suite_names)
         finally:
+            writer.flush()  # This test will fail so fast that needs wait console logging
             os.rmdir(".pabotsuitenames")
 
     def test_rebot_conf(self):
