@@ -145,29 +145,56 @@ class PabotProcessHandlingTests(unittest.TestCase):
         timeout = 3
         for result, _, _ in self._run_with_process_counts([self.slow_suite], timeout=timeout):
             self.assertNotEqual(result.returncode, 0, "Expected timeout")
-            self.assertIn(f"Process Slow Suite.Slow Test killed due to exceeding the maximum timeout of {timeout} seconds", result.stdout)
+            self.assertIn(
+                f"Process Slow Suite.Slow Test killed due to exceeding the maximum timeout of {timeout} seconds",
+                result.stdout
+            )
             _assert_runtime_at_least(result.stdout, timeout, timeout + 2)
-            self.assertIn("[ ERROR ] Suite '' contains no tests.", result.stderr)
+
+            # Windows prints this, CI Linux does not.
+            if result.stderr.strip():
+                self.assertIn("contains no tests", result.stderr)
 
 
     def test_chain_process_cleanup(self):
         """Ensure chain subprocesses terminate after --processtimeout; no zombie remains."""
         timeout = 3
         for result, _, _ in self._run_with_process_counts([self.chain_suite], timeout=timeout):
-            time.sleep(2 * timeout)
+
+            # Wait for Pabot to have had time to kill its subtrees
+            for _ in range(10):
+                time.sleep(0.5)
+                if not self.heartbeat_file.exists():
+                    break
+
             if self.heartbeat_file.exists():
                 lines = self.heartbeat_file.read_text().splitlines()
                 if lines and lines[0].startswith("PID:"):
                     pid = int(lines[0].split(":", 1)[1])
-                    # Verify process is gone
-                    try:
-                        os.kill(pid, 0)
-                    except OSError:
-                        pass
+
+                    # Check that no NEW heartbeats appear
+                    timestamps = [float(x) for x in lines[1:]]
+                    last = timestamps[-1]
+                    time.sleep(1.2)
+                    new_lines = self.heartbeat_file.read_text().splitlines()
+                    if len(new_lines) > len(lines):
+                        raise AssertionError("Heartbeat still increasing → process alive")
+
+                    # Check process not alive, but tolerate orphan-cleanup timing
+                    for _ in range(5):
+                        try:
+                            os.kill(pid, 0)
+                        except OSError:
+                            break
+                        time.sleep(0.4)
                     else:
                         raise AssertionError(f"PID {pid} still alive — possible zombie.")
+
             _assert_runtime_at_least(result.stdout, timeout, timeout + 2)
-            self.assertIn("[ ERROR ] Suite '' contains no tests.", result.stderr)
+
+            # Windows prints this, CI Linux does not.
+            if result.stderr.strip():
+                self.assertIn("contains no tests", result.stderr)
 
 
     def tearDown(self):
