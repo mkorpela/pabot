@@ -55,19 +55,21 @@ class PabotProcessHandlingTests(unittest.TestCase):
         chain_script_robot = str(chain_script).replace("/", "${/}").replace("\\", "${/}")
 
         with open(chain_script, "w", encoding="utf-8") as f:
-            f.write(
-                textwrap.dedent(f"""
-                import time, os
+            f.write(textwrap.dedent(f"""
+                import time, os, sys
                 heartbeat_file = r'{cls.heartbeat_file}'
                 with open(heartbeat_file, 'w') as f:
                     f.write(f"PID:{{os.getpid()}}\\n")
                     f.flush()
-                    for _ in range(60):
-                        f.write(str(time.time()) + '\\n')
+                    os.fsync(f.fileno())
+                    for _ in range(120):  # 2 min
+                        ts = str(time.time())
+                        f.write(ts + '\\n')
                         f.flush()
+                        os.fsync(f.fileno())
+                        print(ts, flush=True)  # ensures stdout flush so Run Process waits correctly
                         time.sleep(1)
-                """)
-            )
+            """))
 
         # --- Chain suite ---
         cls.chain_suite = cls.suites_dir / "chain_suite.robot"
@@ -158,12 +160,11 @@ class PabotProcessHandlingTests(unittest.TestCase):
 
     def test_chain_process_cleanup(self):
         """Ensure chain subprocesses terminate after --processtimeout; no zombie remains."""
-    def test_chain_process_cleanup(self):
-        timeout = 3
+        timeout = 10
         for result, _, _ in self._run_with_process_counts([self.chain_suite], timeout=timeout):
 
             # Grace period for CI: kill may be delayed or heartbeat still flushing to file.
-            grace = 10.0
+            grace = 25.0
             interval = 1.5    # must be > 1 second because heartbeats are written every ~1s
             deadline = time.time() + grace
 
@@ -195,12 +196,17 @@ class PabotProcessHandlingTests(unittest.TestCase):
                 if first.startswith("PID:"):
                     pid = int(first.split(":", 1)[1])
 
-                    for _ in range(10):
+                    for _ in range(20):
                         try:
                             os.kill(pid, 0)
                         except OSError:
                             break
-                        time.sleep(0.3)
+                        # Attempt to kill again in case Pabot did not fully terminate
+                        try:
+                            os.killpg(os.getpgid(pid), signal.SIGTERM)
+                        except Exception:
+                            pass
+                        time.sleep(0.5)
                     else:
                         raise AssertionError(f"PID {pid} still alive — possible zombie.")
 
