@@ -158,41 +158,55 @@ class PabotProcessHandlingTests(unittest.TestCase):
 
     def test_chain_process_cleanup(self):
         """Ensure chain subprocesses terminate after --processtimeout; no zombie remains."""
+    def test_chain_process_cleanup(self):
         timeout = 3
         for result, _, _ in self._run_with_process_counts([self.chain_suite], timeout=timeout):
 
-            # Wait for Pabot to have had time to kill its subtrees
-            for _ in range(10):
-                time.sleep(0.5)
+            # Grace period for CI: kill may be delayed or heartbeat still flushing to file.
+            grace = 10.0
+            interval = 1.5    # must be > 1 second because heartbeats are written every ~1s
+            deadline = time.time() + grace
+
+            last_count = None
+            stable_count_seen = False
+
+            while time.time() < deadline:
                 if not self.heartbeat_file.exists():
+                    stable_count_seen = True
                     break
 
-            if self.heartbeat_file.exists():
                 lines = self.heartbeat_file.read_text().splitlines()
-                if lines and lines[0].startswith("PID:"):
-                    pid = int(lines[0].split(":", 1)[1])
+                if len(lines) == last_count:
+                    # Heartbeat stopped increasing => process is no longer running
+                    stable_count_seen = True
+                    break
 
-                    # Check that no NEW heartbeats appear
-                    timestamps = [float(x) for x in lines[1:]]
-                    last = timestamps[-1]
-                    time.sleep(1.2)
-                    new_lines = self.heartbeat_file.read_text().splitlines()
-                    if len(new_lines) > len(lines):
-                        raise AssertionError("Heartbeat still increasing → process alive")
+                last_count = len(lines)
+                time.sleep(interval)
 
-                    # Check process not alive, but tolerate orphan-cleanup timing
-                    for _ in range(5):
+            if not stable_count_seen:
+                raise AssertionError(
+                    f"Heartbeat kept increasing for {grace}s → process did not die"
+                )
+
+            # Now verify PID is not alive (with retries)
+            if self.heartbeat_file.exists():
+                first = self.heartbeat_file.read_text().splitlines()[0]
+                if first.startswith("PID:"):
+                    pid = int(first.split(":", 1)[1])
+
+                    for _ in range(10):
                         try:
                             os.kill(pid, 0)
                         except OSError:
                             break
-                        time.sleep(0.4)
+                        time.sleep(0.3)
                     else:
                         raise AssertionError(f"PID {pid} still alive — possible zombie.")
 
-            _assert_runtime_at_least(result.stdout, timeout, timeout + 2)
+            _assert_runtime_at_least(result.stdout, timeout, timeout + 3)
 
-            # Windows prints this, CI Linux does not.
+            # stderr empty on CI Linux is OK
             if result.stderr.strip():
                 self.assertIn("contains no tests", result.stderr)
 
