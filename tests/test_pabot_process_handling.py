@@ -187,7 +187,7 @@ class PabotProcessHandlingTests(unittest.TestCase):
 
             if not stable_count_seen:
                 raise AssertionError(
-                    f"Heartbeat kept increasing for {grace}s → process did not die"
+                    f"Heartbeat kept increasing for {grace}s → process did not die, i.e. zombie detected."
                 )
 
             # Now verify PID is not alive (with retries)
