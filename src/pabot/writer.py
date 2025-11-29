@@ -2,7 +2,7 @@ import threading
 import queue
 import sys
 import os
-import datetime
+import time
 
 class Color:
     RED = "\033[91m"
@@ -50,17 +50,43 @@ class MessageWriter:
     def write(self, message, color=None):
         self.queue.put((f"{message}", color))
 
-    def flush(self):
+    def flush(self, timeout=5):
         """
         Wait until all queued messages have been written.
-        Safe to call multiple times; non-blocking if queue is empty.
+
+        :param timeout: Optional timeout in seconds. If None, wait indefinitely.
+        :return: True if queue drained before timeout (or no timeout), False if timed out.
         """
-        while not self.queue.empty():
-            try:
-                self.queue.join()  # blocks until all tasks are marked done
-                break
-            except KeyboardInterrupt:
-                break
+        start = time.time()
+        try:
+            # Loop until Queue reports no unfinished tasks
+            while True:
+                # If writer thread died, break to avoid infinite loop
+                if not self.thread.is_alive():
+                    # Give one last moment for potential in-flight task_done()
+                    time.sleep(0.01)
+                    # If still unfinished, we can't do more
+                    return getattr(self.queue, "unfinished_tasks", 0) == 0
+
+                unfinished = getattr(self.queue, "unfinished_tasks", None)
+                if unfinished is None:
+                    # Fallback: call join once and return
+                    try:
+                        self.queue.join()
+                        return True
+                    except Exception:
+                        return False
+
+                if unfinished == 0:
+                    return True
+
+                if timeout is not None and (time.time() - start) > timeout:
+                    return False
+
+                time.sleep(0.05)
+        except KeyboardInterrupt:
+            # Allow tests/cli to interrupt flushing
+            return False
 
     def stop(self):
         """
