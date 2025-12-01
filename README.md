@@ -440,6 +440,7 @@ pabot_results/
 │       ├── robot_stdout.out
 │       ├── robot_stderr.out
 │       └── artifacts...
+pabot_manager.log            # Pabot's own main log. Basically same than prints in console
 ```
 
 Each `PABOTQUEUEINDEX` folder contains as default:

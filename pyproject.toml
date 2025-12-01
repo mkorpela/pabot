@@ -1,3 +1,12 @@
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+filterwarnings = [
+    "ignore:'robot.utils.PY2' is deprecated:DeprecationWarning:robot.utils",
+    "ignore:'robot.utils.is_unicode' is deprecated:DeprecationWarning:robot.utils",
+    "ignore::pytest.PytestCollectionWarning:module=tests.test_pabotlib",
+]

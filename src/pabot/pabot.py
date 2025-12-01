@@ -83,6 +83,7 @@ from .execution_items import (
     create_dependency_tree,
 )
 from .result_merger import merge
+from .writer import get_writer
 
 try:
     import queue  # type: ignore
@@ -100,10 +101,10 @@ try:
 except ImportError:
     METADATA_AVAILABLE = False
 
-from typing import IO, Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 CTRL_C_PRESSED = False
-MESSAGE_QUEUE = queue.Queue()
+#MESSAGE_QUEUE = queue.Queue()
 EXECUTION_POOL_IDS = []  # type: List[int]
 EXECUTION_POOL_ID_LOCK = threading.Lock()
 POPEN_LOCK = threading.Lock()
@@ -129,6 +130,15 @@ _ALL_ELAPSED = []  # type: List[Union[int, float]]
 
 # Python version check for supporting importlib.metadata (requires Python 3.8+)
 IS_PYTHON_3_8_OR_NEWER = sys.version_info >= (3, 8)
+
+_PROCESS_MANAGER = None
+
+def _ensure_process_manager():
+    global _PROCESS_MANAGER
+    if _PROCESS_MANAGER is None:
+        from pabot.ProcessManager import ProcessManager
+        _PROCESS_MANAGER = ProcessManager()
+    return _PROCESS_MANAGER
 
 
 def read_args_from_readme():
@@ -556,88 +566,39 @@ def _run(
     process_timeout,
     sleep_before_start,
 ):
-    # type: (List[str], List[str], IO[Any], IO[Any], str, bool, int, int, str, Optional[int], int) -> Tuple[Union[subprocess.Popen[bytes], subprocess.Popen], Tuple[int, float]]
     timestamp = datetime.datetime.now()
+
     if sleep_before_start > 0:
-        _write(
-            "%s [%s] [ID:%s] SLEEPING %s SECONDS BEFORE STARTING %s"
-            % (timestamp, pool_id, item_index, sleep_before_start, item_name),
-        )
+        _write(f"{timestamp} [{pool_id}] [ID:{item_index}] SLEEPING {sleep_before_start} SECONDS BEFORE STARTING {item_name}")
         time.sleep(sleep_before_start)
-    timestamp = datetime.datetime.now()
+
     command_name = run_command[-1].replace(" ", "_")
     argfile_path = os.path.join(outs_dir, f"{command_name}_argfile.txt")
     _write_internal_argument_file(run_options, filename=argfile_path)
-    cmd = ' '.join(run_command + ['-A'] + [argfile_path])
-    if PY2:
-        cmd = cmd.decode("utf-8").encode(SYSTEM_ENCODING)
-    # avoid hitting https://bugs.python.org/issue10394
-    with POPEN_LOCK:
-        my_env = os.environ.copy()
-        syslog_file = my_env.get("ROBOT_SYSLOG_FILE", None)
-        if syslog_file:
-            my_env["ROBOT_SYSLOG_FILE"] = os.path.join(
-                outs_dir, os.path.basename(syslog_file)
-            )
-        process = subprocess.Popen(
-            cmd, shell=True, stderr=stderr, stdout=stdout, env=my_env
-        )
-    if verbose:
-        _write_with_id(
-            process,
-            pool_id,
-            item_index,
-            "EXECUTING PARALLEL %s with command:\n%s" % (item_name, cmd),
-            timestamp=timestamp,
-        )
-    else:
-        _write_with_id(
-            process,
-            pool_id,
-            item_index,
-            "EXECUTING %s" % item_name,
-            timestamp=timestamp,
-        )
-    return process, _wait_for_return_code(
-        process, item_name, pool_id, item_index, process_timeout
+
+    cmd = run_command + ['-A', argfile_path]
+    my_env = os.environ.copy()
+    syslog_file = my_env.get("ROBOT_SYSLOG_FILE", None)
+    if syslog_file:
+        my_env["ROBOT_SYSLOG_FILE"] = os.path.join(outs_dir, os.path.basename(syslog_file))
+
+    log_path = os.path.join(outs_dir, f"{command_name}_{item_index}.log")
+
+    manager = _ensure_process_manager()
+    process, (rc, elapsed) = manager.run(
+        cmd,
+        env=my_env,
+        stdout=stdout,
+        stderr=stderr,
+        timeout=process_timeout,
+        verbose=verbose,
+        item_name=item_name,
+        log_file=log_path,
+        pool_id=pool_id,
+        item_index=item_index,
     )
 
-
-def _wait_for_return_code(process, item_name, pool_id, item_index, process_timeout):
-    rc = None
-    elapsed = 0
-    ping_time = ping_interval = 150
-    while rc is None:
-        rc = process.poll()
-        time.sleep(0.1)
-        elapsed += 1
-
-        if process_timeout and elapsed / 10.0 >= process_timeout:
-            process.terminate()
-            process.wait()
-            rc = (
-                -1
-            )  # Set a return code indicating that the process was killed due to timeout
-            _write_with_id(
-                process,
-                pool_id,
-                item_index,
-                "Process %s killed due to exceeding the maximum timeout of %s seconds"
-                % (item_name, process_timeout),
-            )
-            break
-
-        if elapsed == ping_time:
-            ping_interval += 50
-            ping_time += ping_interval
-            _write_with_id(
-                process,
-                pool_id,
-                item_index,
-                "still running %s after %s seconds" % (item_name, elapsed / 10.0),
-            )
-
-    return rc, elapsed / 10.0
+    return process, (rc, elapsed)
 
 
 def _read_file(file_handle):
@@ -1633,7 +1594,6 @@ def _write_stats(stats):
 def _report_results_for_one_run(
     outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
 ):
-    _write(pabot_args)
     copied_artifacts = _copy_output_artifacts(
         options, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
     )
@@ -1715,19 +1675,9 @@ def _glob_escape(pathname):
     return drive + pathname
 
 
-def _writer():
-    while True:
-        message = MESSAGE_QUEUE.get()
-        if message is None:
-            MESSAGE_QUEUE.task_done()
-            return
-        print(message)
-        sys.stdout.flush()
-        MESSAGE_QUEUE.task_done()
-
-
 def _write(message, color=None):
-    MESSAGE_QUEUE.put(_wrap_with(color, message))
+    writer = get_writer()
+    writer.write(message, color=color)
 
 
 def _wrap_with(color, message):
@@ -1738,16 +1688,6 @@ def _wrap_with(color, message):
 
 def _is_output_coloring_supported():
     return sys.stdout.isatty() and os.name in Color.SUPPORTED_OSES
-
-
-def _start_message_writer():
-    t = threading.Thread(target=_writer)
-    t.start()
-
-
-def _stop_message_writer():
-    MESSAGE_QUEUE.put(None)
-    MESSAGE_QUEUE.join()
 
 
 def _is_port_available(port):
@@ -2102,6 +2042,7 @@ def main(args=None):
 
 def main_program(args):
     global _PABOTLIBPROCESS
+    outs_dir = None
     args = args or sys.argv[1:]
     if len(args) == 0:
         print(
@@ -2115,7 +2056,6 @@ def main_program(args):
     start_time_string = _now()
     # NOTE: timeout option
     try:
-        _start_message_writer()
         options, datasources, pabot_args, opts_for_run = parse_args(args)
         if pabot_args["help"]:
             help_print = __doc__.replace(
@@ -2128,10 +2068,17 @@ def main_program(args):
             print("[ " + _wrap_with(Color.RED, "ERROR") + " ]: No datasources given.")
             print("Try --help for usage information.")
             return 252
+        outs_dir = _output_dir(options)
+
+        # These ensure MessageWriter and ProcessManager are ready before any parallel execution.
+        writer = get_writer(log_dir=outs_dir)
+        _ensure_process_manager()
+        _write(f"Initialized logging in {outs_dir}")
+
         _PABOTLIBPROCESS = _start_remote_library(pabot_args)
         if _pabotlib_in_use():
             _initialize_queue_index()
-        outs_dir = _output_dir(options)
+
         suite_groups = _group_suites(outs_dir, datasources, options, pabot_args)
         if pabot_args["verbose"]:
             _write("Suite names resolved in %s seconds" % str(time.time() - start_time))
@@ -2186,10 +2133,41 @@ def main_program(args):
         _write("Robot Framework: %s" % ROBOT_VERSION)
         raise
     finally:
-        if _PABOTLIBPROCESS:
-            _stop_remote_library(_PABOTLIBPROCESS)
-        _print_elapsed(start_time, time.time())
-        _stop_message_writer()
+        # Ensure that writer exists
+        writer = None
+        try:
+            if outs_dir is not None:
+                writer = get_writer(log_dir=outs_dir)
+        except Exception as e:
+            print(f"[WARN] Could not initialize writer in finally: {e}")
+        # Try to stop remote library
+        try:
+            if _PABOTLIBPROCESS:
+                _stop_remote_library(_PABOTLIBPROCESS)
+        except Exception as e:
+            if writer:
+                writer.write(f"[WARN] Failed to stop remote library cleanly: {e}", Color.YELLOW)
+            else:
+                print(f"[WARN] Failed to stop remote library cleanly: {e}")
+        # print elapsed time
+        try:
+            _print_elapsed(start_time, time.time())
+        except Exception as e:
+            if writer:
+                writer.write(f"[WARN] Failed to print elapsed time: {e}", Color.YELLOW)
+            else:
+                print(f"[WARN] Failed to print elapsed time: {e}")
+        # Flush and stop writer
+        if writer:
+            try:
+                writer.flush()
+                writer.write("Logs flushed successfully.")
+            except Exception as e:
+                print(f"[WARN] Could not flush writer: {e}")
+            try:
+                writer.stop()
+            except Exception as e:
+                print(f"[WARN] Could not stop writer: {e}")
 
 
 def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
