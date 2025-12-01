@@ -489,7 +489,7 @@ class StandardStreamInterceptor(object):
         if hasattr(current_stream, 'getvalue') and current_stream is original_capture:
             return current_stream.getvalue()
         # If current stream was restored but our capture still has data
-        print("*WARN* Stream capture was interrupted during library import", file=sys.stderr)
+        print("*WARN* Stream capture was interrupted", file=sys.stderr)
         if hasattr(original_capture, 'getvalue'):
             return original_capture.getvalue()
         else:
