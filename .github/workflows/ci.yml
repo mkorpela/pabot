@@ -90,7 +90,7 @@ jobs:
             pip install "git+https://github.com/robotframework/robotframework@master"
           } else {
             # 'released' means latest published on PyPI
-            pip install robotframework
+            pip install -U robotframework
           }
           pip install -e .
 
