@@ -83,8 +83,9 @@ jobs:
           ROBOTFRAMEWORK: ${{ matrix.robotframework }}
           PIP_CACHE_DIR: ${{ github.workspace }}\.pip_cache
         run: |
-          pip install pytest
           pip install -r ./requirements.txt
+          # Ensure we use a pytest version compatible with the runner's Python (e.g. 3.14)
+          pip install -U pytest
           if ($env:ROBOTFRAMEWORK -eq 'master') {
             pip install "git+https://github.com/robotframework/robotframework@master"
           } else {
