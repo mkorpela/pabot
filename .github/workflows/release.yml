@@ -3,13 +3,14 @@ name: Release to PyPI
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'  # Matches tags like 1.2.3
+      - '[0-9]+.[0-9]+.[0-9]+(a[0-9]+|b[0-9]+|rc[0-9]+)?'  # Matches 1.2.3, 1.2.3a1, 1.2.3b1, 1.2.3rc1
 
 jobs:
   validate-version:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.tag.outputs.version }}
+      is_prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
     steps:
       - uses: actions/checkout@v4
       
@@ -47,14 +48,34 @@ jobs:
             exit 1
           fi
           echo "✓ Versions match!"
+
+      - name: Detect prerelease tag
+        id: prerelease
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          if [[ "$VERSION" =~ (a[0-9]+|b[0-9]+|rc[0-9]+)$ ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "Detected prerelease: true"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "Detected prerelease: false"
+          fi
       
   run-tests:
     needs: validate-version
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ["3.8", "3.10", "3.12"]
-        robotframework: ["6.1.1", "7.1.1"]  # Testing with recent stable versions
+        python: ["3.8", "3.10", "3.12", "3.14"]
+        robotframework:
+          - "4.1.3"
+          - "5.0.1"
+          - "6.0.2"
+          - "6.1.1"
+          # - "7.0.1"  # Tested by ci.yml
+          - "7.1.1"
+          # - "7.2.2"  # Tested by ci.yml
+          - "7.3.2"
     
     steps:
       - uses: actions/checkout@v4
@@ -123,5 +144,5 @@ jobs:
             dist/*.whl
             dist/*.tar.gz
           draft: false
-          prerelease: false
+          prerelease: ${{ needs.validate-version.outputs.is_prerelease }}
           token: ${{ secrets.GITHUB_TOKEN }}

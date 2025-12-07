@@ -3,31 +3,87 @@ name: CI
 on: [ push, pull_request ]
 
 jobs:
-  build:
+  linux:
+    name: Linux latest + multiple Python & Robot Framework versions
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: [ "3.8", "3.10", "3.12" ]
+        python: [ "3.11", "3.13" ]
         robotframework:
-          - "4.1.3"
-          - "5.0.1"
-          - "6.0.2"
-          - "6.1.1"
           - "7.0.1"
-          - "7.1.1"
+          - "7.2.2"
+          - "master" # test against Robot Framework's master branch (git)
 
     steps:
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.pip_cache
+          key: pip-${{ runner.os }}-${{ matrix.python }}-${{ matrix.robotframework }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-${{ matrix.python }}-
+
       - uses: actions/checkout@v4
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+
       - name: Install Dependencies
+        env:
+          PIP_CACHE_DIR: ${{ github.workspace }}/.pip_cache
         run: |
           pip install pytest
           pip install -r ./requirements.txt
-          pip install "robotframework~=${{ matrix.robotframework }}"
+          if [ "${{ matrix.robotframework }}" = "master" ]; then \
+            pip install "git+https://github.com/robotframework/robotframework@master"; \
+          else \
+            pip install "robotframework~=${{ matrix.robotframework }}"; \
+          fi
           pip install -e .
 
       - name: Run Pytest
+        run: pytest tests
+
+  windows:
+    name: Windows latest Python + latest Robot Framework (both released and master)
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        robotframework: [ "released", "master" ]
+    # use Windows local appdata pip cache
+    steps:
+      - name: Cache pip packages (Windows)
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\.pip_cache
+          key: pip-${{ runner.os }}-${{ matrix.robotframework }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-
+
+      - uses: actions/checkout@v4
+      - name: Setup Python (latest 3.x)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3'
+          check-latest: true
+
+      - name: Install dependencies (Windows)
+        shell: pwsh
+        env:
+          ROBOTFRAMEWORK: ${{ matrix.robotframework }}
+          PIP_CACHE_DIR: ${{ github.workspace }}\.pip_cache
+        run: |
+          pip install pytest
+          pip install -r ./requirements.txt
+          if ($env:ROBOTFRAMEWORK -eq 'master') {
+            pip install "git+https://github.com/robotframework/robotframework@master"
+          } else {
+            # 'released' means latest published on PyPI
+            pip install robotframework
+          }
+          pip install -e .
+
+      - name: Run Pytest
+        shell: pwsh
         run: pytest tests
