@@ -87,10 +87,19 @@ jobs:
       
       - name: Install Dependencies
         run: |
-          pip install pytest
           pip install -r ./requirements.txt
+          # Upgrade pytest to latest to ensure compatibility with newer Python (e.g. 3.14)
+          pip install -U pytest
           pip install "robotframework~=${{ matrix.robotframework }}"
           pip install -e .
+
+      - name: Show installed versions
+        run: |
+          echo "Python:" $(python --version)
+          echo "pytest:" $(pytest --version)
+          echo "pip:" $(pip --version)
+          echo "Top pip packages (first 40):"
+          pip freeze | sed -n '1,40p'
       
       - name: Run Pytest
         run: pytest tests

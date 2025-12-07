@@ -4,11 +4,11 @@ on: [ push, pull_request ]
 
 jobs:
   linux:
-    name: Linux latest + multiple Python & Robot Framework versions
+    name: Linux latest + Python & Robot Framework
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: [ "3.11", "3.13" ]
+        python: [ "3.11", "3.13", "3.14" ]
         robotframework:
           - "7.0.1"
           - "7.2.2"
@@ -33,8 +33,9 @@ jobs:
         env:
           PIP_CACHE_DIR: ${{ github.workspace }}/.pip_cache
         run: |
-          pip install pytest
           pip install -r ./requirements.txt
+          # Ensure we use a pytest version compatible with the runner's Python (e.g. 3.14)
+          pip install -U pytest
           if [ "${{ matrix.robotframework }}" = "master" ]; then \
             pip install "git+https://github.com/robotframework/robotframework@master"; \
           else \
@@ -42,11 +43,19 @@ jobs:
           fi
           pip install -e .
 
+      - name: Show installed versions
+        run: |
+          echo "Python:" $(python --version)
+          echo "pytest:" $(pytest --version)
+          echo "pip:" $(pip --version)
+          echo "Top pip packages (first 40):"
+          pip freeze | sed -n '1,40p'
+
       - name: Run Pytest
         run: pytest tests
 
   windows:
-    name: Windows latest Python + latest Robot Framework (both released and master)
+    name: Windows latest + Python & Robot Framework
     runs-on: windows-latest
     strategy:
       matrix:
@@ -83,6 +92,15 @@ jobs:
             pip install robotframework
           }
           pip install -e .
+
+      - name: Show installed versions (Windows)
+        shell: pwsh
+        run: |
+          python --version
+          pytest --version
+          pip --version
+          Write-Host "Top pip packages (first 40):"
+          pip freeze | Select-Object -First 40
 
       - name: Run Pytest
         shell: pwsh
