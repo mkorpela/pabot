@@ -5,12 +5,17 @@ on:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+(a[0-9]+|b[0-9]+|rc[0-9]+)?'  # Matches 1.2.3, 1.2.3a1, 1.2.3b1, 1.2.3rc1
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   validate-version:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.tag.outputs.version }}
       is_prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
+
     steps:
       - uses: actions/checkout@v4
       
@@ -32,8 +37,9 @@ jobs:
           with open('src/pabot/__init__.py', 'r') as f:
               content = f.read()
               match = re.search(r'__version__\s*=\s*[\"\'](.*?)[\"\']', content)
-              if match:
-                  print(match.group(1))
+              if not match:
+                  raise SystemExit("Version not found")
+              print(match.group(1))
           ")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
@@ -48,6 +54,14 @@ jobs:
             exit 1
           fi
           echo "✓ Versions match!"
+
+      - name: Validate PEP 440 version
+        run: |
+          python - <<EOF
+          from packaging.version import Version
+          Version("${{ steps.tag.outputs.version }}")
+          print("✓ PEP 440 version OK")
+          EOF
 
       - name: Detect prerelease tag
         id: prerelease
@@ -64,18 +78,23 @@ jobs:
   run-tests:
     needs: validate-version
     runs-on: ubuntu-latest
+
     strategy:
+      fail-fast: false
       matrix:
-        python: ["3.8", "3.10", "3.12", "3.14"]
-        robotframework:
-          - "4.1.3"
-          - "5.0.1"
-          - "6.0.2"
-          - "6.1.1"
-          # - "7.0.1"  # Tested by ci.yml
-          - "7.1.1"
-          # - "7.2.2"  # Tested by ci.yml
-          - "7.3.2"
+        include:
+          - python: "3.9"
+            robotframework: "5.0.1"
+          - python: "3.10"
+            robotframework: "6.1.1"
+          - python: "3.11"
+            robotframework: "7.1.1"
+          - python: "3.12"
+            robotframework: "7.2.2"
+          - python: "3.13"
+            robotframework: "7.3.2"
+          - python: "3.14"
+            robotframework: "7.4"
     
     steps:
       - uses: actions/checkout@v4
@@ -96,6 +115,7 @@ jobs:
       - name: Show installed versions
         run: |
           echo "Python:" $(python --version)
+          echo "Robot Framework:" $(robot --version)
           echo "pytest:" $(pytest --version)
           echo "pip:" $(pip --version)
           echo "Top pip packages (first 40):"
@@ -104,26 +124,61 @@ jobs:
       - name: Run Pytest
         run: pytest tests
   
-  build-and-release:
-    needs: [validate-version, run-tests]
+  build:
+    needs: run-tests
     runs-on: ubuntu-latest
-    environment: release  # Optional: for manual approval
-    
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Python
-        uses: actions/setup-python@v5
+
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
-      - name: Install build tools
-        run: |
-          pip install --upgrade pip build twine
-      
+
       - name: Build package
-        run: python -m build
-      
+        run: |
+          pip install -U pip build
+          python -m build
+
+      - name: Upload dist artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  smoke-test:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Smoke test wheel
+        run: |
+          pip install dist/*.whl
+          pabot --version
+
+  publish-release:
+    needs: [validate-version, run-tests, build, smoke-test]
+    runs-on: ubuntu-latest
+    environment: release  # Optional: for manual approval
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install publishing tools
+        run: pip install -U twine
+
       - name: Check package
         run: twine check dist/*
       

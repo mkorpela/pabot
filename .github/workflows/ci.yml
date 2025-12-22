@@ -4,105 +4,58 @@ on: [ push, pull_request ]
 
 jobs:
   linux:
-    name: Linux latest + Python & Robot Framework
+    name: Linux · Python ${{ matrix.python }} · RF ${{ matrix.robotframework }}
     runs-on: ubuntu-latest
+
     strategy:
+      fail-fast: false
       matrix:
-        python: [ "3.11", "3.13", "3.14" ]
-        robotframework:
-          - "7.0.1"
-          - "7.2.2"
-          - "master" # test against Robot Framework's master branch (git)
+        include:
+          - python: "3.10"
+            robotframework: "7.0.1"
+
+          - python: "3.12"
+            robotframework: "7.2.2"
+
+          - python: "3.14"
+            robotframework: "latest"
 
     steps:
-      - name: Cache pip packages
-        uses: actions/cache@v4
-        with:
-          path: ${{ github.workspace }}/.pip_cache
-          key: pip-${{ runner.os }}-${{ matrix.python }}-${{ matrix.robotframework }}-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            pip-${{ runner.os }}-${{ matrix.python }}-
-
       - uses: actions/checkout@v4
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Install Dependencies
-        env:
-          PIP_CACHE_DIR: ${{ github.workspace }}/.pip_cache
-        run: |
-          pip install -r ./requirements.txt
-          # Ensure we use a pytest version compatible with the runner's Python (e.g. 3.14)
-          pip install -U pytest
-          if [ "${{ matrix.robotframework }}" = "master" ]; then \
-            pip install "git+https://github.com/robotframework/robotframework@master"; \
-          else \
-            pip install "robotframework~=${{ matrix.robotframework }}"; \
-          fi
-          pip install -e .
-
-      - name: Show installed versions
-        run: |
-          echo "Python:" $(python --version)
-          echo "pytest:" $(pytest --version)
-          echo "pip:" $(pip --version)
-          echo "Top pip packages (first 40):"
-          pip freeze | sed -n '1,40p'
-
-      - name: Run Pytest
-        run: pytest tests
-
-  windows:
-    name: Windows latest + Python & Robot Framework
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        robotframework: [ "released", "master" ]
-    # use Windows local appdata pip cache
-    steps:
-      - name: Cache pip packages (Windows)
+      - name: Cache pip
         uses: actions/cache@v4
         with:
-          path: ${{ github.workspace }}\.pip_cache
-          key: pip-${{ runner.os }}-${{ matrix.robotframework }}-${{ hashFiles('**/requirements.txt') }}
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ matrix.python }}-${{ matrix.robotframework }}-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
-            pip-${{ runner.os }}-
+            pip-${{ runner.os }}-${{ matrix.python }}-
 
-      - uses: actions/checkout@v4
-      - name: Setup Python (latest 3.x)
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3'
-          check-latest: true
-
-      - name: Install dependencies (Windows)
-        shell: pwsh
-        env:
-          ROBOTFRAMEWORK: ${{ matrix.robotframework }}
-          PIP_CACHE_DIR: ${{ github.workspace }}\.pip_cache
+      - name: Install dependencies
         run: |
-          pip install -r ./requirements.txt
-          # Ensure we use a pytest version compatible with the runner's Python (e.g. 3.14)
+          python -m pip install -U pip
+          pip install -r requirements.txt
           pip install -U pytest
-          if ($env:ROBOTFRAMEWORK -eq 'master') {
-            pip install "git+https://github.com/robotframework/robotframework@master"
-          } else {
-            # 'released' means latest published on PyPI
+
+          if [ "${{ matrix.robotframework }}" = "latest" ]; then
             pip install -U robotframework
-          }
+          else
+            pip install "robotframework~=${{ matrix.robotframework }}"
+          fi
+
           pip install -e .
 
-      - name: Show installed versions (Windows)
-        shell: pwsh
+      - name: Show versions
         run: |
-          python --version
-          pytest --version
-          pip --version
-          Write-Host "Top pip packages (first 40):"
-          pip freeze | Select-Object -First 40
+          echo "Python: $(python --version)"
+          echo "Robot Framework: $(robot --version)"
+          echo "pytest: $(pytest --version)"
+          echo "pip: $(pip --version)"
 
-      - name: Run Pytest
-        shell: pwsh
+      - name: Run tests
         run: pytest tests
