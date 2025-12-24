@@ -333,8 +333,9 @@ class ProcessManager:
 
             # Progress ping
             if counter == next_ping:
+                ts = datetime.datetime.now()
                 self.writer.write(
-                    f"[PID:{process.pid}] [{pool_id}] [ID:{item_index}] still running "
+                    f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] still running "
                     f"{item_name} after {(counter * 0.1):.1f}s"
                 )
                 ping_interval += 50

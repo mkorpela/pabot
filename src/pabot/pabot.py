@@ -48,6 +48,7 @@ from glob import glob
 from io import BytesIO, StringIO
 from multiprocessing.pool import ThreadPool
 from natsort import natsorted
+from pathlib import Path
 
 from robot import __version__ as ROBOT_VERSION
 from robot import rebot
@@ -1501,16 +1502,34 @@ def _copy_output_artifacts(options, timestamp_id=None, file_extensions=None, inc
 
 
 def _check_pabot_results_for_missing_xml(base_dir, command_name, output_xml_name):
+    """
+    Check for missing Robot Framework output XML files in pabot result directories,
+    taking into account the optional timestamp added by the -T option.
+
+    Args:
+        base_dir: The root directory containing pabot subdirectories
+        command_name: Name of the command that generated the output (used for fallback stderr filename)
+        output_xml_name: Expected XML filename, e.g., 'output.xml'
+
+    Returns:
+        List of paths to stderr output files for directories where the XML is missing.
+    """
     missing = []
+    # Prepare regex to match timestamped filenames like output-YYYYMMDD-hhmmss.xml
+    name_stem = os.path.splitext(output_xml_name)[0]
+    name_suffix = os.path.splitext(output_xml_name)[1]
+    pattern = re.compile(rf"^{re.escape(name_stem)}(-\d{{8}}-\d{{6}})?{re.escape(name_suffix)}$")
+
     for root, dirs, _ in os.walk(base_dir):
         if root == base_dir:
             for subdir in dirs:
                 subdir_path = os.path.join(base_dir, subdir)
-                has_xml = any(fname.endswith(output_xml_name) for fname in os.listdir(subdir_path))
+                # Check if any file matches the expected XML name or timestamped variant
+                has_xml = any(pattern.match(fname) for fname in os.listdir(subdir_path))
                 if not has_xml:
-                    command_name = command_name.replace(" ", "_")
-                    missing.append(os.path.join(subdir_path, f'{command_name}_stderr.out'))
-            break
+                    sanitized_cmd = command_name.replace(" ", "_")
+                    missing.append(os.path.join(subdir_path, f"{sanitized_cmd}_stderr.out"))
+            break  # only check immediate subdirectories
     return missing
 
 
@@ -1591,6 +1610,26 @@ def _write_stats(stats):
     _write("===================================================")
 
 
+def add_timestamp_to_filename(file_path: str) -> str:
+    """
+    Rename the given file by inserting a timestamp before the extension.
+    Format: YYYYMMDD-hhmmss
+    Example: output.xml -> output-20251222-152233.xml
+    """
+    file_path = Path(file_path)
+    if not file_path.exists():
+        raise FileNotFoundError(f"{file_path} does not exist")
+
+    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    new_name = f"{file_path.stem}-{timestamp}{file_path.suffix}"
+    new_path = file_path.with_name(new_name)
+    
+    # Rename the file
+    file_path.rename(new_path)
+
+    return str(new_path), timestamp
+
+
 def _report_results_for_one_run(
     outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
 ):
@@ -1611,9 +1650,10 @@ def _report_results_for_one_run(
             "output"
         ] = output_path  # REBOT will return error 252 if nothing is written
     else:
-        _write("Output:  %s" % output_path)
+        output_path_ts, ts = add_timestamp_to_filename(output_path)
+        _write("Output:  %s" % output_path_ts)
         options["output"] = None  # Do not write output again with rebot
-    return rebot(output_path, **_options_for_rebot(options, start_time_string, _now()))
+    return rebot(output_path_ts, **_options_for_rebot(options, start_time_string, ts))
 
 
 def _merge_one_run(
@@ -1624,7 +1664,16 @@ def _merge_one_run(
         os.path.join(options.get("outputdir", "."), outputfile)
     )
     filename = options.get("output") or "output.xml"
-    files = natsorted(glob(os.path.join(_glob_escape(outs_dir), f"**/*{filename}"), recursive=True))
+    base_name, ext = os.path.splitext(filename)
+    # Glob all candidates
+    candidate_files = glob(os.path.join(outs_dir, "**", f"*{base_name}*{ext}"), recursive=True)
+
+    # Regex: basename or basename-YYYYMMDD-hhmmss.ext
+    ts_pattern = re.compile(rf"^{re.escape(base_name)}(?:-\d{{8}}-\d{{6}})?{re.escape(ext)}$")
+
+    files = [f for f in candidate_files if ts_pattern.search(os.path.basename(f))]
+    files = natsorted(files)
+
     if not files:
         _write('WARN: No output files in "%s"' % outs_dir, Color.YELLOW)
         return ""
