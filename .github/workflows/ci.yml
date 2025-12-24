@@ -3,31 +3,59 @@ name: CI
 on: [ push, pull_request ]
 
 jobs:
-  build:
+  linux:
+    name: Linux · Python ${{ matrix.python }} · RF ${{ matrix.robotframework }}
     runs-on: ubuntu-latest
+
     strategy:
+      fail-fast: false
       matrix:
-        python: [ "3.8", "3.10", "3.12" ]
-        robotframework:
-          - "4.1.3"
-          - "5.0.1"
-          - "6.0.2"
-          - "6.1.1"
-          - "7.0.1"
-          - "7.1.1"
+        include:
+          - python: "3.10"
+            robotframework: "7.0.1"
+
+          - python: "3.12"
+            robotframework: "7.2.2"
+
+          - python: "3.14"
+            robotframework: "latest"
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      - name: Install Dependencies
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ matrix.python }}-${{ matrix.robotframework }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-${{ matrix.python }}-
+
+      - name: Install dependencies
         run: |
-          pip install pytest
-          pip install -r ./requirements.txt
-          pip install "robotframework~=${{ matrix.robotframework }}"
+          python -m pip install -U pip
+          pip install -r requirements.txt
+          pip install -U pytest
+
+          if [ "${{ matrix.robotframework }}" = "latest" ]; then
+            pip install -U robotframework
+          else
+            pip install "robotframework~=${{ matrix.robotframework }}"
+          fi
+
           pip install -e .
 
-      - name: Run Pytest
+      - name: Show versions
+        run: |
+          echo "Python: $(python --version)"
+          echo "Robot Framework: $(robot --version)"
+          echo "pytest: $(pytest --version)"
+          echo "pip: $(pip --version)"
+
+      - name: Run tests
         run: pytest tests

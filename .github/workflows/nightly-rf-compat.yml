@@ -1,0 +1,120 @@
+name: Nightly Robot Framework compatibility
+
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+jobs:
+  linux:
+    name: Ubuntu latest · Python 3.x · RF ${{ matrix.robotframework }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        robotframework:
+          - "latest"
+          - "prerelease"
+          - "master"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python (latest 3.x)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3"
+          check-latest: true
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.pip_cache
+          key: pip-${{ runner.os }}-${{ matrix.robotframework }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-
+
+      - name: Install dependencies (Linux)
+        env:
+          PIP_CACHE_DIR: ${{ github.workspace }}/.pip_cache
+        run: |
+          pip install -r requirements.txt
+          pip install -U pytest
+
+          if [ "${{ matrix.robotframework }}" = "master" ]; then
+            pip install "git+https://github.com/robotframework/robotframework@master"
+          elif [ "${{ matrix.robotframework }}" = "prerelease" ]; then
+            pip install --pre robotframework
+          else
+            pip install -U robotframework
+          fi
+
+          pip install -e .
+
+      - name: Show installed versions
+        run: |
+          echo "Python:" $(python --version)
+          echo "Robot Framework:" $(robot --version)
+          echo "pytest:" $(pytest --version)
+
+      - name: Run Pytest
+        run: pytest tests
+
+  windows:
+    name: Windows latest · Python 3.x · RF ${{ matrix.robotframework }}
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        robotframework:
+          - "latest"
+          - "prerelease"
+          - "master"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python (latest 3.x)
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3"
+          check-latest: true
+
+      - name: Cache pip packages (Windows)
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}\.pip_cache
+          key: pip-${{ runner.os }}-${{ matrix.robotframework }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            pip-${{ runner.os }}-
+
+      - name: Install dependencies (Windows)
+        shell: pwsh
+        env:
+          PIP_CACHE_DIR: ${{ github.workspace }}\.pip_cache
+        run: |
+          pip install -r requirements.txt
+          pip install -U pytest
+
+          if ("${{ matrix.robotframework }}" -eq "master") {
+            pip install "git+https://github.com/robotframework/robotframework@master"
+          } elseif ("${{ matrix.robotframework }}" -eq "prerelease") {
+            pip install --pre robotframework
+          } else {
+            pip install -U robotframework
+          }
+
+          pip install -e .
+
+      - name: Show installed versions (Windows)
+        shell: pwsh
+        run: |
+          python --version
+          robot --version
+          pytest --version
+
+      - name: Run Pytest (Windows)
+        shell: pwsh
+        run: pytest tests

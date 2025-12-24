@@ -3,13 +3,19 @@ name: Release to PyPI
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'  # Matches tags like 1.2.3
+      - '[0-9]+.[0-9]+.[0-9]+(a[0-9]+|b[0-9]+|rc[0-9]+)?'  # Matches 1.2.3, 1.2.3a1, 1.2.3b1, 1.2.3rc1
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   validate-version:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.tag.outputs.version }}
+      is_prerelease: ${{ steps.prerelease.outputs.is_prerelease }}
+
     steps:
       - uses: actions/checkout@v4
       
@@ -31,8 +37,9 @@ jobs:
           with open('src/pabot/__init__.py', 'r') as f:
               content = f.read()
               match = re.search(r'__version__\s*=\s*[\"\'](.*?)[\"\']', content)
-              if match:
-                  print(match.group(1))
+              if not match:
+                  raise SystemExit("Version not found")
+              print(match.group(1))
           ")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
@@ -47,14 +54,47 @@ jobs:
             exit 1
           fi
           echo "✓ Versions match!"
+
+      - name: Validate PEP 440 version
+        run: |
+          python - <<EOF
+          from packaging.version import Version
+          Version("${{ steps.tag.outputs.version }}")
+          print("✓ PEP 440 version OK")
+          EOF
+
+      - name: Detect prerelease tag
+        id: prerelease
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          if [[ "$VERSION" =~ (a[0-9]+|b[0-9]+|rc[0-9]+)$ ]]; then
+            echo "is_prerelease=true" >> $GITHUB_OUTPUT
+            echo "Detected prerelease: true"
+          else
+            echo "is_prerelease=false" >> $GITHUB_OUTPUT
+            echo "Detected prerelease: false"
+          fi
       
   run-tests:
     needs: validate-version
     runs-on: ubuntu-latest
+
     strategy:
+      fail-fast: false
       matrix:
-        python: ["3.8", "3.10", "3.12"]
-        robotframework: ["6.1.1", "7.1.1"]  # Testing with recent stable versions
+        include:
+          - python: "3.9"
+            robotframework: "5.0.1"
+          - python: "3.10"
+            robotframework: "6.1.1"
+          - python: "3.11"
+            robotframework: "7.1.1"
+          - python: "3.12"
+            robotframework: "7.2.2"
+          - python: "3.13"
+            robotframework: "7.3.2"
+          - python: "3.14"
+            robotframework: "7.4"
     
     steps:
       - uses: actions/checkout@v4
@@ -66,34 +106,79 @@ jobs:
       
       - name: Install Dependencies
         run: |
-          pip install pytest
           pip install -r ./requirements.txt
+          # Upgrade pytest to latest to ensure compatibility with newer Python (e.g. 3.14)
+          pip install -U pytest
           pip install "robotframework~=${{ matrix.robotframework }}"
           pip install -e .
+
+      - name: Show installed versions
+        run: |
+          echo "Python:" $(python --version)
+          echo "Robot Framework:" $(robot --version)
+          echo "pytest:" $(pytest --version)
+          echo "pip:" $(pip --version)
+          echo "Top pip packages (first 40):"
+          pip freeze | sed -n '1,40p'
       
       - name: Run Pytest
         run: pytest tests
   
-  build-and-release:
-    needs: [validate-version, run-tests]
+  build:
+    needs: run-tests
     runs-on: ubuntu-latest
-    environment: release  # Optional: for manual approval
-    
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Setup Python
-        uses: actions/setup-python@v5
+
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
-      - name: Install build tools
-        run: |
-          pip install --upgrade pip build twine
-      
+
       - name: Build package
-        run: python -m build
-      
+        run: |
+          pip install -U pip build
+          python -m build
+
+      - name: Upload dist artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  smoke-test:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Smoke test wheel
+        run: |
+          pip install dist/*.whl
+          pabot --version
+
+  publish-release:
+    needs: [validate-version, run-tests, build, smoke-test]
+    runs-on: ubuntu-latest
+    environment: release  # Optional: for manual approval
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install publishing tools
+        run: pip install -U twine
+
       - name: Check package
         run: twine check dist/*
       
@@ -123,5 +208,5 @@ jobs:
             dist/*.whl
             dist/*.tar.gz
           draft: false
-          prerelease: false
+          prerelease: ${{ needs.validate-version.outputs.is_prerelease }}
           token: ${{ secrets.GITHUB_TOKEN }}
