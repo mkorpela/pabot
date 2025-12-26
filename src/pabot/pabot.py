@@ -1610,7 +1610,7 @@ def _write_stats(stats):
     _write("===================================================")
 
 
-def add_timestamp_to_filename(file_path: str) -> str:
+def add_timestamp_to_filename(file_path: str, timestamp: str) -> str:
     """
     Rename the given file by inserting a timestamp before the extension.
     Format: YYYYMMDD-hhmmss
@@ -1620,14 +1620,10 @@ def add_timestamp_to_filename(file_path: str) -> str:
     if not file_path.exists():
         raise FileNotFoundError(f"{file_path} does not exist")
 
-    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     new_name = f"{file_path.stem}-{timestamp}{file_path.suffix}"
     new_path = file_path.with_name(new_name)
-    
-    # Rename the file
     file_path.rename(new_path)
-
-    return str(new_path), timestamp
+    return str(new_path)
 
 
 def _report_results_for_one_run(
@@ -1640,6 +1636,9 @@ def _report_results_for_one_run(
         outs_dir, options, tests_root_name, stats, copied_artifacts, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"])
     )
     _write_stats(stats)
+    ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    if "timestampoutputs" in options and options["timestampoutputs"]:
+        output_path = add_timestamp_to_filename(output_path, ts)
     if (
         "report" in options
         and options["report"].upper() == "NONE"
@@ -1650,10 +1649,9 @@ def _report_results_for_one_run(
             "output"
         ] = output_path  # REBOT will return error 252 if nothing is written
     else:
-        output_path_ts, ts = add_timestamp_to_filename(output_path)
-        _write("Output:  %s" % output_path_ts)
+        _write("Output:  %s" % output_path)
         options["output"] = None  # Do not write output again with rebot
-    return rebot(output_path_ts, **_options_for_rebot(options, start_time_string, ts))
+    return rebot(output_path, **_options_for_rebot(options, start_time_string, ts))
 
 
 def _merge_one_run(
