@@ -16,6 +16,13 @@ except ImportError:
 from .writer import get_writer, Color
 
 
+def split_on_first(lst, value):
+    for i, x in enumerate(lst):
+        if x == value:
+            return lst[:i], lst[i+1:]
+    return lst, []
+
+
 class ProcessManager:
     def __init__(self):
         self.processes = []
@@ -329,6 +336,20 @@ class ProcessManager:
                 )
                 self._terminate_tree(process)
                 rc = -1
+
+                # Dry run process to mark all tests as failed due to timeout
+                this_dir = os.path.dirname(os.path.abspath(__file__))
+                listener_path = os.path.join(this_dir, "timeout_listener.py")
+                dry_run_env = env.copy() if env else os.environ.copy()
+                before, after = split_on_first(cmd, "-A")
+                dryrun_cmd = before + ["--dryrun", '--listener', listener_path, '-A'] + after
+
+                self.writer.write(
+                    f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] "
+                    f"Starting dry run to mark tests as failed due to timeout: {' '.join(dryrun_cmd)}"
+                )
+                subprocess.run(dryrun_cmd, env=dry_run_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)                
+
                 break
 
             # Progress ping
