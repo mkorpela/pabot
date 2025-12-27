@@ -50,7 +50,8 @@ Pabot Process Timeout
         text=True,
     )
 
-    # pabot may return non-zero due to failures
+    # pabot should return non-zero due to failures (total 3 tests failing)
+    assert result.returncode == 3
     assert output.exists(), f"output.xml not created\nSTDERR:\n{result.stderr}"
 
     # -------------------------------

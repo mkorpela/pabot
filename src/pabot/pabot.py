@@ -2110,7 +2110,7 @@ def main_program(args):
                     read_args_from_readme()
                 )
             print(help_print.replace("[PABOT_VERSION]", PABOT_VERSION))
-            return 0
+            return 251
         if len(datasources) == 0:
             print("[ " + _wrap_with(Color.RED, "ERROR") + " ]: No datasources given.")
             print("Try --help for usage information.")
@@ -2153,7 +2153,7 @@ def main_program(args):
                 f"All results have been saved in the {outs_dir} folder."
             ))
             _write("===================================================")
-            return 0 if not _ABNORMAL_EXIT_HAPPENED else 252
+            return 253
         result_code = _report_results(
             outs_dir,
             pabot_args,
@@ -2166,19 +2166,26 @@ def main_program(args):
         version_print = __doc__.replace("\nPLACEHOLDER_README.MD\n", "")
         print(version_print.replace("[PABOT_VERSION]", PABOT_VERSION))
         print(i.message)
+        return 251
     except DataError as err:
         print(err.message)
         return 252
     except Exception:
-        _write("[ERROR] EXCEPTION RAISED DURING PABOT EXECUTION", Color.RED)
-        _write(
-            "[ERROR] PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues",
-            Color.RED,
-        )
-        _write("Pabot: %s" % PABOT_VERSION)
-        _write("Python: %s" % sys.version)
-        _write("Robot Framework: %s" % ROBOT_VERSION)
-        raise
+        if not CTRL_C_PRESSED:
+            _write("[ERROR] EXCEPTION RAISED DURING PABOT EXECUTION", Color.RED)
+            _write(
+                "[ERROR] PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues",
+                Color.RED,
+            )
+            _write("Pabot: %s" % PABOT_VERSION)
+            _write("Python: %s" % sys.version)
+            _write("Robot Framework: %s" % ROBOT_VERSION)
+            import traceback
+            traceback.print_exc()
+            sys.exit(255)
+        else:
+            _write("[ERROR] Execution stopped by user (Ctrl+C)", Color.RED)
+            sys.exit(253)
     finally:
         # Ensure that writer exists
         writer = None
