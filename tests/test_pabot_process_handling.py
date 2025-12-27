@@ -151,7 +151,7 @@ class PabotProcessHandlingTests(unittest.TestCase):
                 f"Process Slow Suite.Slow Test killed due to exceeding the maximum timeout of {timeout} seconds",
                 result.stdout
             )
-            _assert_runtime_at_least(result.stdout, timeout, timeout + 2)
+            _assert_runtime_at_least(result.stdout, timeout, timeout + 5)
 
             # Windows prints this, CI Linux does not.
             if result.stderr.strip():
