@@ -72,7 +72,11 @@ There are several ways you can help in improving this tool:
    - Report an issue or an improvement idea to the [issue tracker](https://github.com/mkorpela/pabot/issues)
    - Contribute by programming and making a pull request (easiest way is to work on an issue from the issue tracker)
 
-Before contributing, please read our detailed [contributing guidelines](CONTRIBUTING.md).
+Before contributing, please read our detailed contributing guidelines:
+
+- [Contributing Guide](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security Policy](SECURITY.md)
 
 ## Command-line options
 <!-- NOTE: 
