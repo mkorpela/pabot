@@ -72,6 +72,8 @@ There are several ways you can help in improving this tool:
    - Report an issue or an improvement idea to the [issue tracker](https://github.com/mkorpela/pabot/issues)
    - Contribute by programming and making a pull request (easiest way is to work on an issue from the issue tracker)
 
+Before contributing, please read our detailed [contributing guidelines](CONTRIBUTING.md).
+
 ## Command-line options
 <!-- NOTE: 
 The sections inside these docstring markers are also used in Pabot's --help output.
@@ -98,7 +100,7 @@ pabot [--verbose|--testlevelsplit|--command .. --end-command|
 
 PabotLib remote server is started by default to enable locking and resource distribution between parallel test executions.
 
-Supports all [Robot Framework command line options](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#all-command-line-options) and also following pabot options:
+Supports all [Robot Framework command line options](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#command-line-options) and also following pabot options:
 
 **--verbose**     
   More output from the parallel execution.
@@ -219,6 +221,9 @@ These can be helpful when you must ensure that only one of the processes uses so
 
 PabotLib Docs are located at https://pabot.org/PabotLib.html.
 
+Note that PabotLib uses the XML-RPC protocol, which does not support all possible object types. 
+These limitations are described in the Robot Framework documentation in chapter [Supported argument and return value types](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#supported-argument-and-return-value-types).
+
 ### PabotLib example:
 
 test.robot
@@ -287,7 +292,7 @@ There different possibilities to influence the execution:
 --suite Top Suite
 ```
 
-  * If the base suite name is changing with robot option [```--name / -N```](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-the-name) you can use either the new or old full test path. For example:
+  * If the base suite name is changing with robot option [```--name / -N```](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#setting-suite-name) you can use either the new or old full test path. For example:
 
 ```
 --test New Suite Name.Sub Suite.Test 1
