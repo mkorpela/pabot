@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Questions & Help (Q&A)
+    url: https://github.com/mkorpela/pabot/discussions
+    about: Please ask usage and “how-to” questions here
