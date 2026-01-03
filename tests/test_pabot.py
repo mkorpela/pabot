@@ -117,20 +117,28 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(datasources, ["suite"])
 
     def test_start_and_stop_remote_library(self):
-        lib_process = pabot._start_remote_library(self._pabot_args)
-        self.assertTrue(lib_process.poll() is None)
-        time.sleep(1)
-        pabot._stop_remote_library(lib_process)
-        self.assertTrue(lib_process.poll() == 0)
+        writer = pabot.get_writer()
+        try:
+            lib_process = pabot._start_remote_library(self._pabot_args)
+            self.assertTrue(lib_process.poll() is None)
+            time.sleep(1)
+            pabot._stop_remote_library(lib_process)
+            self.assertTrue(lib_process.poll() == 0)
+        finally:
+            writer.flush()  # This test will end so fast that needs wait console logging
 
     def test_start_and_stop_remote_library_without_resourcefile(self):
-        pabot_args = dict(self._pabot_args)
-        pabot_args["resourcefile"] = None
-        lib_process = pabot._start_remote_library(pabot_args)
-        self.assertTrue(lib_process.poll() is None)
-        time.sleep(1)
-        pabot._stop_remote_library(lib_process)
-        self.assertTrue(lib_process.poll() == 0)
+        writer = pabot.get_writer()
+        try:
+            pabot_args = dict(self._pabot_args)
+            pabot_args["resourcefile"] = None
+            lib_process = pabot._start_remote_library(pabot_args)
+            self.assertTrue(lib_process.poll() is None)
+            time.sleep(1)
+            pabot._stop_remote_library(lib_process)
+            self.assertTrue(lib_process.poll() == 0)
+        finally:
+            writer.flush()  # This test will end so fast that needs wait console logging
 
     def test_hash_of_command(self):
         h1 = pabot.get_hash_of_command({}, {})
