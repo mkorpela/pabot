@@ -337,7 +337,7 @@ class ProcessManager:
                 self._terminate_tree(process)
                 rc = -1
 
-                # Dry run process to mark all tests as failed due to timeout
+                # Dryrun process to mark all tests as failed due to timeout
                 this_dir = os.path.dirname(os.path.abspath(__file__))
                 listener_path = os.path.join(this_dir, "timeout_listener.py")
                 dry_run_env = env.copy() if env else os.environ.copy()

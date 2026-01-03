@@ -226,7 +226,7 @@ class Color:
 
 
 def execute_and_wait_with(item):
-    # type: ('QueueItem') -> None
+    # type: ('QueueItem') -> int
     global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
     is_last = _NUMBER_OF_ITEMS_TO_BE_EXECUTED == 1
     _NUMBER_OF_ITEMS_TO_BE_EXECUTED -= 1
@@ -245,6 +245,7 @@ def execute_and_wait_with(item):
         run_cmd, run_options = _create_command_for_execution(
             caller_id, datasources, is_last, item, outs_dir
         )
+        rc = 0
         if item.hive:
             _hived_execute(
                 item.hive,
@@ -257,7 +258,7 @@ def execute_and_wait_with(item):
                 item.index,
             )
         else:
-            _try_execute_and_wait(
+            rc = _try_execute_and_wait(
                 run_cmd,
                 run_options,
                 outs_dir,
@@ -275,6 +276,7 @@ def execute_and_wait_with(item):
         )
     except:
         _write(traceback.format_exc())
+    return rc
 
 
 def _create_command_for_execution(caller_id, datasources, is_last, item, outs_dir):
@@ -292,6 +294,7 @@ def _create_command_for_execution(caller_id, datasources, is_last, item, outs_di
             item.index,
             item.last_level,
             item.processes,
+            item.skip,
         )
         + datasources
     )
@@ -328,7 +331,7 @@ def _try_execute_and_wait(
     process_timeout=None,
     sleep_before_start=0
 ):
-    # type: (List[str], List[str], str, str, bool, int, str, int, bool, Optional[int], int) -> None
+    # type: (List[str], List[str], str, str, bool, int, str, int, bool, Optional[int], int) -> int
     plib = None
     is_ignored = False
     if _pabotlib_in_use():
@@ -371,6 +374,7 @@ def _try_execute_and_wait(
     )
     if is_ignored and os.path.isdir(outs_dir):
         _rmtree_with_path(outs_dir)
+    return rc
 
 
 def _result_to_stdout(
@@ -659,6 +663,7 @@ def _options_for_executor(
     queueIndex,
     last_level,
     processes,
+    skip,
 ):
     options = options.copy()
     options["log"] = "NONE"
@@ -695,6 +700,11 @@ def _options_for_executor(
         options["argumentfile"] = argfile
     if options.get("test", False) and options.get("include", []):
         del options["include"]
+    if skip:
+        this_dir = os.path.dirname(os.path.abspath(__file__))
+        listener_path = os.path.join(this_dir, "skip_listener.py")
+        options["dryrun"] = True
+        options["listener"].append(listener_path)
     return _set_terminal_coloring_options(options)
 
 
@@ -1408,6 +1418,117 @@ def keyboard_interrupt(*args):
     CTRL_C_PRESSED = True
 
 
+def _get_depends(item):
+    return getattr(item.execution_item, "depends", [])
+
+
+def _dependencies_satisfied(item, completed):
+    return all(dep in completed for dep in _get_depends(item))
+
+
+def _collect_transitive_dependents(failed_name, pending_items):
+    """
+    Returns all pending items that (directly or indirectly) depend on failed_name.
+    """
+    to_skip = set()
+    queue = [failed_name]
+
+    # Build dependency map once
+    depends_map = {
+        item.execution_item.name: set(_get_depends(item))
+        for item in pending_items
+    }
+
+    while queue:
+        current = queue.pop(0)
+        for item_name, deps in depends_map.items():
+            if current in deps and item_name not in to_skip:
+                to_skip.add(item_name)
+                queue.append(item_name)
+
+    return to_skip
+
+
+def _parallel_execute_dynamic(
+    items,
+    processes,
+    datasources,
+    outs_dir,
+    opts_for_run,
+    pabot_args,
+):
+    original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
+
+    max_processes = processes or len(items)
+    pool = ThreadPool(max_processes)
+
+    pending = set(items)
+    running = {}
+    completed = set()
+    failed = set()
+
+    failure_policy = pabot_args.get("ordering", {}).get("failure_policy", "run_all")
+    lock = threading.Lock()
+
+    def on_complete(it, rc):
+        nonlocal pending, running, completed, failed
+
+        with lock:
+            running.pop(it, None)
+            completed.add(it.execution_item.name)
+
+            if rc != 0:
+                failed.add(it.execution_item.name)
+
+                if failure_policy == "skip":
+                    to_skip_names = _collect_transitive_dependents(
+                        it.execution_item.name,
+                        pending,
+                    )
+
+                    for other in list(pending):
+                        if other.execution_item.name in to_skip_names:
+                            _write(
+                                f"Skipping '{other.execution_item.name}' because dependency "
+                                f"'{it.execution_item.name}' failed (transitive).",
+                                Color.YELLOW,
+                            )
+                            other.skip = True
+
+    try:
+        while pending or running:
+            with lock:
+                ready = [
+                    item for item in list(pending)
+                    if _dependencies_satisfied(item, completed)
+                ]
+
+                while ready and len(running) < max_processes:
+                    item = ready.pop(0)
+                    pending.remove(item)
+
+                    result = pool.apply_async(
+                        execute_and_wait_with,
+                        (item,),
+                        callback=lambda rc, it=item: on_complete(it, rc),
+                    )
+                    running[item] = result
+
+            dynamic_items = _get_dynamically_created_execution_items(
+                datasources, outs_dir, opts_for_run, pabot_args
+            )
+            if dynamic_items:
+                with lock:
+                    for di in dynamic_items:
+                        pending.add(di)
+
+            time.sleep(0.1)
+
+    finally:
+        pool.close()
+        signal.signal(signal.SIGINT, original_signal_handler)
+
+
 def _parallel_execute(
     items, processes, datasources, outs_dir, opts_for_run, pabot_args
 ):
@@ -1842,8 +1963,9 @@ class QueueItem(object):
         hive=None,
         processes=0,
         timeout=None,
+        skip=False,
     ):
-        # type: (List[str], str, Dict[str, object], ExecutionItem, List[str], bool, Tuple[str, Optional[str]], Optional[str], int, Optional[int]) -> None
+        # type: (List[str], str, Dict[str, object], ExecutionItem, List[str], bool, Tuple[str, Optional[str]], Optional[str], int, Optional[int], bool) -> None
         self.datasources = datasources
         self.outs_dir = (
             outs_dir.encode("utf-8") if PY2 and is_unicode(outs_dir) else outs_dir
@@ -1863,6 +1985,7 @@ class QueueItem(object):
         self.processes = processes
         self.timeout = timeout
         self.sleep_before_start = execution_item.get_sleep()
+        self.skip = skip
 
     @property
     def index(self):
@@ -2136,16 +2259,30 @@ def main_program(args):
         execution_items = _create_execution_items(
             suite_groups, datasources, outs_dir, options, opts_for_run, pabot_args
         )
-        while execution_items:
-            items = execution_items.pop(0)
-            _parallel_execute(
-                items,
+        if pabot_args.get("ordering", {}).get("mode") == "dynamic":
+            # flatten stages
+            all_items = []
+            for stage in execution_items:
+                all_items.extend(stage)
+            _parallel_execute_dynamic(
+                all_items,
                 pabot_args["processes"],
                 datasources,
                 outs_dir,
                 opts_for_run,
                 pabot_args,
             )
+        else:
+            while execution_items:
+                items = execution_items.pop(0)
+                _parallel_execute(
+                    items,
+                    pabot_args["processes"],
+                    datasources,
+                    outs_dir,
+                    opts_for_run,
+                    pabot_args,
+                    )
         if pabot_args["no-rebot"]:
             _write((
                 "All tests were executed, but the --no-rebot argument was given, "
@@ -2269,7 +2406,7 @@ def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], 
 def _group_suites(outs_dir, datasources, options, pabot_args):
     suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
     _verify_depends(suite_names)
-    ordering_arg = _parse_ordering(pabot_args.get("ordering")) if (pabot_args.get("ordering")) is not None else None
+    ordering_arg = _parse_ordering(pabot_args.get("ordering").get("file")) if (pabot_args.get("ordering")) is not None else None
     if ordering_arg:
         _verify_depends(ordering_arg)
         if options.get("name"):
