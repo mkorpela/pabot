@@ -2180,7 +2180,16 @@ def _get_dynamically_created_execution_items(
     if not _pabotlib_in_use():
         return None
     plib = Remote(_PABOTLIBURI)
-    new_suites = plib.run_keyword("get_added_suites", [], {})
+    try:
+        new_suites = plib.run_keyword("get_added_suites", [], {})
+    except RuntimeError as err:
+        _write(
+            "[WARN] PabotLib unreachable during post-run phase, "
+            "assuming no dynamically added suites. "
+            "Original error: %s",
+            err,
+        )
+        new_suites = []
     if len(new_suites) == 0:
         return None
     suite_group = [DynamicSuiteItem(s, v) for s, v in new_suites]
