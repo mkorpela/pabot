@@ -7,6 +7,7 @@ on:
 
 jobs:
   linux:
+    if: ${{ github.event.repository.fork == false }}
     name: Ubuntu latest · Python 3.x · RF ${{ matrix.robotframework }}
     runs-on: ubuntu-latest
 
@@ -45,7 +46,7 @@ jobs:
           if [ "${{ matrix.robotframework }}" = "master" ]; then
             pip install "git+https://github.com/robotframework/robotframework@master"
           elif [ "${{ matrix.robotframework }}" = "prerelease" ]; then
-            pip install --pre robotframework
+            pip install -U --pre robotframework
           else
             pip install -U robotframework
           fi
@@ -62,6 +63,7 @@ jobs:
         run: pytest tests
 
   windows:
+    if: ${{ github.event.repository.fork == false }}
     name: Windows latest · Python 3.x · RF ${{ matrix.robotframework }}
     runs-on: windows-latest
 
@@ -101,7 +103,7 @@ jobs:
           if ("${{ matrix.robotframework }}" -eq "master") {
             pip install "git+https://github.com/robotframework/robotframework@master"
           } elseif ("${{ matrix.robotframework }}" -eq "prerelease") {
-            pip install --pre robotframework
+            pip install -U --pre robotframework
           } else {
             pip install -U robotframework
           }

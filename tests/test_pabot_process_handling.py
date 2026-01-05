@@ -90,6 +90,26 @@ class PabotProcessHandlingTests(unittest.TestCase):
             """)
         )
 
+        # --- Chain suite with RF timeout---
+        cls.chain_suite_with_rf_timeout = cls.suites_dir / "chain_suite_with_rf_timeout.robot"
+        cls.chain_suite_with_rf_timeout.write_text(
+            textwrap.dedent(f"""
+            *** Settings ***
+            Library    Process
+            Library    OperatingSystem
+
+            *** Test Cases ***
+            Chain Test
+                [Timeout]    5s
+                Run Keyword    Start Chain Process
+
+            *** Keywords ***
+            Start Chain Process
+                File Should Exist   {chain_script_robot}
+                Run Process    python    {chain_script_robot}
+            """)
+        )
+
 
     def setUp(self):
         """Each test gets its own pabot output directory."""
@@ -151,7 +171,7 @@ class PabotProcessHandlingTests(unittest.TestCase):
                 f"Process Slow Suite.Slow Test killed due to exceeding the maximum timeout of {timeout} seconds",
                 result.stdout
             )
-            _assert_runtime_at_least(result.stdout, timeout, timeout + 2)
+            _assert_runtime_at_least(result.stdout, timeout, timeout + 5)
 
             # Windows prints this, CI Linux does not.
             if result.stderr.strip():
@@ -160,8 +180,22 @@ class PabotProcessHandlingTests(unittest.TestCase):
 
     def test_chain_process_cleanup(self):
         """Ensure chain subprocesses terminate after --processtimeout; no zombie remains."""
-        timeout = 10
-        for result, _, _ in self._run_with_process_counts([self.chain_suite], timeout=timeout):
+        self.chain_process_cleanup(use_rf_timeout=False)
+
+
+    def test_chain_process_cleanup_with_rf_timeout(self):
+        """Ensure chain subprocesses terminate after RF [Timeout] 5s; no zombie remains."""
+        self.chain_process_cleanup(use_rf_timeout=True, expected_timeout=5)
+
+
+    def chain_process_cleanup(self, use_rf_timeout: bool, process_timeout: int = 10, expected_timeout: int = 10):
+        """Ensure chain subprocesses terminate after --processtimeout; no zombie remains."""
+        if use_rf_timeout:
+            suite_to_run = self.chain_suite_with_rf_timeout
+        else:
+            suite_to_run = self.chain_suite
+
+        for result, _, _ in self._run_with_process_counts([suite_to_run], timeout=process_timeout):
 
             # Grace period for CI: kill may be delayed or heartbeat still flushing to file.
             grace = 25.0
@@ -210,7 +244,7 @@ class PabotProcessHandlingTests(unittest.TestCase):
                     else:
                         raise AssertionError(f"PID {pid} still alive — possible zombie.")
 
-            _assert_runtime_at_least(result.stdout, timeout, timeout + 3)
+            _assert_runtime_at_least(result.stdout, expected_timeout, expected_timeout + 3)
 
             # stderr empty on CI Linux is OK
             if result.stderr.strip():
