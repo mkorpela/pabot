@@ -7,13 +7,13 @@ import re
 
 EXPECTED_VERSION_PATTERN = (
     rb"A parallel executor for Robot Framework test cases\.\r?\n"
-    rb"Version \d+\.\d+\.\d+\r?\n\r?\n"
+    rb"Version \d+\.\d+\.\d+(?:a\d+|b\d+|rc\d+)?\r?\n\r?\n"
     rb"Copyright 20\d{2} Mikko Korpela - Apache 2 License"
 )
 
 EXPECTED_HELP_PATTERN = (
     rb"A parallel executor for Robot Framework test cases\.\r?\n"
-    rb"Version \d+\.\d+\.\d+\r?\n\r?\n"
+    rb"Version \d+\.\d+\.\d+(?:a\d+|b\d+|rc\d+)?\r?\n\r?\n"
     rb"Extracted from "
 )
 
