@@ -37,15 +37,15 @@ jobs:
       - name: Get package version
         id: package
         run: |
-          VERSION=$(python -c "
+          VERSION=$(python -c '
           import re
-          with open('src/pabot/__init__.py', 'r') as f:
+          with open("src/pabot/__init__.py", "r") as f:
               content = f.read()
-              match = re.search(r'__version__\s*=\s*[\"\'](.*?)[\"\']', content)
+              match = re.search(r"__version__\s*=\s*[\"\'](.*?)[\"\']", content)
               if not match:
                   raise SystemExit("Version not found")
               print(match.group(1))
-          ")
+          ')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Verify versions match
