@@ -160,6 +160,12 @@ jobs:
         run: |
           pip install dist/*.whl
           python -m pabot.pabot --version
+          EXIT_CODE=$?
+          echo "Pabot exit code: $EXIT_CODE"
+          if [ $EXIT_CODE -ne 251 ]; then
+            echo "Unexpected exit code!"
+            exit $EXIT_CODE
+          fi
 
   publish-release:
     needs: [validate-version, run-tests, build, smoke-test]
