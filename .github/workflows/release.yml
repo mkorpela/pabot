@@ -3,7 +3,7 @@ name: Release to PyPI
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+(a[0-9]+|b[0-9]+|rc[0-9]+)?'  # Matches 1.2.3, 1.2.3a1, 1.2.3b1, 1.2.3rc1
+      - '*.*.*'  # Glob: matches 1.2.3, 1.2.3b1, 1.2.3rc1
 
 concurrency:
   group: release-${{ github.ref }}
@@ -19,19 +19,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      
       - name: Get tag version
         id: tag
-        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-      
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Ensure tag is valid version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(a[0-9]+|b[0-9]+|rc[0-9]+)?$ ]]; then
+            echo "Error: Tag '$VERSION' is not a valid release or prerelease version!"
+            exit 1
+          fi
+          echo "✓ Tag format looks good: $VERSION"
+
       - name: Get package version
         id: package
         run: |
-          # Extract version from __init__.py
           VERSION=$(python -c "
           import re
           with open('src/pabot/__init__.py', 'r') as f:
@@ -42,15 +47,13 @@ jobs:
               print(match.group(1))
           ")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-      
+
       - name: Verify versions match
         run: |
           echo "Tag version: ${{ steps.tag.outputs.version }}"
           echo "Package version: ${{ steps.package.outputs.version }}"
           if [ "${{ steps.tag.outputs.version }}" != "${{ steps.package.outputs.version }}" ]; then
             echo "Error: Tag version does not match package version!"
-            echo "Tag: ${{ steps.tag.outputs.version }}"
-            echo "Package: ${{ steps.package.outputs.version }}"
             exit 1
           fi
           echo "✓ Versions match!"
@@ -74,11 +77,11 @@ jobs:
             echo "is_prerelease=false" >> $GITHUB_OUTPUT
             echo "Detected prerelease: false"
           fi
-      
+
   run-tests:
     needs: validate-version
+    if: needs.validate-version.result == 'success'
     runs-on: ubuntu-latest
-
     strategy:
       fail-fast: false
       matrix:
@@ -95,23 +98,18 @@ jobs:
             robotframework: "7.3.2"
           - python: "3.14"
             robotframework: "7.4"
-    
     steps:
       - uses: actions/checkout@v4
-      
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-      
       - name: Install Dependencies
         run: |
           pip install -r ./requirements.txt
-          # Upgrade pytest to latest to ensure compatibility with newer Python (e.g. 3.14)
           pip install -U pytest
           pip install "robotframework~=${{ matrix.robotframework }}"
           pip install -e .
-
       - name: Show installed versions
         run: |
           echo "Python:" $(python --version)
@@ -120,26 +118,21 @@ jobs:
           echo "pip:" $(pip --version)
           echo "Top pip packages (first 40):"
           pip freeze | sed -n '1,40p'
-      
       - name: Run Pytest
         run: pytest tests
-  
+
   build:
     needs: run-tests
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Build package
         run: |
           pip install -U pip build
           python -m build
-
       - name: Upload dist artefacts
         uses: actions/upload-artifact@v4
         with:
@@ -149,17 +142,14 @@ jobs:
   smoke-test:
     needs: build
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
-
       - name: Smoke test wheel
         run: |
           pip install dist/*.whl
@@ -169,26 +159,20 @@ jobs:
     needs: [validate-version, run-tests, build, smoke-test]
     runs-on: ubuntu-latest
     environment: release  # Optional: for manual approval
-
     steps:
       - uses: actions/download-artifact@v4
         with:
           name: dist
           path: dist/
-
       - name: Install publishing tools
         run: pip install -U twine
-
       - name: Check package
         run: twine check dist/*
-      
       - name: Publish to PyPI
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: |
-          twine upload dist/*.*
-      
+        run: twine upload dist/*.*
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
