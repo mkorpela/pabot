@@ -65,6 +65,7 @@ jobs:
 
       - name: Validate PEP 440 version
         run: |
+          python -m pip install --upgrade packaging
           python - <<EOF
           from packaging.version import Version
           Version("${{ steps.tag.outputs.version }}")
