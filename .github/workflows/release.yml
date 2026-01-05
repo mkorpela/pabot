@@ -159,7 +159,7 @@ jobs:
       - name: Smoke test wheel
         run: |
           pip install dist/*.whl
-          pabot --version
+          python -m pabot.pabot --version
 
   publish-release:
     needs: [validate-version, run-tests, build, smoke-test]
