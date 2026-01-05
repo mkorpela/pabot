@@ -326,7 +326,7 @@ OR
       * Ordering mode effect to execution:
         * **Dynamic mode** will schedule dependent tests as soon as all their dependencies are satisfied. Note that in dynamic mode `#WAIT` is ignored, but you can achieve same results with using only `#DEPENDS` keywords.
         *  **Static mode** preserves stage barriers and executes the next stage only after all tests in the previous stage finish.
-  * Note: Within a group `{}`, neither execution order nor the `#DEPENDS` keyword currently works. This is due to limitations in Robot Framework, which is invoked within Pabot subprocesses. These limitations may be addressed in a future release of Robot Framework. For now, tests or suites within a group will be executed in the order Robot Framework discovers them — typically in alphabetical order.
+      * Note: Within a group `{}`, neither execution order nor the `#DEPENDS` keyword currently works. This is due to limitations in Robot Framework, which is invoked within Pabot subprocesses. These limitations may be addressed in a future release of Robot Framework. For now, tests or suites within a group will be executed in the order Robot Framework discovers them — typically in alphabetical order.
   * An example could be:
 
 ```
