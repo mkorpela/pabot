@@ -3,7 +3,7 @@ name: Release to PyPI
 on:
   push:
     tags:
-      - '[0-9]*.[0-9]*.[0-9]*'  # Glob: matches 1.2.3, 1.2.3b1, 1.2.3rc1
+      - '*.*.*'  # Glob: matches 1.2.3, 1.2.3b1, 1.2.3rc1
 
 concurrency:
   group: release-${{ github.ref }}
@@ -28,7 +28,7 @@ jobs:
       - name: Ensure tag is valid version
         run: |
           VERSION=${GITHUB_REF#refs/tags/}
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.[abrc][0-9]+)?$ ]]; then
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(a[0-9]+|b[0-9]+|rc[0-9]+)?$ ]]; then
             echo "Error: Tag '$VERSION' is not a valid release or prerelease version!"
             exit 1
           fi
