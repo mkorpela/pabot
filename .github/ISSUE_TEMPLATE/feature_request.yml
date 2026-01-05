@@ -6,8 +6,8 @@ body:
   - type: textarea
     attributes:
       label: What problem does this solve?
-      validations:
-        required: true
+    validations:
+      required: true
 
   - type: textarea
     attributes:
