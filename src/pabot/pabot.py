@@ -1911,10 +1911,10 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Po
     cmd = [
         sys.executable,
         "-m", pabotlib.__name__,
-        resourcefile,
-        pabot_args["pabotlibhost"],
-        str(port),
     ]
+    if resourcefile:
+        cmd.append(resourcefile)
+    cmd.extend([pabot_args["pabotlibhost"], str(port)])
     return subprocess.Popen(cmd)
 
 
