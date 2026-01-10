@@ -1900,14 +1900,14 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Po
         port = _get_free_port()
 
     _PABOTLIBURI = f"{host}:{port}"
-    resourcefile = pabot_args.get("resourcefile") or ""
+    resourcefile = pabot_args.get("resourcefile") or None
     if resourcefile and not os.path.exists(resourcefile):
         _write(
             "Warning: specified resource file doesn't exist."
             " Some tests may fail or continue forever.",
             Color.YELLOW,
         )
-        resourcefile = ""
+        resourcefile = None
     cmd = [
         sys.executable,
         "-m", pabotlib.__name__,
