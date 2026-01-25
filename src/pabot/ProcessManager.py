@@ -35,17 +35,17 @@ class ProcessManager:
                 signal.signal(signal.SIGINT, self._handle_sigint)
             else:
                 self.writer.write(
-                    "[ProcessManager] (test mode) signal handlers disabled (not in main thread)"
+                    "[ProcessManager] (test mode) signal handlers disabled (not in main thread)", level="info"
                 )
         except Exception as e:
-            self.writer.write(f"[WARN] Could not register signal handler: {e}")
+            self.writer.write(f"[WARN] Could not register signal handler: {e}", level="warning")
 
     # -------------------------------
     # SIGNAL HANDLING
     # -------------------------------
 
     def _handle_sigint(self, signum, frame):
-        self.writer.write("[ProcessManager] Ctrl+C detected — terminating all subprocesses", color=Color.RED)
+        self.writer.write("[ProcessManager] Ctrl+C detected — terminating all subprocesses", color=Color.RED, level="error")
         self.terminate_all()
         sys.exit(130)
 
@@ -213,7 +213,7 @@ class ProcessManager:
 
         self.writer.write(
             f"[ProcessManager] Terminating process tree PID={process.pid}",
-            color=Color.YELLOW
+            color=Color.YELLOW, level='warning'
         )
 
         # PRIMARY: psutil (best reliability)
@@ -304,11 +304,13 @@ class ProcessManager:
         if verbose:
             self.writer.write(
                 f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] "
-                f"EXECUTING PARALLEL {item_name}:\n{' '.join(cmd)}"
+                f"EXECUTING PARALLEL {item_name}:\n{' '.join(cmd)}",
+                level='debug'
             )
         else:
             self.writer.write(
-                f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] EXECUTING {item_name}"
+                f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] EXECUTING {item_name}",
+                level='debug'
             )
 
         # Start logging thread
@@ -332,7 +334,8 @@ class ProcessManager:
                 ts = datetime.datetime.now()
                 self.writer.write(
                     f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] "
-                    f"Process {item_name} killed due to exceeding the maximum timeout of {timeout} seconds"
+                    f"Process {item_name} killed due to exceeding the maximum timeout of {timeout} seconds",
+                    color=Color.YELLOW, level='warning'
                 )
                 self._terminate_tree(process)
                 rc = -1
@@ -346,7 +349,8 @@ class ProcessManager:
 
                 self.writer.write(
                     f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] "
-                    f"Starting dry run to mark tests as failed due to timeout: {' '.join(dryrun_cmd)}"
+                    f"Starting dry run to mark tests as failed due to timeout: {' '.join(dryrun_cmd)}",
+                    level='debug'
                 )
                 subprocess.run(dryrun_cmd, env=dry_run_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)                
 
@@ -357,7 +361,8 @@ class ProcessManager:
                 ts = datetime.datetime.now()
                 self.writer.write(
                     f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] still running "
-                    f"{item_name} after {(counter * 0.1):.1f}s"
+                    f"{item_name} after {(counter * 0.1):.1f}s",
+                    level='debug'
                 )
                 ping_interval += 50
                 next_ping += ping_interval

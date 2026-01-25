@@ -174,6 +174,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "shardcount": 1,
         "chunk": False,
         "no-rebot": False,
+        "pabotconsole": "verbose",
     }
 
     # Arguments that are flags (boolean)
@@ -200,6 +201,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "suitesfrom": str,
         "artifacts": _parse_artifacts,
         "shard": _parse_shard,
+        "pabotconsole": str,
     }
 
     argumentfiles = []
@@ -283,6 +285,17 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
 
                     # move index past ordering args only
                     i += 2 + i_mode_offset + i_failure_offset
+                    continue
+                elif arg_name == "pabotconsole":
+                    console_type = args[i + 1]
+                    valid_types = ("verbose", "dotted", "quiet", "none")
+                    if console_type not in valid_types:
+                        raise DataError(
+                            f"Invalid value for --pabotconsole: {console_type}. "
+                            f"Valid values are: {', '.join(valid_types)}"
+                        )
+                    pabot_args["pabotconsole"] = console_type
+                    i += 2
                     continue
                 else:
                     value = value_args[arg_name](args[i + 1])
