@@ -105,9 +105,6 @@ except ImportError:
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 CTRL_C_PRESSED = False
-EXECUTION_POOL_IDS = []  # type: List[int]
-EXECUTION_POOL_ID_LOCK = threading.Lock()
-POPEN_LOCK = threading.Lock()
 _PABOTLIBURI = "127.0.0.1:8270"
 _PABOTLIBPROCESS = None  # type: Optional[subprocess.Popen]
 _PABOTWRITER = None  # type: Optional[MessageWriter]
@@ -117,6 +114,14 @@ _PABOTCONSOLE = "verbose"  # type: str
 
 _COMPLETED_LOCK = threading.Lock()
 _NOT_COMPLETED_INDEXES = []  # type: List[int]
+
+# Thread-local storage for tracking executor number assigned to each thread
+_EXECUTOR_THREAD_LOCAL = threading.local()
+# Next executor number to assign (incremented each time a task is submitted)
+_EXECUTOR_COUNTER = 0
+_EXECUTOR_COUNTER_LOCK = threading.Lock()
+# Maximum number of executors (workers in the thread pool)
+_MAX_EXECUTORS = 1
 
 _ROBOT_EXTENSIONS = [
     ".html",
@@ -226,6 +231,32 @@ class Color:
     YELLOW = "\033[93m"
 
 
+def _get_next_executor_num():
+    """Get the next executor number in round-robin fashion."""
+    global _EXECUTOR_COUNTER, _MAX_EXECUTORS
+    with _EXECUTOR_COUNTER_LOCK:
+        executor_num = _EXECUTOR_COUNTER % _MAX_EXECUTORS
+        _EXECUTOR_COUNTER += 1
+    return executor_num
+
+
+def _set_executor_num(executor_num):
+    """Set the executor number for the current thread."""
+    _EXECUTOR_THREAD_LOCAL.executor_num = executor_num
+
+
+def _get_executor_num():
+    """Get the executor number for the current thread."""
+    return getattr(_EXECUTOR_THREAD_LOCAL, 'executor_num', 0)
+
+
+def _execute_item_with_executor_tracking(item):
+    """Wrapper to track executor number and call execute_and_wait_with."""
+    executor_num = _get_next_executor_num()
+    _set_executor_num(executor_num)
+    return execute_and_wait_with(item)
+
+
 def execute_and_wait_with(item):
     # type: ('QueueItem') -> int
     global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
@@ -254,7 +285,7 @@ def execute_and_wait_with(item):
                 outs_dir,
                 name,
                 item.verbose,
-                _make_id(),
+                _get_executor_num(),
                 caller_id,
                 item.index,
             )
@@ -265,7 +296,7 @@ def execute_and_wait_with(item):
                 outs_dir,
                 name,
                 item.verbose,
-                _make_id(),
+                _get_executor_num(),
                 caller_id,
                 item.index,
                 item.execution_item.type != "test",
@@ -273,7 +304,7 @@ def execute_and_wait_with(item):
                 sleep_before_start=item.sleep_before_start
             )
         outputxml_preprocessing(
-            item.options, outs_dir, name, item.verbose, _make_id(), caller_id, item.index
+            item.options, outs_dir, name, item.verbose, _get_executor_num(), caller_id, item.index
         )
     except:
         _write(traceback.format_exc(), level="error")
@@ -503,16 +534,6 @@ def _write_with_id(process, pool_id, item_index, message, color=None, timestamp=
     )
 
 
-def _make_id():  # type: () -> int
-    global EXECUTION_POOL_IDS, EXECUTION_POOL_ID_LOCK
-    thread_id = threading.current_thread().ident
-    assert thread_id is not None
-    with EXECUTION_POOL_ID_LOCK:
-        if thread_id not in EXECUTION_POOL_IDS:
-            EXECUTION_POOL_IDS += [thread_id]
-        return EXECUTION_POOL_IDS.index(thread_id)
-
-
 def _increase_completed(plib, my_index):
     # type: (Remote, int) -> None
     global _COMPLETED_LOCK, _NOT_COMPLETED_INDEXES
@@ -684,7 +705,7 @@ def _options_for_executor(
     # Prevent multiple appending of PABOTLIBURI variable setting
     if pabotLibURIVar not in options["variable"]:
         options["variable"].append(pabotLibURIVar)
-    pabotExecutionPoolId = "PABOTEXECUTIONPOOLID:%d" % _make_id()
+    pabotExecutionPoolId = "PABOTEXECUTIONPOOLID:%d" % _get_executor_num()
     if pabotExecutionPoolId not in options["variable"]:
         options["variable"].append(pabotExecutionPoolId)
     pabotIsLast = "PABOTISLASTEXECUTIONINPOOL:%s" % ("1" if is_last else "0")
@@ -1531,8 +1552,11 @@ def _parallel_execute_dynamic(
 ):
     # Signal handler is already set in main_program, no need to set it again
     # Just use the thread pool without managing signals
+    global _MAX_EXECUTORS, _EXECUTOR_COUNTER
 
     max_processes = processes or len(items)
+    _MAX_EXECUTORS = max_processes
+    _EXECUTOR_COUNTER = 0  # Reset executor counter for each parallel execution batch
     pool = ThreadPool(max_processes)
 
     pending = set(items)
@@ -1585,7 +1609,7 @@ def _parallel_execute_dynamic(
                     pending.remove(item)
 
                     result = pool.apply_async(
-                        execute_and_wait_with,
+                        _execute_item_with_executor_tracking,
                         (item,),
                         callback=lambda rc, it=item: on_complete(it, rc),
                     )
@@ -1610,8 +1634,12 @@ def _parallel_execute(
     items, processes, datasources, outs_dir, opts_for_run, pabot_args
 ):
     # Signal handler is already set in main_program, no need to set it again
-    pool = ThreadPool(len(items) if processes is None else processes)
-    results = [pool.map_async(execute_and_wait_with, items, 1)]
+    global _MAX_EXECUTORS, _EXECUTOR_COUNTER
+    max_workers = len(items) if processes is None else processes
+    _MAX_EXECUTORS = max_workers
+    _EXECUTOR_COUNTER = 0  # Reset executor counter for each parallel execution batch
+    pool = ThreadPool(max_workers)
+    results = [pool.map_async(_execute_item_with_executor_tracking, items, 1)]
     delayed_result_append = 0
     new_items = []
     while not all(result.ready() for result in results) or delayed_result_append > 0:
@@ -1631,7 +1659,7 @@ def _parallel_execute(
         delayed_result_append = max(0, delayed_result_append - 1)
         if new_items and delayed_result_append == 0:
             _construct_last_levels([new_items])
-            results.append(pool.map_async(execute_and_wait_with, new_items, 1))
+            results.append(pool.map_async(_execute_item_with_executor_tracking, new_items, 1))
             new_items = []
     pool.close()
     # Signal handler will be restored in main_program's finally block
@@ -2178,7 +2206,9 @@ def _create_execution_items_for_run(
     return all_items
 
 
-def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group):
+def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group, argfile=None):
+    # If argfile is provided, use only that one. Otherwise, loop through all argumentfiles.
+    argumentfiles = [argfile] if argfile is not None else (pabot_args["argumentfiles"] or [("", None)])
     return [
         QueueItem(
             datasources,
@@ -2187,13 +2217,13 @@ def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group):
             suite,
             pabot_args["command"],
             pabot_args["verbose"],
-            argfile,
+            af,
             pabot_args.get("hive"),
             pabot_args["processes"],
             pabot_args["processtimeout"],
         )
         for suite in suite_group
-        for argfile in pabot_args["argumentfiles"] or [("", None)]
+        for af in argumentfiles
     ]
 
 
@@ -2220,31 +2250,20 @@ def _create_execution_items_for_dry_run(
 def _chunk_items(items, chunk_size):
     for i in range(0, len(items), chunk_size):
         chunked_items = items[i : i + chunk_size]
-        base_item = chunked_items[0]
-        if not base_item:
+        if not chunked_items:
             continue
+        # For TestItem execution items, yield each item separately
+        # For Suite items, combine them into one item
+        base_item = chunked_items[0]
         if isinstance(base_item.execution_item, TestItem):
             for item in chunked_items:
-                chunked_item = _queue_item(base_item, item.execution_item)
-                yield chunked_item
+                yield item
         else:
+            # For suites, create a combined execution item with all suite execution items
             execution_items = SuiteItems([item.execution_item for item in chunked_items])
-            chunked_item = _queue_item(base_item, execution_items)
-            yield chunked_item
-
-
-def _queue_item(base_item, execution_items):
-    return QueueItem(
-        base_item.datasources,
-        base_item.outs_dir,
-        base_item.options,
-        execution_items,
-        base_item.command,
-        base_item.verbose,
-        (base_item.argfile_index, base_item.argfile),
-        processes=base_item.processes,
-        timeout=base_item.timeout,
-    )
+            # Reuse the base item but update its execution_item to the combined one
+            base_item.execution_item = execution_items
+            yield base_item
 
 
 def _find_ending_level(name, group):
@@ -2397,16 +2416,20 @@ def main_program(args):
             _write("No tests to execute", level="info")
             if not options.get("runemptysuite", False):
                 return 252
-        execution_items = _create_execution_items(
+        
+        # Create execution items for all argumentfiles at once
+        all_execution_items = _create_execution_items(
             suite_groups, datasources, outs_dir, options, opts_for_run, pabot_args
         )
+        
+        # Now execute all items from all argumentfiles in parallel
         if pabot_args.get("ordering", {}).get("mode") == "dynamic":
             # flatten stages
-            all_items = []
-            for stage in execution_items:
-                all_items.extend(stage)
+            flattened_items = []
+            for stage in all_execution_items:
+                flattened_items.extend(stage)
             _parallel_execute_dynamic(
-                all_items,
+                flattened_items,
                 pabot_args["processes"],
                 datasources,
                 outs_dir,
@@ -2414,8 +2437,8 @@ def main_program(args):
                 pabot_args,
             )
         else:
-            while execution_items:
-                items = execution_items.pop(0)
+            while all_execution_items:
+                items = all_execution_items.pop(0)
                 _parallel_execute(
                     items,
                     pabot_args["processes"],
