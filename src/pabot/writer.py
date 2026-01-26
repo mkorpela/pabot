@@ -26,14 +26,53 @@ class DottedConsole:
             self._on_line = False
 
 
-class ThreadSafeWriter:
-    def __init__(self, writer):
+class BufferingWriter:
+    """
+    Buffers partial writes until a newline is encountered.
+    Useful for handling output that comes in fragments (e.g., from stderr).
+    """
+    def __init__(self, writer, level="info", original_stderr_name=None):
         self._writer = writer
+        self._level = level
+        self.original_stderr_name = original_stderr_name
+        self._buffer = ""
         self._lock = threading.Lock()
 
-    def write(self, msg, level="info"):
+    def write(self, msg):
         with self._lock:
-            self._writer.write(msg, level=level)
+            if not msg:
+                return
+            
+            self._buffer += msg
+            
+            # Check if buffer contains newline(s)
+            while "\n" in self._buffer:
+                line, self._buffer = self._buffer.split("\n", 1)
+                if line:  # Only write non-empty lines
+                    if self.original_stderr_name:
+                        line = f"From {self.original_stderr_name}: {line}"
+                    self._writer.write(line, level=self._level)
+
+            # If buffer ends with partial content (no newline), keep it buffered
+    
+    def flush(self):
+        with self._lock:
+            if self._buffer:
+                self._writer.write(self._buffer, level=self._level)
+                self._buffer = ""
+
+
+class ThreadSafeWriter:
+    def __init__(self, writer, level="info"):
+        self._writer = writer
+        self._lock = threading.Lock()
+        self._level = level  # Default level for this writer instance
+
+    def write(self, msg, level=None):
+        # Use provided level or fall back to instance default
+        msg_level = level if level is not None else self._level
+        with self._lock:
+            self._writer.write(msg, level=msg_level)
 
     def flush(self):
         with self._lock:
@@ -184,3 +223,13 @@ def get_writer(log_dir=None, console_type="verbose"):
         log_file = os.path.join(log_dir or ".", "pabot_manager.log")
         _writer_instance = MessageWriter(log_file=log_file, console_type=console_type)
     return _writer_instance
+
+def get_stdout_writer(log_dir=None, console_type="verbose"):
+    """Get a writer configured for stdout with 'info' level"""
+    return ThreadSafeWriter(get_writer(log_dir, console_type), level="info")
+
+def get_stderr_writer(log_dir=None, console_type="verbose", original_stderr_name: str = None):
+    """Get a writer configured for stderr with 'error' level, buffered to handle partial writes"""
+    # Use BufferingWriter to combine fragments that come without newlines
+    buffering_writer = BufferingWriter(get_writer(log_dir, console_type), level="error", original_stderr_name=original_stderr_name)
+    return buffering_writer

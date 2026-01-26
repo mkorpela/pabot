@@ -32,6 +32,7 @@ except ImportError:
     from robot.result.testsuite import TestSuite
 
 from robot.model import SuiteVisitor
+from .writer import get_writer
 
 
 class ResultMerger(SuiteVisitor):
@@ -45,6 +46,7 @@ class ResultMerger(SuiteVisitor):
         self._out_dir = out_dir
         self.legacy_output = legacy_output
         self.timestamp_id = timestamp_id
+        self.writer = get_writer()
 
         self._patterns = []
         regexp_template = (
@@ -62,7 +64,10 @@ class ResultMerger(SuiteVisitor):
             if self.errors != merged.errors:
                 self.errors.add(merged.errors)
         except:
-            print("Error while merging result %s" % merged.source)
+            if self.writer:
+                self.writer.write("Error while merging result %s" % merged.source, level="error")
+            else:
+                print("Error while merging result %s" % merged.source)
             raise
 
     def _set_prefix(self, source):
@@ -214,12 +219,17 @@ def prefix(source, timestamp_id):
 
 def group_by_root(results, critical_tags, non_critical_tags, invalid_xml_callback):
     groups = {}
+    writer = get_writer()
     for src in results:
         try:
             res = ExecutionResult(src)
         except DataError as err:
-            print(err.message)
-            print("Skipping '%s' from final result" % src)
+            if writer:
+                writer.write(err.message, level="error")
+                writer.write("Skipping '%s' from final result" % src, level="warning")
+            else:
+                print(err.message)
+                print("Skipping '%s' from final result" % src)
             invalid_xml_callback()
             continue
         if ROBOT_VERSION < "4.0":
