@@ -1,12 +1,12 @@
 import os
 import sys
 import time
-import signal
 import threading
 import subprocess
 import datetime
 import queue
 import locale
+import signal
 
 try:
     import psutil
@@ -28,26 +28,14 @@ class ProcessManager:
         self.processes = []
         self.lock = threading.Lock()
         self.writer = get_writer()
+        self.interrupted = False
+        # Note: Signal handling is done in pabot.py's main_program() to ensure
+        # PabotLib is shut down gracefully before process termination
+        # This ProcessManager will check the interrupted flag set by pabot.py's keyboard_interrupt()
 
-        # Install SIGINT only in main thread
-        try:
-            if threading.current_thread() is threading.main_thread():
-                signal.signal(signal.SIGINT, self._handle_sigint)
-            else:
-                self.writer.write(
-                    "[ProcessManager] (test mode) signal handlers disabled (not in main thread)"
-                )
-        except Exception as e:
-            self.writer.write(f"[WARN] Could not register signal handler: {e}")
-
-    # -------------------------------
-    # SIGNAL HANDLING
-    # -------------------------------
-
-    def _handle_sigint(self, signum, frame):
-        self.writer.write("[ProcessManager] Ctrl+C detected — terminating all subprocesses", color=Color.RED)
-        self.terminate_all()
-        sys.exit(130)
+    def set_interrupted(self):
+        """Called by pabot.py when CTRL+C is received."""
+        self.interrupted = True
 
     # -------------------------------
     # OUTPUT STREAM READERS
@@ -213,7 +201,7 @@ class ProcessManager:
 
         self.writer.write(
             f"[ProcessManager] Terminating process tree PID={process.pid}",
-            color=Color.YELLOW
+            level='debug'
         )
 
         # PRIMARY: psutil (best reliability)
@@ -304,11 +292,13 @@ class ProcessManager:
         if verbose:
             self.writer.write(
                 f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] "
-                f"EXECUTING PARALLEL {item_name}:\n{' '.join(cmd)}"
+                f"EXECUTING PARALLEL {item_name}:\n{' '.join(cmd)}",
+                level='debug'
             )
         else:
             self.writer.write(
-                f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] EXECUTING {item_name}"
+                f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] EXECUTING {item_name}",
+                level='debug'
             )
 
         # Start logging thread
@@ -327,28 +317,76 @@ class ProcessManager:
         while rc is None:
             rc = process.poll()
 
-            # TIMEOUT CHECK
-            if timeout and (time.time() - start > timeout):
+            # INTERRUPT CHECK - terminate process gracefully when CTRL+C is pressed
+            if self.interrupted:
                 ts = datetime.datetime.now()
                 self.writer.write(
                     f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] "
-                    f"Process {item_name} killed due to exceeding the maximum timeout of {timeout} seconds"
+                    f"Process {item_name} interrupted by user (Ctrl+C)",
+                    color=Color.YELLOW, level='warning'
                 )
                 self._terminate_tree(process)
                 rc = -1
 
-                # Dryrun process to mark all tests as failed due to timeout
+                # Dryrun process to mark all tests as failed due to user interrupt
                 this_dir = os.path.dirname(os.path.abspath(__file__))
-                listener_path = os.path.join(this_dir, "timeout_listener.py")
+                listener_path = os.path.join(this_dir, "listener", "interrupt_listener.py")
                 dry_run_env = env.copy() if env else os.environ.copy()
                 before, after = split_on_first(cmd, "-A")
                 dryrun_cmd = before + ["--dryrun", '--listener', listener_path, '-A'] + after
 
                 self.writer.write(
                     f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] "
-                    f"Starting dry run to mark tests as failed due to timeout: {' '.join(dryrun_cmd)}"
+                    f"Starting dry run to mark test as failed due to user interrupt: {' '.join(dryrun_cmd)}",
+                    level='debug'
                 )
-                subprocess.run(dryrun_cmd, env=dry_run_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE)                
+                try:
+                    subprocess.run(
+                        dryrun_cmd,
+                        env=dry_run_env,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        timeout=3,
+                        text=True,
+                    )
+                except subprocess.TimeoutExpired as e:
+                    self.writer.write(f"Dry-run timed out after 3s: {e}", level='debug')
+                break
+
+            # TIMEOUT CHECK
+            if timeout and (time.time() - start > timeout):
+                ts = datetime.datetime.now()
+                self.writer.write(
+                    f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] "
+                    f"Process {item_name} killed due to exceeding the maximum timeout of {timeout} seconds",
+                    color=Color.YELLOW, level='warning'
+                )
+                self._terminate_tree(process)
+                rc = -1
+
+                # Dryrun process to mark all tests as failed due to timeout
+                this_dir = os.path.dirname(os.path.abspath(__file__))
+                listener_path = os.path.join(this_dir, "listener", "timeout_listener.py")
+                dry_run_env = env.copy() if env else os.environ.copy()
+                before, after = split_on_first(cmd, "-A")
+                dryrun_cmd = before + ["--dryrun", '--listener', listener_path, '-A'] + after
+
+                self.writer.write(
+                    f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] "
+                    f"Starting dry run to mark test as failed due to timeout: {' '.join(dryrun_cmd)}",
+                    level='debug'
+                )
+                try:
+                    subprocess.run(
+                        dryrun_cmd,
+                        env=dry_run_env,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        timeout=3,
+                        text=True,
+                    )
+                except subprocess.TimeoutExpired as e:
+                    self.writer.write(f"Dry-run timed out after 3s: {e}", level='debug')
 
                 break
 
@@ -357,7 +395,8 @@ class ProcessManager:
                 ts = datetime.datetime.now()
                 self.writer.write(
                     f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] still running "
-                    f"{item_name} after {(counter * 0.1):.1f}s"
+                    f"{item_name} after {(counter * 0.1):.1f}s",
+                    level='debug'
                 )
                 ping_interval += 50
                 next_ping += ping_interval

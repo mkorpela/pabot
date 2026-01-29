@@ -84,7 +84,7 @@ from .execution_items import (
     create_dependency_tree,
 )
 from .result_merger import merge
-from .writer import get_writer
+from .writer import get_writer, get_stdout_writer, get_stderr_writer, ThreadSafeWriter, MessageWriter
 
 try:
     import queue  # type: ignore
@@ -105,17 +105,23 @@ except ImportError:
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 CTRL_C_PRESSED = False
-#MESSAGE_QUEUE = queue.Queue()
-EXECUTION_POOL_IDS = []  # type: List[int]
-EXECUTION_POOL_ID_LOCK = threading.Lock()
-POPEN_LOCK = threading.Lock()
 _PABOTLIBURI = "127.0.0.1:8270"
 _PABOTLIBPROCESS = None  # type: Optional[subprocess.Popen]
+_PABOTWRITER = None  # type: Optional[MessageWriter]
 _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
 _ABNORMAL_EXIT_HAPPENED = False
+_PABOTCONSOLE = "verbose"  # type: str
 
 _COMPLETED_LOCK = threading.Lock()
 _NOT_COMPLETED_INDEXES = []  # type: List[int]
+
+# Thread-local storage for tracking executor number assigned to each thread
+_EXECUTOR_THREAD_LOCAL = threading.local()
+# Next executor number to assign (incremented each time a task is submitted)
+_EXECUTOR_COUNTER = 0
+_EXECUTOR_COUNTER_LOCK = threading.Lock()
+# Maximum number of executors (workers in the thread pool)
+_MAX_EXECUTORS = 1
 
 _ROBOT_EXTENSIONS = [
     ".html",
@@ -225,6 +231,32 @@ class Color:
     YELLOW = "\033[93m"
 
 
+def _get_next_executor_num():
+    """Get the next executor number in round-robin fashion."""
+    global _EXECUTOR_COUNTER, _MAX_EXECUTORS
+    with _EXECUTOR_COUNTER_LOCK:
+        executor_num = _EXECUTOR_COUNTER % _MAX_EXECUTORS
+        _EXECUTOR_COUNTER += 1
+    return executor_num
+
+
+def _set_executor_num(executor_num):
+    """Set the executor number for the current thread."""
+    _EXECUTOR_THREAD_LOCAL.executor_num = executor_num
+
+
+def _get_executor_num():
+    """Get the executor number for the current thread."""
+    return getattr(_EXECUTOR_THREAD_LOCAL, 'executor_num', 0)
+
+
+def _execute_item_with_executor_tracking(item):
+    """Wrapper to track executor number and call execute_and_wait_with."""
+    executor_num = _get_next_executor_num()
+    _set_executor_num(executor_num)
+    return execute_and_wait_with(item)
+
+
 def execute_and_wait_with(item):
     # type: ('QueueItem') -> int
     global CTRL_C_PRESSED, _NUMBER_OF_ITEMS_TO_BE_EXECUTED
@@ -253,7 +285,7 @@ def execute_and_wait_with(item):
                 outs_dir,
                 name,
                 item.verbose,
-                _make_id(),
+                _get_executor_num(),
                 caller_id,
                 item.index,
             )
@@ -264,7 +296,7 @@ def execute_and_wait_with(item):
                 outs_dir,
                 name,
                 item.verbose,
-                _make_id(),
+                _get_executor_num(),
                 caller_id,
                 item.index,
                 item.execution_item.type != "test",
@@ -272,10 +304,10 @@ def execute_and_wait_with(item):
                 sleep_before_start=item.sleep_before_start
             )
         outputxml_preprocessing(
-            item.options, outs_dir, name, item.verbose, _make_id(), caller_id, item.index
+            item.options, outs_dir, name, item.verbose, _get_executor_num(), caller_id, item.index
         )
     except:
-        _write(traceback.format_exc())
+        _write(traceback.format_exc(), level="error")
     return rc
 
 
@@ -313,7 +345,7 @@ def _hived_execute(
     try:
         make_order(hive, " ".join(cmd), outs_dir)
     except:
-        _write(traceback.format_exc())
+        _write(traceback.format_exc(), level="error")
     if plib:
         _increase_completed(plib, my_index)
 
@@ -353,7 +385,7 @@ def _try_execute_and_wait(
                     sleep_before_start
                 )
     except:
-        _write(traceback.format_exc())
+        _write(traceback.format_exc(), level="error")
     if plib:
         _increase_completed(plib, my_index)
         is_ignored = _is_ignored(plib, caller_id)
@@ -396,6 +428,7 @@ def _result_to_stdout(
             pool_id,
             my_index,
             _execution_ignored_message(item_name, stdout, stderr, elapsed, verbose),
+            level="info_ignored",
         )
     elif rc != 0:
         _write_with_id(
@@ -406,6 +439,7 @@ def _result_to_stdout(
                 item_name, stdout, stderr, rc, verbose or show_stdout_on_failure
             ),
             Color.RED,
+            level="info_failed",
         )
     else:
         _write_with_id(
@@ -414,6 +448,7 @@ def _result_to_stdout(
             my_index,
             _execution_passed_message(item_name, stdout, stderr, elapsed, verbose),
             Color.GREEN,
+            level="info_passed",
         )
 
 
@@ -489,23 +524,14 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
         print(sys.exc_info())
 
 
-def _write_with_id(process, pool_id, item_index, message, color=None, timestamp=None):
+def _write_with_id(process, pool_id, item_index, message, color=None, timestamp=None, level="debug"):
     timestamp = timestamp or datetime.datetime.now()
     _write(
         "%s [PID:%s] [%s] [ID:%s] %s"
         % (timestamp, process.pid, pool_id, item_index, message),
         color,
+        level=level,
     )
-
-
-def _make_id():  # type: () -> int
-    global EXECUTION_POOL_IDS, EXECUTION_POOL_ID_LOCK
-    thread_id = threading.current_thread().ident
-    assert thread_id is not None
-    with EXECUTION_POOL_ID_LOCK:
-        if thread_id not in EXECUTION_POOL_IDS:
-            EXECUTION_POOL_IDS += [thread_id]
-        return EXECUTION_POOL_IDS.index(thread_id)
 
 
 def _increase_completed(plib, my_index):
@@ -679,7 +705,7 @@ def _options_for_executor(
     # Prevent multiple appending of PABOTLIBURI variable setting
     if pabotLibURIVar not in options["variable"]:
         options["variable"].append(pabotLibURIVar)
-    pabotExecutionPoolId = "PABOTEXECUTIONPOOLID:%d" % _make_id()
+    pabotExecutionPoolId = "PABOTEXECUTIONPOOLID:%d" % _get_executor_num()
     if pabotExecutionPoolId not in options["variable"]:
         options["variable"].append(pabotExecutionPoolId)
     pabotIsLast = "PABOTISLASTEXECUTIONINPOOL:%s" % ("1" if is_last else "0")
@@ -702,7 +728,7 @@ def _options_for_executor(
         del options["include"]
     if skip:
         this_dir = os.path.dirname(os.path.abspath(__file__))
-        listener_path = os.path.join(this_dir, "skip_listener.py")
+        listener_path = os.path.join(this_dir, "listener", "skip_listener.py")
         options["dryrun"] = True
         options["listener"].append(listener_path)
     return _set_terminal_coloring_options(options)
@@ -1206,7 +1232,7 @@ def store_suite_names(hashes, suite_names):
         _write(
             "[ "
             + _wrap_with(Color.YELLOW, "WARNING")
-            + " ]: storing .pabotsuitenames failed"
+            + " ]: storing .pabotsuitenames failed", level="warning", 
         )
 
 
@@ -1271,13 +1297,13 @@ def generate_suite_names_with_builder(outs_dir, datasources, options):
         if stdout_value:
             _write(
                 "[STDOUT] from suite search:\n" + stdout_value + "[STDOUT] end",
-                Color.YELLOW,
+                Color.YELLOW, level="warning",
             )
         stderr_value = opts["stderr"].getvalue()
         if stderr_value:
             _write(
                 "[STDERR] from suite search:\n" + stderr_value + "[STDERR] end",
-                Color.RED,
+                Color.RED, level="error",
             )
     return list(sorted(set(suite_names)))
 
@@ -1387,9 +1413,11 @@ def _now():
 def _print_elapsed(start, end):
     _write(
         "Total testing: "
-        + _time_string(sum(_ALL_ELAPSED))
-        + "\nElapsed time:  "
-        + _time_string(end - start)
+        + _time_string(sum(_ALL_ELAPSED)), level="info"
+    )
+    _write(
+        "Elapsed time:  "
+        + _time_string(end - start), level="info"
     )
 
 
@@ -1416,6 +1444,13 @@ def _time_string(elapsed):
 def keyboard_interrupt(*args):
     global CTRL_C_PRESSED
     CTRL_C_PRESSED = True
+    # Notify ProcessManager to interrupt running processes
+    if _PROCESS_MANAGER:
+        _PROCESS_MANAGER.set_interrupted()
+    if _PABOTWRITER:
+        _write("[ INTERRUPT ] Ctrl+C pressed - initiating graceful shutdown...", Color.YELLOW, level="warning")
+    else:
+        print("[ INTERRUPT ] Ctrl+C pressed - initiating graceful shutdown...")
 
 
 def _get_depends(item):
@@ -1423,30 +1458,88 @@ def _get_depends(item):
 
 
 def _dependencies_satisfied(item, completed):
-    return all(dep in completed for dep in _get_depends(item))
+    """
+    Check if all dependencies for an item are satisfied (completed).
+    Uses unique names that include argfile_index when applicable.
+    """
+    for dep in _get_depends(item):
+        # Build unique name for dependency with same argfile_index as the item
+        if hasattr(item, 'argfile_index') and item.argfile_index:
+            # Item has an argfile index, so check for dependency with same argfile index
+            dep_unique_name = f"{item.argfile_index}:{dep}"
+            if dep_unique_name not in completed:
+                return False
+        else:
+            # No argfile index (single argumentfile case)
+            if dep not in completed:
+                return False
+    
+    return True
 
 
 def _collect_transitive_dependents(failed_name, pending_items):
     """
     Returns all pending items that (directly or indirectly) depend on failed_name.
+    Handles both regular names and unique names (with argfile_index).
+    
+    When failed_name is "1:Suite", it means Suite failed in argumentfile 1.
+    We should only skip items in argumentfile 1 that depend on Suite,
+    not items in other argumentfiles.
     """
     to_skip = set()
     queue = [failed_name]
 
-    # Build dependency map once
+    # Extract argfile_index from failed_name if it has one
+    if ":" in failed_name:
+        argfile_index, base_name = failed_name.split(":", 1)
+    else:
+        argfile_index = ""
+        base_name = failed_name
+
+    # Build dependency map: item unique name -> set of dependency base names
     depends_map = {
-        item.execution_item.name: set(_get_depends(item))
+        _get_unique_execution_name(item): set(_get_depends(item))
         for item in pending_items
     }
 
     while queue:
         current = queue.pop(0)
+        
+        # Extract base name from current (e.g., "1:Suite" -> "Suite")
+        if ":" in current:
+            current_argfile, current_base = current.split(":", 1)
+        else:
+            current_argfile = ""
+            current_base = current
+        
         for item_name, deps in depends_map.items():
-            if current in deps and item_name not in to_skip:
+            # Only skip items from the same argumentfile
+            # Check if item_name corresponds to the same argumentfile
+            if ":" in item_name:
+                item_argfile, _ = item_name.split(":", 1)
+            else:
+                item_argfile = ""
+            
+            # Only process if same argumentfile
+            if item_argfile != argfile_index:
+                continue
+            
+            # Check if this item depends on the current failed item
+            if current_base in deps and item_name not in to_skip:
                 to_skip.add(item_name)
                 queue.append(item_name)
 
     return to_skip
+
+
+def _get_unique_execution_name(item):
+    """
+    Create a unique identifier for an execution item that includes argfile index.
+    This ensures that the same test run with different argumentfiles are treated as distinct items.
+    """
+    if item.argfile_index:
+        return f"{item.argfile_index}:{item.execution_item.name}"
+    return item.execution_item.name
 
 
 def _parallel_execute_dynamic(
@@ -1457,9 +1550,13 @@ def _parallel_execute_dynamic(
     opts_for_run,
     pabot_args,
 ):
-    original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
+    # Signal handler is already set in main_program, no need to set it again
+    # Just use the thread pool without managing signals
+    global _MAX_EXECUTORS, _EXECUTOR_COUNTER
 
     max_processes = processes or len(items)
+    _MAX_EXECUTORS = max_processes
+    _EXECUTOR_COUNTER = 0  # Reset executor counter for each parallel execution batch
     pool = ThreadPool(max_processes)
 
     pending = set(items)
@@ -1475,24 +1572,28 @@ def _parallel_execute_dynamic(
 
         with lock:
             running.pop(it, None)
-            completed.add(it.execution_item.name)
+            unique_name = _get_unique_execution_name(it)
+            completed.add(unique_name)
 
             if rc != 0:
-                failed.add(it.execution_item.name)
+                failed.add(unique_name)
 
                 if failure_policy == "skip":
                     to_skip_names = _collect_transitive_dependents(
-                        it.execution_item.name,
+                        unique_name,
                         pending,
                     )
 
                     for other in list(pending):
-                        if other.execution_item.name in to_skip_names:
-                            _write(
-                                f"Skipping '{other.execution_item.name}' because dependency "
-                                f"'{it.execution_item.name}' failed (transitive).",
-                                Color.YELLOW,
-                            )
+                        other_unique_name = _get_unique_execution_name(other)
+                        if other_unique_name in to_skip_names:
+                            # Only log skip once when first marking it as skipped
+                            if not other.skip:
+                                _write(
+                                    f"Skipping '{other_unique_name}' because dependency "
+                                    f"'{unique_name}' failed (transitive).",
+                                    Color.YELLOW, level="debug"
+                                )
                             other.skip = True
 
     try:
@@ -1508,7 +1609,7 @@ def _parallel_execute_dynamic(
                     pending.remove(item)
 
                     result = pool.apply_async(
-                        execute_and_wait_with,
+                        _execute_item_with_executor_tracking,
                         (item,),
                         callback=lambda rc, it=item: on_complete(it, rc),
                     )
@@ -1526,15 +1627,19 @@ def _parallel_execute_dynamic(
 
     finally:
         pool.close()
-        signal.signal(signal.SIGINT, original_signal_handler)
+        # Signal handler was set in main_program and will be restored there
 
 
 def _parallel_execute(
     items, processes, datasources, outs_dir, opts_for_run, pabot_args
 ):
-    original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
-    pool = ThreadPool(len(items) if processes is None else processes)
-    results = [pool.map_async(execute_and_wait_with, items, 1)]
+    # Signal handler is already set in main_program, no need to set it again
+    global _MAX_EXECUTORS, _EXECUTOR_COUNTER
+    max_workers = len(items) if processes is None else processes
+    _MAX_EXECUTORS = max_workers
+    _EXECUTOR_COUNTER = 0  # Reset executor counter for each parallel execution batch
+    pool = ThreadPool(max_workers)
+    results = [pool.map_async(_execute_item_with_executor_tracking, items, 1)]
     delayed_result_append = 0
     new_items = []
     while not all(result.ready() for result in results) or delayed_result_append > 0:
@@ -1554,10 +1659,10 @@ def _parallel_execute(
         delayed_result_append = max(0, delayed_result_append - 1)
         if new_items and delayed_result_append == 0:
             _construct_last_levels([new_items])
-            results.append(pool.map_async(execute_and_wait_with, new_items, 1))
+            results.append(pool.map_async(_execute_item_with_executor_tracking, new_items, 1))
             new_items = []
     pool.close()
-    signal.signal(signal.SIGINT, original_signal_handler)
+    # Signal handler will be restored in main_program's finally block
 
 
 def _output_dir(options, cleanup=True):
@@ -1692,7 +1797,9 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
         if "output" not in options:
             options["output"] = "output.xml"
         _write_stats(stats)
-        exit_code = rebot(*outputs, **_options_for_rebot(options, start_time_string, _now()))
+        stdout_writer = get_stdout_writer()
+        stderr_writer = get_stderr_writer(original_stderr_name='Internal Rebot')
+        exit_code = rebot(*outputs, **_options_for_rebot(options, start_time_string, _now()), stdout=stdout_writer, stderr=stderr_writer)
     else:
         exit_code = _report_results_for_one_run(
             outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
@@ -1702,12 +1809,12 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
         _write(("[ " + _wrap_with(Color.YELLOW, 'WARNING') + " ] "
                 "One or more subprocesses encountered an error and the "
                 "internal .xml files could not be generated. Please check the "
-                "following stderr files to identify the cause:"))
+                "following stderr files to identify the cause:"), level="warning")
         for missing in missing_outputs:
-            _write(repr(missing))
+            _write(repr(missing), level="warning")
         _write((f"[ " + _wrap_with(Color.RED, 'ERROR') + " ] "
                 "The output, log and report files produced by Pabot are "
-                "incomplete and do not contain all test cases."))
+                "incomplete and do not contain all test cases."), level="error")
     return exit_code if not missing_outputs else 252
 
 
@@ -1717,18 +1824,18 @@ def _write_stats(stats):
         al = stats["all"]
         _write(
             "%d critical tests, %d passed, %d failed"
-            % (crit["total"], crit["passed"], crit["failed"])
+            % (crit["total"], crit["passed"], crit["failed"]), level="info"
         )
         _write(
             "%d tests total, %d passed, %d failed"
-            % (al["total"], al["passed"], al["failed"])
+            % (al["total"], al["passed"], al["failed"]), level="info"
         )
     else:
         _write(
             "%d tests, %d passed, %d failed, %d skipped."
-            % (stats["total"], stats["passed"], stats["failed"], stats["skipped"])
+            % (stats["total"], stats["passed"], stats["failed"], stats["skipped"]), level="info"
         )
-    _write("===================================================")
+    _write("===================================================", level="info")
 
 
 def add_timestamp_to_filename(file_path: str, timestamp: str) -> str:
@@ -1770,9 +1877,12 @@ def _report_results_for_one_run(
             "output"
         ] = output_path  # REBOT will return error 252 if nothing is written
     else:
-        _write("Output:  %s" % output_path)
+        _write("Output:  %s" % output_path, level="info")
         options["output"] = None  # Do not write output again with rebot
-    return rebot(output_path, **_options_for_rebot(options, start_time_string, ts))
+    stdout_writer = get_stdout_writer()
+    stderr_writer = get_stderr_writer(original_stderr_name="Internal Rebot")
+    exit_code = rebot(output_path, **_options_for_rebot(options, start_time_string, ts), stdout=stdout_writer, stderr=stderr_writer)
+    return exit_code
 
 
 def _merge_one_run(
@@ -1794,7 +1904,7 @@ def _merge_one_run(
     files = natsorted(files)
 
     if not files:
-        _write('WARN: No output files in "%s"' % outs_dir, Color.YELLOW)
+        _write('[ WARNING ]: No output files in "%s"' % outs_dir, Color.YELLOW, level="warning")
         return ""
 
     def invalid_xml_callback():
@@ -1843,9 +1953,9 @@ def _glob_escape(pathname):
     return drive + pathname
 
 
-def _write(message, color=None):
+def _write(message, color=None, level="debug"):
     writer = get_writer()
-    writer.write(message, color=color)
+    writer.write(message, color=color, level=level)
 
 
 def _wrap_with(color, message):
@@ -1891,7 +2001,7 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Po
         _write(
             f"Warning: specified pabotlibport {port} is already in use. "
             "A free port will be assigned automatically.",
-            Color.YELLOW,
+            Color.YELLOW, level="warning"
         )
         port = _get_free_port()
 
@@ -1905,7 +2015,7 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Po
         _write(
             "Warning: specified resource file doesn't exist."
             " Some tests may fail or continue forever.",
-            Color.YELLOW,
+            Color.YELLOW, level="warning"
         )
         resourcefile = ""
     cmd = [
@@ -1915,28 +2025,73 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Po
         pabot_args["pabotlibhost"],
         str(port),
     ]
-    return subprocess.Popen(cmd)
+    # Start PabotLib in isolation so it doesn't receive CTRL+C when the main process is interrupted.
+    # This allows graceful shutdown in finally block.
+    kwargs = {
+        "stdout": subprocess.PIPE,
+        "stderr": subprocess.STDOUT,
+        "text": True,
+        "bufsize": 1,
+        "env": {**os.environ, "PYTHONUNBUFFERED": "1"},
+    }
+    if sys.platform.startswith('win'):
+        # Windows: use CREATE_NEW_PROCESS_GROUP
+        kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
+    else:
+        # Unix/Linux/macOS: use preexec_fn to create new session
+        import os as os_module
+        kwargs["preexec_fn"] = os_module.setsid
+    
+    process = subprocess.Popen(cmd, **kwargs)
+
+    def _read_output(proc, writer):
+        for line in proc.stdout:
+            if line.strip():  # Skip empty lines
+                writer.write(line.rstrip('\n') + '\n', level="info")
+                writer.flush()
+        proc.stdout.close()
+
+    pabotlib_writer = ThreadSafeWriter(get_writer())
+    thread = threading.Thread(
+        target=_read_output,
+        args=(process, pabotlib_writer),
+        daemon=False,  # Non-daemon so output is captured before exit
+    )
+    thread.start()
+
+    return process
 
 
 def _stop_remote_library(process):  # type: (subprocess.Popen) -> None
-    _write("Stopping PabotLib process")
+    _write("Stopping PabotLib process", level="debug")
     try:
         remoteLib = Remote(_PABOTLIBURI)
         remoteLib.run_keyword("stop_remote_libraries", [], {})
         remoteLib.run_keyword("stop_remote_server", [], {})
     except RuntimeError:
-        _write("Could not connect to PabotLib - assuming stopped already")
-        return
+        _write("Could not connect to PabotLib - assuming stopped already", level="info")
+    
+    # Always wait for graceful shutdown, regardless of remote connection status
     i = 50
     while i > 0 and process.poll() is None:
         time.sleep(0.1)
         i -= 1
-    if i == 0:
+    
+    # If still running after remote stop attempt, terminate it
+    if process.poll() is None:
         _write(
             "Could not stop PabotLib Process in 5 seconds " "- calling terminate",
-            Color.YELLOW,
+            Color.YELLOW, level="warning"
         )
         process.terminate()
+        # Give it a moment to respond to SIGTERM
+        time.sleep(0.5)
+        if process.poll() is None:
+            _write(
+                "PabotLib Process did not respond to terminate - calling kill",
+                Color.RED, level="error"
+            )
+            process.kill()
     else:
         _write("PabotLib process stopped")
 
@@ -2051,7 +2206,9 @@ def _create_execution_items_for_run(
     return all_items
 
 
-def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group):
+def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group, argfile=None):
+    # If argfile is provided, use only that one. Otherwise, loop through all argumentfiles.
+    argumentfiles = [argfile] if argfile is not None else (pabot_args["argumentfiles"] or [("", None)])
     return [
         QueueItem(
             datasources,
@@ -2060,13 +2217,13 @@ def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group):
             suite,
             pabot_args["command"],
             pabot_args["verbose"],
-            argfile,
+            af,
             pabot_args.get("hive"),
             pabot_args["processes"],
             pabot_args["processtimeout"],
         )
         for suite in suite_group
-        for argfile in pabot_args["argumentfiles"] or [("", None)]
+        for af in argumentfiles
     ]
 
 
@@ -2093,31 +2250,20 @@ def _create_execution_items_for_dry_run(
 def _chunk_items(items, chunk_size):
     for i in range(0, len(items), chunk_size):
         chunked_items = items[i : i + chunk_size]
-        base_item = chunked_items[0]
-        if not base_item:
+        if not chunked_items:
             continue
+        # For TestItem execution items, yield each item separately
+        # For Suite items, combine them into one item
+        base_item = chunked_items[0]
         if isinstance(base_item.execution_item, TestItem):
             for item in chunked_items:
-                chunked_item = _queue_item(base_item, item.execution_item)
-                yield chunked_item
+                yield item
         else:
+            # For suites, create a combined execution item with all suite execution items
             execution_items = SuiteItems([item.execution_item for item in chunked_items])
-            chunked_item = _queue_item(base_item, execution_items)
-            yield chunked_item
-
-
-def _queue_item(base_item, execution_items):
-    return QueueItem(
-        base_item.datasources,
-        base_item.outs_dir,
-        base_item.options,
-        execution_items,
-        base_item.command,
-        base_item.verbose,
-        (base_item.argfile_index, base_item.argfile),
-        processes=base_item.processes,
-        timeout=base_item.timeout,
-    )
+            # Reuse the base item but update its execution_item to the combined one
+            base_item.execution_item = execution_items
+            yield base_item
 
 
 def _find_ending_level(name, group):
@@ -2184,10 +2330,10 @@ def _get_dynamically_created_execution_items(
         new_suites = plib.run_keyword("get_added_suites", [], {})
     except RuntimeError as err:
         _write(
-            "[WARN] PabotLib unreachable during post-run phase, "
+            "[ WARNING ] PabotLib unreachable during post-run phase, "
             "assuming no dynamically added suites. "
             "Original error: %s",
-            err,
+            err, level="warning"
         )
         new_suites = []
     if len(new_suites) == 0:
@@ -2220,7 +2366,7 @@ def main(args=None):
 
 
 def main_program(args):
-    global _PABOTLIBPROCESS
+    global _PABOTLIBPROCESS, _PABOTCONSOLE, _PABOTWRITER
     outs_dir = None
     args = args or sys.argv[1:]
     if len(args) == 0:
@@ -2234,8 +2380,10 @@ def main_program(args):
     start_time = time.time()
     start_time_string = _now()
     # NOTE: timeout option
+    original_signal_handler = signal.default_int_handler  # Save default handler in case of early exit
     try:
         options, datasources, pabot_args, opts_for_run = parse_args(args)
+        _PABOTCONSOLE = pabot_args.get("pabotconsole", "verbose")
         if pabot_args["help"]:
             help_print = __doc__.replace(
                     "PLACEHOLDER_README.MD",
@@ -2250,11 +2398,14 @@ def main_program(args):
         outs_dir = _output_dir(options)
 
         # These ensure MessageWriter and ProcessManager are ready before any parallel execution.
-        writer = get_writer(log_dir=outs_dir)
+        _PABOTWRITER = get_writer(log_dir=outs_dir, console_type=_PABOTCONSOLE)
         _ensure_process_manager()
-        _write(f"Initialized logging in {outs_dir}")
+        _write(f"Initialized logging in {outs_dir}", level="info")
 
         _PABOTLIBPROCESS = _start_remote_library(pabot_args)
+        # Set up signal handler to keep PabotLib alive during CTRL+C
+        # This ensures graceful shutdown in the finally block
+        original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
         if _pabotlib_in_use():
             _initialize_queue_index()
 
@@ -2262,19 +2413,23 @@ def main_program(args):
         if pabot_args["verbose"]:
             _write("Suite names resolved in %s seconds" % str(time.time() - start_time))
         if not suite_groups or suite_groups == [[]]:
-            _write("No tests to execute")
+            _write("No tests to execute", level="info")
             if not options.get("runemptysuite", False):
                 return 252
-        execution_items = _create_execution_items(
+        
+        # Create execution items for all argumentfiles at once
+        all_execution_items = _create_execution_items(
             suite_groups, datasources, outs_dir, options, opts_for_run, pabot_args
         )
+        
+        # Now execute all items from all argumentfiles in parallel
         if pabot_args.get("ordering", {}).get("mode") == "dynamic":
             # flatten stages
-            all_items = []
-            for stage in execution_items:
-                all_items.extend(stage)
+            flattened_items = []
+            for stage in all_execution_items:
+                flattened_items.extend(stage)
             _parallel_execute_dynamic(
-                all_items,
+                flattened_items,
                 pabot_args["processes"],
                 datasources,
                 outs_dir,
@@ -2282,8 +2437,8 @@ def main_program(args):
                 pabot_args,
             )
         else:
-            while execution_items:
-                items = execution_items.pop(0)
+            while all_execution_items:
+                items = all_execution_items.pop(0)
                 _parallel_execute(
                     items,
                     pabot_args["processes"],
@@ -2297,8 +2452,8 @@ def main_program(args):
                 "All tests were executed, but the --no-rebot argument was given, "
                 "so the results were not compiled, and no summary was generated. "
                 f"All results have been saved in the {outs_dir} folder."
-            ))
-            _write("===================================================")
+            ), level="info")
+            _write("===================================================", level="info")
             return 253
         result_code = _report_results(
             outs_dir,
@@ -2307,67 +2462,119 @@ def main_program(args):
             start_time_string,
             _get_suite_root_name(suite_groups),
         )
+        # If CTRL+C was pressed during execution, raise KeyboardInterrupt now. 
+        # This can happen without previous errors if test are for example almost ready.
+        if CTRL_C_PRESSED:
+            raise KeyboardInterrupt()
         return result_code if not _ABNORMAL_EXIT_HAPPENED else 252
     except Information as i:
         version_print = __doc__.replace("\nPLACEHOLDER_README.MD\n", "")
         print(version_print.replace("[PABOT_VERSION]", PABOT_VERSION))
-        print(i.message)
+        if _PABOTWRITER:
+            _write(i.message, level="info")
+        else:
+            print(i.message)
         return 251
     except DataError as err:
-        print(err.message)
+        if _PABOTWRITER:
+            _write(err.message, Color.RED, level="error")
+        else:
+            print(err.message)
         return 252
-    except Exception:
+    except (Exception, KeyboardInterrupt):
         if not CTRL_C_PRESSED:
-            _write("[ERROR] EXCEPTION RAISED DURING PABOT EXECUTION", Color.RED)
-            _write(
-                "[ERROR] PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues",
-                Color.RED,
-            )
-            _write("Pabot: %s" % PABOT_VERSION)
-            _write("Python: %s" % sys.version)
-            _write("Robot Framework: %s" % ROBOT_VERSION)
+            if _PABOTWRITER:
+                _write("[ ERROR ] EXCEPTION RAISED DURING PABOT EXECUTION", Color.RED, level="error")
+                _write(
+                    "[ ERROR ] PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues",
+                    Color.RED, level="error"
+                )
+                _write("Pabot: %s" % PABOT_VERSION, level="info")
+                _write("Python: %s" % sys.version, level="info")
+                _write("Robot Framework: %s" % ROBOT_VERSION, level="info")
+            else:
+                print("[ ERROR ] EXCEPTION RAISED DURING PABOT EXECUTION")
+                print("[ ERROR ] PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues")
+                print("Pabot: %s" % PABOT_VERSION)
+                print("Python: %s" % sys.version)
+                print("Robot Framework: %s" % ROBOT_VERSION)
             import traceback
             traceback.print_exc()
-            sys.exit(255)
+            return 255
         else:
-            _write("[ERROR] Execution stopped by user (Ctrl+C)", Color.RED)
-            sys.exit(253)
+            if _PABOTWRITER:
+                _write("[ ERROR ] Execution stopped by user (Ctrl+C)", Color.RED, level="error")
+            else:
+                print("[ ERROR ] Execution stopped by user (Ctrl+C)")
+            return 253
     finally:
-        # Ensure that writer exists
-        writer = None
+        if _PABOTWRITER:
+            _write("Finalizing Pabot execution...", level="debug")
+        else:
+            print("Finalizing Pabot execution...")
+        
+        # Restore original signal handler
         try:
-            if outs_dir is not None:
-                writer = get_writer(log_dir=outs_dir)
+            signal.signal(signal.SIGINT, original_signal_handler)
         except Exception as e:
-            print(f"[WARN] Could not initialize writer in finally: {e}")
-        # Try to stop remote library
+            if _PABOTWRITER:
+                _write(f"[ WARNING ] Could not restore signal handler: {e}", Color.YELLOW, level="warning")
+            else:
+                print(f"[ WARNING ] Could not restore signal handler: {e}")
+        
+        # First: Terminate all test subprocesses gracefully
+        # This must happen BEFORE stopping PabotLib so test processes
+        # can cleanly disconnect from the remote library
+        try:
+            if _PROCESS_MANAGER:
+                _PROCESS_MANAGER.terminate_all()
+        except Exception as e:
+            if _PABOTWRITER:
+                _write(f"[ WARNING ] Could not terminate test subprocesses: {e}", Color.YELLOW, level="warning")
+            else:
+                print(f"[ WARNING ] Could not terminate test subprocesses: {e}")
+        
+        # Then: Stop PabotLib after all test processes are gone
+        # This ensures clean shutdown with no orphaned remote connections
         try:
             if _PABOTLIBPROCESS:
                 _stop_remote_library(_PABOTLIBPROCESS)
         except Exception as e:
-            if writer:
-                writer.write(f"[WARN] Failed to stop remote library cleanly: {e}", Color.YELLOW)
+            if _PABOTWRITER:
+                _write(f"[ WARNING ] Failed to stop remote library cleanly: {e}", Color.YELLOW, level="warning")
             else:
-                print(f"[WARN] Failed to stop remote library cleanly: {e}")
-        # print elapsed time
+                print(f"[ WARNING ] Failed to stop remote library cleanly: {e}")
+        
+        # Print elapsed time
         try:
             _print_elapsed(start_time, time.time())
         except Exception as e:
-            if writer:
-                writer.write(f"[WARN] Failed to print elapsed time: {e}", Color.YELLOW)
+            if _PABOTWRITER:
+                _write(f"[ WARNING ] Failed to print elapsed time: {e}", Color.YELLOW, level="warning")
             else:
-                print(f"[WARN] Failed to print elapsed time: {e}")
+                print(f"[ WARNING ] Failed to print elapsed time: {e}")
+        
         # Flush and stop writer
-        if writer:
-            try:
-                writer.flush()
-                writer.write("Logs flushed successfully.")
-            except Exception as e:
-                print(f"[WARN] Could not flush writer: {e}")
-            try:
-                writer.stop()
-            except Exception as e:
-                print(f"[WARN] Could not stop writer: {e}")
+        try:
+            if _PABOTWRITER:
+                _PABOTWRITER.flush()
+                _PABOTWRITER.write("Logs flushed successfully.", level="debug")
+            else:
+                writer = get_writer()
+                if writer:
+                    writer.flush()
+        except Exception as e:
+            print(f"[ WARNING ] Could not flush writer: {e}")
+        
+        try:
+            if _PABOTWRITER:
+                _PABOTWRITER.stop()
+            else:
+                writer = get_writer()
+                if writer:
+                    writer.stop()
+        except Exception as e:
+            print(f"[ WARNING ] Could not stop writer: {e}")
 
 
 def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
@@ -2403,13 +2610,13 @@ def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], 
                     duplicates.append(f"{item.type.title()} item: '{item.name}'")
                 suite_and_test_names.append(item.name)
     if skipped_runnable_items:
-        _write("Note: The ordering file contains test or suite items that are not included in the current test run. The following items will be ignored/skipped:")
+        _write("Note: The ordering file contains test or suite items that are not included in the current test run. The following items will be ignored/skipped:", level="info")
         for item in skipped_runnable_items:
-            _write(f"  - {item}")
+            _write(f"  - {item}", level="info")
     if duplicates:
-        _write("Note: The ordering file contains duplicate suite or test items. Only the first occurrence is taken into account. These are duplicates:")
+        _write("Note: The ordering file contains duplicate suite or test items. Only the first occurrence is taken into account. These are duplicates:", level="info")
         for item in duplicates:
-            _write(f"  - {item}")
+            _write(f"  - {item}", level="info")
 
 
 def _group_suites(outs_dir, datasources, options, pabot_args):
