@@ -95,10 +95,11 @@ pabot [--verbose|--testlevelsplit|--command .. --end-command|
         --shard i/n|
         --artifacts extensions|--artifactsinsubfolders|
         --resourcefile file|--argumentfile[num] file|--suitesfrom file
-        --ordering <FILENAME> [static|dynamic] [skip|run_all]|
+        --ordering file [static|dynamic] [skip|run_all]|
         --chunk|
         --pabotprerunmodifier modifier|
         --no-rebot|
+        --pabotconsole [verbose|dotted|quiet|none]|
         --help|--version]
       [robot options] [path ...]
 ```
@@ -183,10 +184,10 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   Optionally read suites from output.xml file. Failed suites will run first and longer running ones will be executed 
   before shorter ones.
 
-**--ordering [FILE PATH] [MODE] [FAILURE POLICY]**   
+**--ordering [FILEPATH] [MODE] [FAILURE POLICY]**   
   Optionally give execution order from a file. See README.md section: [Controlling execution order, mode and level of parallelism](#controlling-execution-order-mode-and-level-of-parallelism)
-  - MODE (optional): [static (default)|dynamic]
-  - FAILURE POLICY (optional, only in dynamic mode): [skip|run_all (default)]
+  - MODE (optional): [ static (default) | dynamic ]
+  - FAILURE POLICY (optional, only in dynamic mode): [ skip | run_all (default) ]
 
 **--chunk**   
   Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same 
@@ -202,6 +203,28 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   If specified, the tests will execute as usual, but Rebot will not be called to merge the logs. This option is designed 
   for scenarios where Rebot should be run later due to large log files, ensuring better memory and resource availability. 
   Subprocess results are stored in the pabot_results folder.
+
+**--pabotconsole [MODE]**
+  The --pabotconsole option controls how much output is printed to the console.
+  Note that all Pabot’s own messages are always logged to pabot_manager.log, regardless of the selected console mode.
+
+  The available options are:
+  - verbose (default):
+    Prints all messages to the console, corresponding closely to what is written to the log file.
+  - dotted:
+    Prints important messages, warnings, and errors to the console, along with execution progress using the following notation:
+
+      - PASS = .
+      - FAIL = F
+      - SKIP = s
+    
+    Note that each Robot Framework process is represented by a single character. 
+    Depending on the execution parameters, individual tests may not have their own status character; 
+    instead, the status may represent an entire suite or a group of tests.
+  - quiet:
+    Similar to dotted, but suppresses execution progress output.
+  - none:
+    Produces no console output at all.
 
 **--help**             
   Print usage instructions.
@@ -468,7 +491,7 @@ pabot_results/
 │       ├── robot_stdout.out
 │       ├── robot_stderr.out
 │       └── artifacts...
-pabot_manager.log            # Pabot's own main log. Basically same than prints in console
+└── pabot_manager.log        # Pabot's own main log.
 ```
 
 Each `PABOTQUEUEINDEX` folder contains as default:
