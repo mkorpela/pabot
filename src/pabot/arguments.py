@@ -236,7 +236,12 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         if arg_name == "command":
             try:
                 end_index = args.index("--end-command", i)
-                pabot_args["command"] = args[i + 1 : end_index]
+                pabot_args["use_user_command"] = True
+                cmd_lines = args[i + 1 : end_index]
+                cmd = []
+                for line in cmd_lines:
+                    cmd.extend(line.split())
+                pabot_args["command"] = cmd
                 i = end_index + 1
                 continue
             except ValueError:
