@@ -171,7 +171,7 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
 
 **--resourcefile [FILEPATH]**          
   Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with 
-  pabotlib option. Resource file syntax is same as Windows ini files. Where a section is a shared set of variables.
+  pabotlib option. Resource file syntax is same as Windows ini files where a section is a shared set of variables.
 
 **--argumentfile[INTEGER] [FILEPATH]**          
   Run same suites with multiple [argumentfile](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files) options.
