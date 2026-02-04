@@ -5,16 +5,32 @@ import unittest
 import shutil
 import subprocess
 import os
+import time
 
 from pabot import pabot
-
+from pabot.writer import get_writer
 
 class PabotMissingSubProcessOutputTest(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
 
     def tearDown(self):
-        shutil.rmtree(self.tmpdir)
+        if not (hasattr(self, "tmpdir") and self.tmpdir and os.path.exists(self.tmpdir)):
+            return
+
+        attempts = 3
+        for i in range(attempts):
+            try:
+                shutil.rmtree(self.tmpdir)
+                break
+            except PermissionError:
+                print(f"[WARNING] Attempt {i+1}: Could not remove {self.tmpdir}, in use by another process. Retrying...")
+                time.sleep(1)
+            except OSError as e:
+                print(f"[WARNING] Attempt {i+1}: Could not remove {self.tmpdir}: {e}. Retrying...")
+                time.sleep(1)
+        else:
+            raise OSError(f"[ERROR] Failed to remove {self.tmpdir} after {attempts} attempts.")
 
     def _run_tests_with(self, testfile):
         with open("{}/test.robot".format(self.tmpdir), "w") as robot_file:
@@ -35,7 +51,7 @@ class PabotMissingSubProcessOutputTest(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        return process.communicate()
+        return process.communicate(timeout=15)
     
     def test_missing_subprocess_output_xml(self):
         """
@@ -118,7 +134,7 @@ Testing 3
         tests_root_name = "Test"  # This is from test.robot 
 
         # Change one subprocess output file extension from .xml to .not_xml
-        file_path = "{}/results/pabot_results/0/out.xml".format(self.tmpdir)
+        file_path = "{}/results/pabot_results/0/output.xml".format(self.tmpdir)
         assert os.path.exists(file_path)
         os.rename(file_path, file_path.replace(".xml", ".not_xml"))
         
@@ -133,3 +149,5 @@ Testing 3
             self.assertIs(pabot._report_results("results/pabot_results", pabot_args2, options2, start_time, tests_root_name), 0)
         finally:
             os.chdir(prev_cmd)
+            writer = get_writer()
+            writer.stop()

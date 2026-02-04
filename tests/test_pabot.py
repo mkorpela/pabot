@@ -119,7 +119,7 @@ class PabotTests(unittest.TestCase):
     def test_start_and_stop_remote_library(self):
         writer = pabot.get_writer()
         try:
-            lib_process = pabot._start_remote_library(self._pabot_args)
+            lib_process, _ = pabot._start_remote_library(self._pabot_args)
             self.assertTrue(lib_process.poll() is None)
             time.sleep(1)
             pabot._stop_remote_library(lib_process)
@@ -132,7 +132,7 @@ class PabotTests(unittest.TestCase):
         try:
             pabot_args = dict(self._pabot_args)
             pabot_args["resourcefile"] = None
-            lib_process = pabot._start_remote_library(pabot_args)
+            lib_process, _ = pabot._start_remote_library(pabot_args)
             self.assertTrue(lib_process.poll() is None)
             time.sleep(1)
             pabot._stop_remote_library(lib_process)
@@ -1089,7 +1089,7 @@ class PabotTests(unittest.TestCase):
         self._options["outputdir"] = dtemp
         self._pabot_args["pabotlibport"] = 4000 + random.randint(0, 1000)
         self._pabot_args["testlevelsplit"] = False
-        lib_process = pabot._start_remote_library(self._pabot_args)
+        lib_process, _ = pabot._start_remote_library(self._pabot_args)
         pabot._initialize_queue_index()
         try:
             suite_names = [s(_s) for _s in self._all_suites]
@@ -1132,7 +1132,7 @@ class PabotTests(unittest.TestCase):
         self._options["outputdir"] = dtemp
         self._pabot_args["pabotlibport"] = 4000 + random.randint(0, 1000)
         self._pabot_args["testlevelsplit"] = True
-        lib_process = pabot._start_remote_library(self._pabot_args)
+        lib_process, _ = pabot._start_remote_library(self._pabot_args)
         pabot._initialize_queue_index()
         try:
             test_names = [t(_t) for _t in self._all_tests]
@@ -1344,7 +1344,7 @@ class PabotTests(unittest.TestCase):
         if ROBOT_VERSION >= "7.0":
             self._options["legacyoutput"] = True
         try:
-            output = pabot._merge_one_run(
+            output, _ = pabot._merge_one_run(
                 outs_dir=dtemp,
                 options=self._options,
                 tests_root_name="Test",  # Should match suite name in XML
@@ -1371,7 +1371,7 @@ class PabotTests(unittest.TestCase):
                     self.assertIn('schemaversion="2"', content)
             if ROBOT_VERSION >= "7.0":
                 del self._options["legacyoutput"]
-                output = pabot._merge_one_run(
+                output, _ = pabot._merge_one_run(
                     outs_dir=dtemp,
                     options=self._options,
                     tests_root_name="Test",  # Should match suite name in XML

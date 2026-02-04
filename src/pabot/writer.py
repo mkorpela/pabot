@@ -51,14 +51,21 @@ class BufferingWriter:
                 if line:  # Only write non-empty lines
                     if self.original_stderr_name:
                         line = f"From {self.original_stderr_name}: {line}"
-                    self._writer.write(line, level=self._level)
+                    try:
+                        self._writer.write(line, level=self._level)
+                    except (RuntimeError, ValueError):
+                        # Writer/stdout already closed
+                        break
 
             # If buffer ends with partial content (no newline), keep it buffered
     
     def flush(self):
         with self._lock:
             if self._buffer:
-                self._writer.write(self._buffer, level=self._level)
+                try:
+                    self._writer.write(self._buffer, level=self._level)
+                except (RuntimeError, ValueError):
+                    pass
                 self._buffer = ""
 
 
@@ -81,7 +88,7 @@ class ThreadSafeWriter:
 
 class MessageWriter:
     def __init__(self, log_file=None, console_type="verbose"):
-        self.queue = queue.Queue()
+        self.queue = queue.Queue(maxsize=10000)
         self.log_file = log_file
         self.console_type = console_type
         self.console = DottedConsole() if console_type == "dotted" else None
@@ -89,7 +96,7 @@ class MessageWriter:
             os.makedirs(os.path.dirname(log_file), exist_ok=True)
         self._stop_event = threading.Event()
         self.thread = threading.Thread(target=self._writer)
-        self.thread.daemon = True
+        self.thread.daemon = False
         self.thread.start()
 
     def _is_output_coloring_supported(self):
@@ -127,78 +134,102 @@ class MessageWriter:
         # verbose mode - print everything
         return True
 
-    def _writer(self):
-        while not self._stop_event.is_set():
-            try:
-                message, color, level = self.queue.get(timeout=0.1)
-            except queue.Empty:
-                continue
-            if message is None:
-                self.queue.task_done()
-                break
+    def _flush_batch(self, batch, log_f):
+        for message, color, level in batch:
+            # Log file
+            if log_f:
+                lvl = f"[{level.split('_')[0].upper()}]".ljust(9)
+                log_f.write(f"{lvl} {message}\n")
 
-            message = message.rstrip("\n")
-            # Always write to log file
-            if self.log_file:
-                with open(self.log_file, "a", encoding="utf-8") as f:
-                    lvl_msg = f"[{level.split('_')[0].upper()}]".ljust(9)
-                    f.write(f"{lvl_msg} {message}\n")
-            
-            # Print to console based on level
+            # Console
             if self._should_print_to_console(level=level):
-                if self.console is not None:
-                    # In dotted mode, only print single character messages directly
+                if self.console:
                     if level == "info_passed":
-                        self.console.dot(self._wrap_with(color, "."))  
+                        self.console.dot(self._wrap_with(color, "."))
                     elif level == "info_failed":
                         self.console.dot(self._wrap_with(color, "F"))
                     elif level in ("info_ignored", "info_skipped"):
                         self.console.dot(self._wrap_with(color, "s"))
                     else:
                         self.console.newline()
-                        print(self._wrap_with(color, message), flush=True)
+                        print(self._wrap_with(color, message))
                 else:
-                    print(self._wrap_with(color, message), flush=True)
-            
-            self.queue.task_done()
+                    print(self._wrap_with(color, message))
+                    
+    def _writer(self):
+        log_f = None
+        try:
+            if self.log_file:
+                log_f = open(self.log_file, "a", encoding="utf-8", buffering=1)
+
+            buffer = []
+            last_flush = time.time()
+            FLUSH_INTERVAL = 0.2       # secs
+            BATCH_SIZE = 50            # rows
+
+            while True:
+                try:
+                    item = self.queue.get(timeout=0.1)
+                except queue.Empty:
+                    # Timebased flush
+                    if buffer and (time.time() - last_flush) > FLUSH_INTERVAL:
+                        self._flush_batch(buffer, log_f)
+                        buffer.clear()
+                        last_flush = time.time()
+                    if self._stop_event.is_set():
+                        break
+                    continue
+
+                message, color, level = item
+
+                if message is None:
+                    self.queue.task_done()
+                    break
+
+                message = message.rstrip("\n")
+
+                buffer.append((message, color, level))
+                self.queue.task_done()
+
+                # Batch full → flush
+                if len(buffer) >= BATCH_SIZE:
+                    self._flush_batch(buffer, log_f)
+                    buffer.clear()
+                    last_flush = time.time()
+
+            # Final flush
+            if buffer:
+                self._flush_batch(buffer, log_f)
+
+        except Exception:
+            import traceback
+            traceback.print_exc()
+
+        finally:
+            if log_f:
+                try:
+                    log_f.flush()
+                    log_f.close()
+                except Exception:
+                    pass
+
 
     def write(self, message, color=None, level="info"):
-        self.queue.put((f"{message}", color, level))
-
-    def flush(self, timeout=5):
-        """
-        Wait until all queued messages have been written.
-
-        :param timeout: Optional timeout in seconds. If None, wait indefinitely.
-        :return: True if queue drained before timeout (or no timeout), False if timed out.
-        """
-        start = time.time()
+        if self._stop_event.is_set():
+            return
         try:
-            # Loop until Queue reports no unfinished tasks
-            while True:
-                # If writer thread died, break to avoid infinite loop
-                if not self.thread.is_alive():
-                    # Give one last moment for potential in-flight task_done()
-                    time.sleep(0.01)
-                    # If still unfinished, we can't do more
-                    return getattr(self.queue, "unfinished_tasks", 0) == 0
-
-                unfinished = getattr(self.queue, "unfinished_tasks", None)
-                if unfinished is None:
-                    # Fallback: call join once and return
-                    try:
-                        self.queue.join()
-                        return True
-                    except Exception:
-                        return False
-
-                if unfinished == 0:
+            self.queue.put((f"{message}", color, level), timeout=0.1)
+        except queue.Full:
+            pass  # drop
+        
+    def flush(self, timeout=5):
+        end = time.time() + timeout
+        try:
+            while time.time() < end:
+                if self.queue.unfinished_tasks == 0:
                     return True
-
-                if timeout is not None and (time.time() - start) > timeout:
-                    return False
-
                 time.sleep(0.05)
+            return False
         except KeyboardInterrupt:
             # Allow tests/cli to interrupt flushing
             return False
@@ -207,10 +238,12 @@ class MessageWriter:
         """
         Gracefully stop the writer thread and flush remaining messages.
         """
-        self.flush()
         self._stop_event.set()
-        self.queue.put((None, None, None))  # sentinel to break thread loop
-        self.thread.join(timeout=1.0)
+        try:
+            self.queue.put_nowait((None, None, None))
+        except queue.Full:
+            pass
+        self.thread.join(timeout=2)
 
 
 _writer_instance = None

@@ -108,9 +108,11 @@ CTRL_C_PRESSED = False
 _PABOTLIBURI = "127.0.0.1:8270"
 _PABOTLIBPROCESS = None  # type: Optional[subprocess.Popen]
 _PABOTWRITER = None  # type: Optional[MessageWriter]
+_PABOTLIBTHREAD = None  # type: Optional[threading.Thread]
 _NUMBER_OF_ITEMS_TO_BE_EXECUTED = 0
 _ABNORMAL_EXIT_HAPPENED = False
 _PABOTCONSOLE = "verbose"  # type: str
+_USE_USER_COMMAND = False
 
 _COMPLETED_LOCK = threading.Lock()
 _NOT_COMPLETED_INDEXES = []  # type: List[int]
@@ -211,15 +213,18 @@ def extract_section(lines, start_marker="<!-- START DOCSTRING -->", end_marker="
         if end_marker in line:
             break
         if inside_section:
-            # Remove Markdown hyperlinks but keep text
-            line = re.sub(r'\[([^\]]+)\]\(https?://[^\)]+\)', r'\1', line)
-            # Remove Markdown section links but keep text
-            line = re.sub(r'\[([^\]]+)\]\(#[^\)]+\)', r'\1', line)
-            # Remove ** and backticks `
-            line = re.sub(r'(\*\*|`)', '', line)
             extracted_lines.append(line)
 
-    return "".join(extracted_lines).strip()
+    result = "".join(extracted_lines)
+
+    # Remove Markdown hyperlinks but keep text
+    result = re.sub(r'\[([^\]]+)\]\(https?://[^\)]+\)', r'\1', result)
+    # Remove Markdown section links but keep text
+    result = re.sub(r'\[([^\]]+)\]\(#[^\)]+\)', r'\1', result)
+    # Remove ** and backticks `
+    result = re.sub(r'(\*\*|`)', '', result)
+
+    return result.strip()
 
 
 class Color:
@@ -368,45 +373,63 @@ def _try_execute_and_wait(
     is_ignored = False
     if _pabotlib_in_use():
         plib = Remote(_PABOTLIBURI)
+
+    command_name = _get_command_name(run_cmd[0])
+    stdout_path = os.path.join(outs_dir, f"{command_name}_stdout.out")
+    stderr_path = os.path.join(outs_dir, f"{command_name}_stderr.out")
+
     try:
-        with open(os.path.join(outs_dir, run_cmd[-1] + "_stdout.out"), "w") as stdout:
-            with open(os.path.join(outs_dir, run_cmd[-1] + "_stderr.out"), "w") as stderr:
-                process, (rc, elapsed) = _run(
-                    run_cmd,
-                    run_options,
-                    stderr,
-                    stdout,
-                    item_name,
-                    verbose,
-                    pool_id,
-                    my_index,
-                    outs_dir,
-                    process_timeout,
-                    sleep_before_start
-                )
+        with open(stdout_path, "w", encoding="utf-8", buffering=1) as stdout, \
+             open(stderr_path, "w", encoding="utf-8", buffering=1) as stderr:
+
+            process, (rc, elapsed) = _run(
+                run_cmd,
+                run_options,
+                stderr,
+                stdout,
+                item_name,
+                verbose,
+                pool_id,
+                my_index,
+                outs_dir,
+                process_timeout,
+                sleep_before_start
+            )
+
+            # Ensure writing
+            stdout.flush()
+            stderr.flush()
+            os.fsync(stdout.fileno())
+            os.fsync(stderr.fileno())
+
+        if plib:
+            _increase_completed(plib, my_index)
+            is_ignored = _is_ignored(plib, caller_id)
+
+        # Thread-safe list append
+        _ALL_ELAPSED.append(elapsed)
+
+        _result_to_stdout(
+            elapsed=elapsed,
+            is_ignored=is_ignored,
+            item_name=item_name,
+            my_index=my_index,
+            pool_id=pool_id,
+            process=process,
+            rc=rc,
+            stderr=stderr_path,
+            stdout=stdout_path,
+            verbose=verbose,
+            show_stdout_on_failure=show_stdout_on_failure,
+        )
+
+        if is_ignored and os.path.isdir(outs_dir):
+            _rmtree_with_path(outs_dir)
+        return rc
+    
     except:
         _write(traceback.format_exc(), level="error")
-    if plib:
-        _increase_completed(plib, my_index)
-        is_ignored = _is_ignored(plib, caller_id)
-    # Thread-safe list append
-    _ALL_ELAPSED.append(elapsed)
-    _result_to_stdout(
-        elapsed,
-        is_ignored,
-        item_name,
-        my_index,
-        pool_id,
-        process,
-        rc,
-        stderr,
-        stdout,
-        verbose,
-        show_stdout_on_failure,
-    )
-    if is_ignored and os.path.isdir(outs_dir):
-        _rmtree_with_path(outs_dir)
-    return rc
+        return 252
 
 
 def _result_to_stdout(
@@ -603,7 +626,7 @@ def _run(
         _write(f"{timestamp} [{pool_id}] [ID:{item_index}] SLEEPING {sleep_before_start} SECONDS BEFORE STARTING {item_name}")
         time.sleep(sleep_before_start)
 
-    command_name = run_command[-1].replace(" ", "_")
+    command_name = _get_command_name(run_command[0])
     argfile_path = os.path.join(outs_dir, f"{command_name}_argfile.txt")
     _write_internal_argument_file(run_options, filename=argfile_path)
 
@@ -634,11 +657,11 @@ def _run(
 
 def _read_file(file_handle):
     try:
-        with open(file_handle.name, "r") as content_file:
+        with open(file_handle, "r") as content_file:
             content = content_file.read()
         return content
-    except:
-        return "Unable to read file %s" % file_handle
+    except Exception as e:
+        return "Unable to read file %s, error: %s" % (os.path.abspath(file_handle), e)
 
 
 def _execution_failed_message(suite_name, stdout, stderr, rc, verbose):
@@ -1262,6 +1285,7 @@ def generate_suite_names_with_builder(outs_dir, datasources, options):
     if ROBOT_VERSION >= "6.1":
         builder = TestSuiteBuilder(
             included_extensions=settings.extension,
+            included_files=settings.parse_include,
             rpa=settings.rpa,
             lang=opts.get("language"),
         )
@@ -1359,7 +1383,7 @@ def _options_for_dryrun(options, outs_dir):
     return _set_terminal_coloring_options(options)
 
 
-def _options_for_rebot(options, start_time_string, end_time_string):
+def _options_for_rebot(options, start_time_string, end_time_string, num_of_executions=0):
     rebot_options = options.copy()
     rebot_options["starttime"] = start_time_string
     rebot_options["endtime"] = end_time_string
@@ -1368,6 +1392,12 @@ def _options_for_rebot(options, start_time_string, end_time_string):
     rebot_options["test"] = []
     rebot_options["exclude"] = []
     rebot_options["include"] = []
+    rebot_options["metadata"].append(
+        f"Pabot Info:[https://pabot.org/?ref=log|Pabot] result from {num_of_executions} executions."
+    )
+    rebot_options["metadata"].append(
+        f"Pabot Version:{PABOT_VERSION}"
+    )
     if rebot_options.get("runemptysuite"):
         rebot_options["processemptysuite"] = True
     if ROBOT_VERSION >= "2.8":
@@ -1727,7 +1757,7 @@ def _copy_output_artifacts(options, timestamp_id=None, file_extensions=None, inc
     return copied_artifacts
 
 
-def _check_pabot_results_for_missing_xml(base_dir, command_name, output_xml_name):
+def _check_pabot_results_for_missing_xml(base_dir, command_name, output_xml_name='output.xml'):
     """
     Check for missing Robot Framework output XML files in pabot result directories,
     taking into account the optional timestamp added by the -T option.
@@ -1753,14 +1783,18 @@ def _check_pabot_results_for_missing_xml(base_dir, command_name, output_xml_name
                 # Check if any file matches the expected XML name or timestamped variant
                 has_xml = any(pattern.match(fname) for fname in os.listdir(subdir_path))
                 if not has_xml:
-                    sanitized_cmd = command_name.replace(" ", "_")
+                    sanitized_cmd = _get_command_name(command_name)
                     missing.append(os.path.join(subdir_path, f"{sanitized_cmd}_stderr.out"))
             break  # only check immediate subdirectories
     return missing
 
 
+def _get_command_name(command_name):
+    global _USE_USER_COMMAND
+    return "user_command" if _USE_USER_COMMAND else command_name
+
+
 def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root_name):
-    output_xml_name = options.get("output") or "output.xml"
     if "pythonpath" in options:
         del options["pythonpath"]
     if ROBOT_VERSION < "4.0":
@@ -1778,33 +1812,34 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
     missing_outputs = []
     if pabot_args["argumentfiles"]:
         outputs = []  # type: List[str]
+        total_num_of_executions = 0
         for index, _ in pabot_args["argumentfiles"]:
             copied_artifacts = _copy_output_artifacts(
                 options, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"], index
             )
-            outputs += [
-                _merge_one_run(
-                    os.path.join(outs_dir, index),
-                    options,
-                    tests_root_name,
-                    stats,
-                    copied_artifacts,
-                    timestamp_id=_get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]),
-                    outputfile=os.path.join("pabot_results", "output%s.xml" % index),
-                )
-            ]
-            missing_outputs.extend(_check_pabot_results_for_missing_xml(os.path.join(outs_dir, index), pabot_args.get('command')[-1], output_xml_name))
+            output, num_of_executions = _merge_one_run(
+                os.path.join(outs_dir, index),
+                options,
+                tests_root_name,
+                stats,
+                copied_artifacts,
+                timestamp_id=_get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]),
+                outputfile=os.path.join("pabot_results", "output%s.xml" % index),
+            )
+            outputs += [output]
+            total_num_of_executions += num_of_executions
+            missing_outputs.extend(_check_pabot_results_for_missing_xml(os.path.join(outs_dir, index), pabot_args.get('command')))
         if "output" not in options:
             options["output"] = "output.xml"
         _write_stats(stats)
         stdout_writer = get_stdout_writer()
         stderr_writer = get_stderr_writer(original_stderr_name='Internal Rebot')
-        exit_code = rebot(*outputs, **_options_for_rebot(options, start_time_string, _now()), stdout=stdout_writer, stderr=stderr_writer)
+        exit_code = rebot(*outputs, **_options_for_rebot(options, start_time_string, _now(), total_num_of_executions), stdout=stdout_writer, stderr=stderr_writer)
     else:
         exit_code = _report_results_for_one_run(
             outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
         )
-        missing_outputs.extend(_check_pabot_results_for_missing_xml(outs_dir, pabot_args.get('command')[-1], output_xml_name))
+        missing_outputs.extend(_check_pabot_results_for_missing_xml(outs_dir, pabot_args.get('command')))
     if missing_outputs:
         _write(("[ " + _wrap_with(Color.YELLOW, 'WARNING') + " ] "
                 "One or more subprocesses encountered an error and the "
@@ -1860,7 +1895,7 @@ def _report_results_for_one_run(
     copied_artifacts = _copy_output_artifacts(
         options, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
     )
-    output_path = _merge_one_run(
+    output_path, num_of_executions = _merge_one_run(
         outs_dir, options, tests_root_name, stats, copied_artifacts, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"])
     )
     _write_stats(stats)
@@ -1881,7 +1916,7 @@ def _report_results_for_one_run(
         options["output"] = None  # Do not write output again with rebot
     stdout_writer = get_stdout_writer()
     stderr_writer = get_stderr_writer(original_stderr_name="Internal Rebot")
-    exit_code = rebot(output_path, **_options_for_rebot(options, start_time_string, ts), stdout=stdout_writer, stderr=stderr_writer)
+    exit_code = rebot(output_path, **_options_for_rebot(options, start_time_string, ts, num_of_executions), stdout=stdout_writer, stderr=stderr_writer)
     return exit_code
 
 
@@ -1892,7 +1927,7 @@ def _merge_one_run(
     output_path = os.path.abspath(
         os.path.join(options.get("outputdir", "."), outputfile)
     )
-    filename = options.get("output") or "output.xml"
+    filename = "output.xml"
     base_name, ext = os.path.splitext(filename)
     # Glob all candidates
     candidate_files = glob(os.path.join(outs_dir, "**", f"*{base_name}*{ext}"), recursive=True)
@@ -1905,7 +1940,7 @@ def _merge_one_run(
 
     if not files:
         _write('[ WARNING ]: No output files in "%s"' % outs_dir, Color.YELLOW, level="warning")
-        return ""
+        return "", 0
 
     def invalid_xml_callback():
         global _ABNORMAL_EXIT_HAPPENED
@@ -1921,7 +1956,7 @@ def _merge_one_run(
         resu.save(output_path, legacy_output=True)
     else:
         resu.save(output_path)
-    return output_path
+    return output_path, len(files)
 
 
 def _update_stats(result, stats):
@@ -1987,11 +2022,11 @@ def _get_free_port():
         return s.getsockname()[1]
 
 
-def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Popen]
+def _start_remote_library(pabot_args):  # type: (dict) -> Optional[Tuple[subprocess.Popen, threading.Thread]]
     global _PABOTLIBURI
     # If pabotlib is not enabled, do nothing
     if not pabot_args.get("pabotlib"):
-        return None
+        return None, None
 
     host = pabot_args.get("pabotlibhost", "127.0.0.1")
     port = pabot_args.get("pabotlibport", 8270)
@@ -2045,11 +2080,20 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Po
     process = subprocess.Popen(cmd, **kwargs)
 
     def _read_output(proc, writer):
-        for line in proc.stdout:
-            if line.strip():  # Skip empty lines
-                writer.write(line.rstrip('\n') + '\n', level="info")
-                writer.flush()
-        proc.stdout.close()
+        try:
+            for line in proc.stdout:
+                if line.strip():  # Skip empty lines
+                    try:
+                        writer.write(line.rstrip('\n') + '\n', level="info")
+                        writer.flush()
+                    except (RuntimeError, ValueError):
+                        # Writer/stdout already closed during shutdown
+                        break
+        finally:
+            try:
+                proc.stdout.close()
+            except Exception:
+                pass
 
     pabotlib_writer = ThreadSafeWriter(get_writer())
     thread = threading.Thread(
@@ -2059,7 +2103,7 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[subprocess.Po
     )
     thread.start()
 
-    return process
+    return process, thread
 
 
 def _stop_remote_library(process):  # type: (subprocess.Popen) -> None
@@ -2126,6 +2170,7 @@ class QueueItem(object):
             outs_dir.encode("utf-8") if PY2 and is_unicode(outs_dir) else outs_dir
         )
         self.options = options
+        self.options["output"] = "output.xml"  # This is hardcoded output.xml inside pabot_results, not the final output
         self.execution_item = (
             execution_item if not hive else HivedItem(execution_item, hive)
         )
@@ -2366,7 +2411,7 @@ def main(args=None):
 
 
 def main_program(args):
-    global _PABOTLIBPROCESS, _PABOTCONSOLE, _PABOTWRITER
+    global _PABOTLIBPROCESS, _PABOTCONSOLE, _PABOTWRITER, _PABOTLIBTHREAD, _USE_USER_COMMAND
     outs_dir = None
     args = args or sys.argv[1:]
     if len(args) == 0:
@@ -2383,13 +2428,14 @@ def main_program(args):
     original_signal_handler = signal.default_int_handler  # Save default handler in case of early exit
     try:
         options, datasources, pabot_args, opts_for_run = parse_args(args)
+        _USE_USER_COMMAND = pabot_args.get("use_user_command", False)
         _PABOTCONSOLE = pabot_args.get("pabotconsole", "verbose")
         if pabot_args["help"]:
             help_print = __doc__.replace(
                     "PLACEHOLDER_README.MD",
                     read_args_from_readme()
                 )
-            print(help_print.replace("[PABOT_VERSION]", PABOT_VERSION))
+            print(help_print.replace("[PABOT_VERSION]", PABOT_VERSION, 1))
             return 251
         if len(datasources) == 0:
             print("[ " + _wrap_with(Color.RED, "ERROR") + " ]: No datasources given.")
@@ -2402,7 +2448,7 @@ def main_program(args):
         _ensure_process_manager()
         _write(f"Initialized logging in {outs_dir}", level="info")
 
-        _PABOTLIBPROCESS = _start_remote_library(pabot_args)
+        _PABOTLIBPROCESS, _PABOTLIBTHREAD = _start_remote_library(pabot_args)
         # Set up signal handler to keep PabotLib alive during CTRL+C
         # This ensures graceful shutdown in the finally block
         original_signal_handler = signal.signal(signal.SIGINT, keyboard_interrupt)
@@ -2553,12 +2599,31 @@ def main_program(args):
                 _write(f"[ WARNING ] Failed to print elapsed time: {e}", Color.YELLOW, level="warning")
             else:
                 print(f"[ WARNING ] Failed to print elapsed time: {e}")
-        
+
+        # Ensure pabotlib output reader thread has finished
+        try:
+            if _PABOTLIBTHREAD:
+                _PABOTLIBTHREAD.join(timeout=5)
+                if _PABOTLIBTHREAD.is_alive():
+                    if _PABOTWRITER:
+                        _write(
+                            "[ WARNING ] PabotLib output thread did not finish before timeout",
+                            Color.YELLOW,
+                            level="warning"
+                        )
+                    else:
+                        print("[ WARNING ] PabotLib output thread did not finish before timeout")
+        except Exception as e:
+            if _PABOTWRITER:
+                _write(f"[ WARNING ] Could not join pabotlib output thread: {e}", Color.YELLOW, level="warning")
+            else:
+                print(f"[ WARNING ] Could not join pabotlib output thread: {e}")
+
         # Flush and stop writer
         try:
             if _PABOTWRITER:
-                _PABOTWRITER.flush()
                 _PABOTWRITER.write("Logs flushed successfully.", level="debug")
+                _PABOTWRITER.flush()
             else:
                 writer = get_writer()
                 if writer:

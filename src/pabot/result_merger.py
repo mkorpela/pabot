@@ -290,12 +290,6 @@ def merge(
         rebot_options.get('legacyoutput')
     )
     if len(merged) == 1:
-        if not merged[0].suite.doc:
-            merged[
-                0
-            ].suite.doc = "[https://pabot.org/?ref=log|Pabot] result from %d executions." % len(
-                result_files
-            )
         return merged[0]
     else:
         return ResultsCombiner(merged)
