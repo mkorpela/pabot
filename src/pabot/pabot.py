@@ -47,8 +47,8 @@ from contextlib import closing
 from glob import glob
 from io import BytesIO, StringIO
 from multiprocessing.pool import ThreadPool
-from natsort import natsorted
 from pathlib import Path
+from packaging.version import Version
 
 from robot import __version__ as ROBOT_VERSION
 from robot import rebot
@@ -316,9 +316,17 @@ def execute_and_wait_with(item):
     return rc
 
 
+def has_robot_stacktracer(min_version="0.4.1"):
+    try:
+        import RobotStackTracer  # type: ignore
+        return Version(RobotStackTracer.__version__) >= Version(min_version)  # type: ignore
+    except (ImportError, AttributeError):
+        return False
+
+
 def _create_command_for_execution(caller_id, datasources, is_last, item, outs_dir):
     options = item.options.copy()
-    if item.command == ["robot"] and not options["listener"]:
+    if item.command == ["robot"] and not options["listener"] and has_robot_stacktracer():
         options["listener"] = ["RobotStackTracer"]
     run_options = (
         _options_for_custom_executor(
@@ -1936,7 +1944,13 @@ def _merge_one_run(
     ts_pattern = re.compile(rf"^{re.escape(base_name)}(?:-\d{{8}}-\d{{6}})?{re.escape(ext)}$")
 
     files = [f for f in candidate_files if ts_pattern.search(os.path.basename(f))]
-    files = natsorted(files)
+
+    # For sorting ./pabot_results/X/Y/output.xml paths without natsort library
+    def natural_key(s):
+        return [int(t) if t.isdigit() else t.casefold()
+                for t in re.split(r'(\d+)', s)]
+
+    files.sort(key=natural_key)
 
     if not files:
         _write('[ WARNING ]: No output files in "%s"' % outs_dir, Color.YELLOW, level="warning")
