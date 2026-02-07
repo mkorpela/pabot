@@ -48,7 +48,6 @@ from glob import glob
 from io import BytesIO, StringIO
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
-from packaging.version import Version
 
 from robot import __version__ as ROBOT_VERSION
 from robot import rebot
@@ -319,8 +318,9 @@ def execute_and_wait_with(item):
 def has_robot_stacktracer(min_version="0.4.1"):
     try:
         import RobotStackTracer  # type: ignore
+        from packaging.version import Version
         return Version(RobotStackTracer.__version__) >= Version(min_version)  # type: ignore
-    except (ImportError, AttributeError):
+    except (ImportError, ModuleNotFoundError, AttributeError):
         return False
 
 
@@ -762,6 +762,7 @@ def _options_for_executor(
         listener_path = os.path.join(this_dir, "listener", "skip_listener.py")
         options["dryrun"] = True
         options["listener"].append(listener_path)
+        options["exitonfailure"] = True
     return _set_terminal_coloring_options(options)
 
 
