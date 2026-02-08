@@ -333,7 +333,7 @@ class ProcessManager:
                 listener_path = os.path.join(this_dir, "listener", "interrupt_listener.py")
                 dry_run_env = env.copy() if env else os.environ.copy()
                 before, after = split_on_first(cmd, "-A")
-                dryrun_cmd = before + ["--dryrun", '--listener', listener_path, '-A'] + after
+                dryrun_cmd = before + ["--dryrun", '--exitonerror', '--listener', listener_path, '-A'] + after
 
                 self.writer.write(
                     f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] "
@@ -369,7 +369,7 @@ class ProcessManager:
                 listener_path = os.path.join(this_dir, "listener", "timeout_listener.py")
                 dry_run_env = env.copy() if env else os.environ.copy()
                 before, after = split_on_first(cmd, "-A")
-                dryrun_cmd = before + ["--dryrun", '--listener', listener_path, '-A'] + after
+                dryrun_cmd = before + ["--dryrun", '--exitonerror', '--listener', listener_path, '-A'] + after
 
                 self.writer.write(
                     f"{ts} [PID:{process.pid}] [{pool_id}] [ID:{item_index}] "

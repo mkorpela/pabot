@@ -31,17 +31,40 @@ A parallel executor for [Robot Framework](http://www.robotframework.org) tests. 
 
 ## Installation:
 
-From PyPi:
+Pabot can be installed in the following ways:
 
-     pip install -U robotframework-pabot
+### From PyPI
 
-OR clone this repository and run:
+    pip install -U robotframework-pabot
 
-     setup.py  install
+### From source (standard install)
 
-OR clone this repository and run:
+Clone this repository and run:
 
-     pip install --editable .
+    python setup.py install
+
+### From source (editable / development mode)
+
+Clone this repository and run:
+
+    pip install --editable .
+
+### Note
+
+Starting from **Pabot version 5.2.0**, the Pabot installation only requires
+**Robot Framework** to function.
+
+The previously used dependency **natsort** has been replaced with a pure
+Python implementation.
+
+In addition, **robotframework-stacktrace** has been moved to an **optional**
+dependency. If it is installed, Pabot will continue to use it when running
+sub-Robot processes to improve fail/error logging both in Pabot’s own log file
+and on the command line.
+
+You can install the optional stacktrace support with:
+
+    pip install -U robotframework-pabot[stacktrace]
 
 ## Basic use
 
