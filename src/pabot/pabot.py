@@ -2428,6 +2428,7 @@ def main(args=None):
 def main_program(args):
     global _PABOTLIBPROCESS, _PABOTCONSOLE, _PABOTWRITER, _PABOTLIBTHREAD, _USE_USER_COMMAND
     outs_dir = None
+    version_or_help_called = False
     args = args or sys.argv[1:]
     if len(args) == 0:
         print(
@@ -2451,6 +2452,7 @@ def main_program(args):
                     read_args_from_readme()
                 )
             print(help_print.replace("[PABOT_VERSION]", PABOT_VERSION, 1))
+            version_or_help_called = True
             return 251
         if len(datasources) == 0:
             print("[ " + _wrap_with(Color.RED, "ERROR") + " ]: No datasources given.")
@@ -2535,6 +2537,7 @@ def main_program(args):
             _write(i.message, level="info")
         else:
             print(i.message)
+        version_or_help_called = True
         return 251
     except DataError as err:
         if _PABOTWRITER:
@@ -2569,10 +2572,11 @@ def main_program(args):
                 print("[ ERROR ] Execution stopped by user (Ctrl+C)")
             return 253
     finally:
-        if _PABOTWRITER:
-            _write("Finalizing Pabot execution...", level="debug")
-        else:
-            print("Finalizing Pabot execution...")
+        if not version_or_help_called:
+            if _PABOTWRITER:
+                _write("Finalizing Pabot execution...", level="debug")
+            else:
+                print("Finalizing Pabot execution...")
         
         # Restore original signal handler
         try:
@@ -2608,7 +2612,8 @@ def main_program(args):
         
         # Print elapsed time
         try:
-            _print_elapsed(start_time, time.time())
+            if not version_or_help_called:
+                _print_elapsed(start_time, time.time())
         except Exception as e:
             if _PABOTWRITER:
                 _write(f"[ WARNING ] Failed to print elapsed time: {e}", Color.YELLOW, level="warning")
@@ -2639,7 +2644,7 @@ def main_program(args):
             if _PABOTWRITER:
                 _PABOTWRITER.write("Logs flushed successfully.", level="debug")
                 _PABOTWRITER.flush()
-            else:
+            elif not version_or_help_called:
                 writer = get_writer()
                 if writer:
                     writer.flush()
@@ -2649,7 +2654,7 @@ def main_program(args):
         try:
             if _PABOTWRITER:
                 _PABOTWRITER.stop()
-            else:
+            elif not version_or_help_called:
                 writer = get_writer()
                 if writer:
                     writer.stop()
