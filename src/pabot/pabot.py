@@ -1766,14 +1766,14 @@ def _copy_output_artifacts(options, timestamp_id=None, file_extensions=None, inc
     return copied_artifacts
 
 
-def _check_pabot_results_for_missing_xml(base_dir, command_name, output_xml_name='output.xml'):
+def _check_pabot_results_for_missing_xml(base_dir, command_list, output_xml_name='output.xml'):
     """
     Check for missing Robot Framework output XML files in pabot result directories,
     taking into account the optional timestamp added by the -T option.
 
     Args:
         base_dir: The root directory containing pabot subdirectories
-        command_name: Name of the command that generated the output (used for fallback stderr filename)
+        command_list: list of commands for starting subprocesses
         output_xml_name: Expected XML filename, e.g., 'output.xml'
 
     Returns:
@@ -1792,7 +1792,7 @@ def _check_pabot_results_for_missing_xml(base_dir, command_name, output_xml_name
                 # Check if any file matches the expected XML name or timestamped variant
                 has_xml = any(pattern.match(fname) for fname in os.listdir(subdir_path))
                 if not has_xml:
-                    sanitized_cmd = _get_command_name(command_name)
+                    sanitized_cmd = _get_command_name(command_list[0])
                     missing.append(os.path.join(subdir_path, f"{sanitized_cmd}_stderr.out"))
             break  # only check immediate subdirectories
     return missing
