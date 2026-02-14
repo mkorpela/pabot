@@ -427,7 +427,7 @@ class IncludeItem(ExecutionItem):
 
 
 class SuiteItems(ExecutionItem):
-    type = "suite"
+    type = "suites"
 
     def __init__(self, suites):
         self.suites = suites

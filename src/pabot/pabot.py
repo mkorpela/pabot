@@ -2223,7 +2223,7 @@ def _create_execution_items(
         if ROBOT_VERSION >= "2.8"
         else options.get("runmode") == "DryRun"
     )
-    if is_dry_run:
+    if is_dry_run and not pabot_args.get("ordering"):
         all_items = _create_execution_items_for_dry_run(
             suite_groups, datasources, outs_dir, opts_for_run, pabot_args
         )
@@ -2724,7 +2724,7 @@ def _group_suites(outs_dir, datasources, options, pabot_args):
     shard_suites = solve_shard_suites(ordered_suites, pabot_args)
     grouped_suites = (
         _chunked_suite_names(shard_suites, pabot_args["processes"])
-        if pabot_args["chunk"]
+        if pabot_args["chunk"] and not pabot_args["ordering"]
         else _group_by_wait(_group_by_groups(shard_suites))
     )
     grouped_by_depend = _all_grouped_suites_by_depend(grouped_suites)
