@@ -214,7 +214,8 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
 
 **--chunk**   
   Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same 
-  setups and teardowns.
+  setups and teardowns. Note that chunking is skipped if an ordering file is provided. The ordering file may contain 
+  significantly complex execution orders, in which case consolidation into chunks is not possible.
 
 **--pabotprerunmodifier [PRERUNMODIFIER MODULE OR CLASS]**   
   Like Robot Framework's --prerunmodifier, but executed only once in the pabot's main process after all other 

@@ -19,6 +19,7 @@ from __future__ import absolute_import, print_function
 
 import os
 import re
+import time
 
 from robot import __version__ as ROBOT_VERSION
 from robot.api import ExecutionResult
@@ -220,21 +221,45 @@ def prefix(source, timestamp_id):
 def group_by_root(results, critical_tags, non_critical_tags, invalid_xml_callback):
     groups = {}
     writer = get_writer()
+
+    max_retries = 10  # Total max wait time is 10 * 0.3s
+    retry_time = 0.3
+    retries_used = 0
+
     for src in results:
-        try:
-            res = ExecutionResult(src)
-        except DataError as err:
-            if writer:
-                writer.write(err.message, level="error")
-                writer.write("Skipping '%s' from final result" % src, level="warning")
-            else:
-                print(err.message)
-                print("Skipping '%s' from final result" % src)
-            invalid_xml_callback()
+        while True:
+            try:
+                res = ExecutionResult(src)
+                break  # success → exit retry loop
+
+            except DataError as err:
+                if retries_used < max_retries:
+                    retries_used += 1
+                    time.sleep(retry_time)
+                    continue  # Try same file again
+
+                # retries used → skip
+                if writer:
+                    writer.write(err.message, level="error")
+                    writer.write(
+                        "Skipping '%s' from final result" % src,
+                        level="warning",
+                    )
+                else:
+                    print(err.message)
+                    print("Skipping '%s' from final result" % src)
+
+                invalid_xml_callback()
+                res = None
+                break
+
+        if res is None:
             continue
+
         if ROBOT_VERSION < "4.0":
             res.suite.set_criticality(critical_tags, non_critical_tags)
         groups[res.suite.name] = groups.get(res.suite.name, []) + [res]
+
     return groups
 
 

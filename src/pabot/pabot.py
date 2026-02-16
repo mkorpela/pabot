@@ -1766,14 +1766,14 @@ def _copy_output_artifacts(options, timestamp_id=None, file_extensions=None, inc
     return copied_artifacts
 
 
-def _check_pabot_results_for_missing_xml(base_dir, command_name, output_xml_name='output.xml'):
+def _check_pabot_results_for_missing_xml(base_dir, command_list, output_xml_name='output.xml'):
     """
     Check for missing Robot Framework output XML files in pabot result directories,
     taking into account the optional timestamp added by the -T option.
 
     Args:
         base_dir: The root directory containing pabot subdirectories
-        command_name: Name of the command that generated the output (used for fallback stderr filename)
+        command_list: list of commands for starting subprocesses
         output_xml_name: Expected XML filename, e.g., 'output.xml'
 
     Returns:
@@ -1792,7 +1792,7 @@ def _check_pabot_results_for_missing_xml(base_dir, command_name, output_xml_name
                 # Check if any file matches the expected XML name or timestamped variant
                 has_xml = any(pattern.match(fname) for fname in os.listdir(subdir_path))
                 if not has_xml:
-                    sanitized_cmd = _get_command_name(command_name)
+                    sanitized_cmd = _get_command_name(command_list[0])
                     missing.append(os.path.join(subdir_path, f"{sanitized_cmd}_stderr.out"))
             break  # only check immediate subdirectories
     return missing
@@ -2223,7 +2223,7 @@ def _create_execution_items(
         if ROBOT_VERSION >= "2.8"
         else options.get("runmode") == "DryRun"
     )
-    if is_dry_run:
+    if is_dry_run and not pabot_args.get("ordering"):
         all_items = _create_execution_items_for_dry_run(
             suite_groups, datasources, outs_dir, opts_for_run, pabot_args
         )
@@ -2428,6 +2428,7 @@ def main(args=None):
 def main_program(args):
     global _PABOTLIBPROCESS, _PABOTCONSOLE, _PABOTWRITER, _PABOTLIBTHREAD, _USE_USER_COMMAND
     outs_dir = None
+    version_or_help_called = False
     args = args or sys.argv[1:]
     if len(args) == 0:
         print(
@@ -2451,6 +2452,7 @@ def main_program(args):
                     read_args_from_readme()
                 )
             print(help_print.replace("[PABOT_VERSION]", PABOT_VERSION, 1))
+            version_or_help_called = True
             return 251
         if len(datasources) == 0:
             print("[ " + _wrap_with(Color.RED, "ERROR") + " ]: No datasources given.")
@@ -2535,6 +2537,7 @@ def main_program(args):
             _write(i.message, level="info")
         else:
             print(i.message)
+        version_or_help_called = True
         return 251
     except DataError as err:
         if _PABOTWRITER:
@@ -2569,10 +2572,8 @@ def main_program(args):
                 print("[ ERROR ] Execution stopped by user (Ctrl+C)")
             return 253
     finally:
-        if _PABOTWRITER:
+        if not version_or_help_called and _PABOTWRITER:
             _write("Finalizing Pabot execution...", level="debug")
-        else:
-            print("Finalizing Pabot execution...")
         
         # Restore original signal handler
         try:
@@ -2608,7 +2609,8 @@ def main_program(args):
         
         # Print elapsed time
         try:
-            _print_elapsed(start_time, time.time())
+            if not version_or_help_called and _PABOTWRITER:
+                _print_elapsed(start_time, time.time())
         except Exception as e:
             if _PABOTWRITER:
                 _write(f"[ WARNING ] Failed to print elapsed time: {e}", Color.YELLOW, level="warning")
@@ -2639,7 +2641,7 @@ def main_program(args):
             if _PABOTWRITER:
                 _PABOTWRITER.write("Logs flushed successfully.", level="debug")
                 _PABOTWRITER.flush()
-            else:
+            elif not version_or_help_called:
                 writer = get_writer()
                 if writer:
                     writer.flush()
@@ -2649,7 +2651,7 @@ def main_program(args):
         try:
             if _PABOTWRITER:
                 _PABOTWRITER.stop()
-            else:
+            elif not version_or_help_called:
                 writer = get_writer()
                 if writer:
                     writer.stop()
@@ -2719,7 +2721,7 @@ def _group_suites(outs_dir, datasources, options, pabot_args):
     shard_suites = solve_shard_suites(ordered_suites, pabot_args)
     grouped_suites = (
         _chunked_suite_names(shard_suites, pabot_args["processes"])
-        if pabot_args["chunk"]
+        if pabot_args["chunk"] and not pabot_args["ordering"]
         else _group_by_wait(_group_by_groups(shard_suites))
     )
     grouped_by_depend = _all_grouped_suites_by_depend(grouped_suites)
@@ -2734,6 +2736,16 @@ def _update_ordering_names(ordering, new_top_name):
             splitted_name = item.name.split('.')
             splitted_name[0] = new_top_name
             item.name = '.'.join(splitted_name)
+
+            # Replace dependencies too
+            deps = []
+            for d in item.depends:
+                splitted_name = d.split('.')
+                splitted_name[0] = new_top_name
+                deps.append('.'.join(splitted_name))
+
+            item.depends = deps
+
         output.append(item)
     return output
 
