@@ -2572,11 +2572,8 @@ def main_program(args):
                 print("[ ERROR ] Execution stopped by user (Ctrl+C)")
             return 253
     finally:
-        if not version_or_help_called:
-            if _PABOTWRITER:
-                _write("Finalizing Pabot execution...", level="debug")
-            else:
-                print("Finalizing Pabot execution...")
+        if not version_or_help_called and _PABOTWRITER:
+            _write("Finalizing Pabot execution...", level="debug")
         
         # Restore original signal handler
         try:
@@ -2612,7 +2609,7 @@ def main_program(args):
         
         # Print elapsed time
         try:
-            if not version_or_help_called:
+            if not version_or_help_called and _PABOTWRITER:
                 _print_elapsed(start_time, time.time())
         except Exception as e:
             if _PABOTWRITER:
