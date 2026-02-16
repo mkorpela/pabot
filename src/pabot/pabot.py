@@ -2736,6 +2736,16 @@ def _update_ordering_names(ordering, new_top_name):
             splitted_name = item.name.split('.')
             splitted_name[0] = new_top_name
             item.name = '.'.join(splitted_name)
+
+            # Replace dependencies too
+            deps = []
+            for d in item.depends:
+                splitted_name = d.split('.')
+                splitted_name[0] = new_top_name
+                deps.append('.'.join(splitted_name))
+
+            item.depends = deps
+
         output.append(item)
     return output
 
