@@ -123,6 +123,8 @@ _EXECUTOR_COUNTER = 0
 _EXECUTOR_COUNTER_LOCK = threading.Lock()
 # Maximum number of executors (workers in the thread pool)
 _MAX_EXECUTORS = 1
+# Size of the current parallel execution batch
+_CURRENT_BATCH_SIZE = 0
 
 _ROBOT_EXTENSIONS = [
     ".html",
@@ -742,6 +744,9 @@ def _options_for_executor(
     pabotIsLast = "PABOTISLASTEXECUTIONINPOOL:%s" % ("1" if is_last else "0")
     if pabotIsLast not in options["variable"]:
         options["variable"].append(pabotIsLast)
+    pabotBatchSize = "PABOTEXECUTIONBATCHSIZE:%s" % str(_CURRENT_BATCH_SIZE)
+    if pabotBatchSize not in options["variable"]:
+        options["variable"].append(pabotBatchSize)
     pabotProcesses = "PABOTNUMBEROFPROCESSES:%s" % str(processes)
     if pabotProcesses not in options["variable"]:
         options["variable"].append(pabotProcesses)
@@ -1591,9 +1596,10 @@ def _parallel_execute_dynamic(
 ):
     # Signal handler is already set in main_program, no need to set it again
     # Just use the thread pool without managing signals
-    global _MAX_EXECUTORS, _EXECUTOR_COUNTER
+    global _MAX_EXECUTORS, _EXECUTOR_COUNTER, _CURRENT_BATCH_SIZE
 
-    max_processes = processes or len(items)
+    _CURRENT_BATCH_SIZE = len(items)
+    max_processes = processes or _CURRENT_BATCH_SIZE
     _MAX_EXECUTORS = max_processes
     _EXECUTOR_COUNTER = 0  # Reset executor counter for each parallel execution batch
     pool = ThreadPool(max_processes)
@@ -1659,6 +1665,7 @@ def _parallel_execute_dynamic(
             )
             if dynamic_items:
                 with lock:
+                    _CURRENT_BATCH_SIZE += len(dynamic_items)
                     for di in dynamic_items:
                         pending.add(di)
 
@@ -1673,8 +1680,9 @@ def _parallel_execute(
     items, processes, datasources, outs_dir, opts_for_run, pabot_args
 ):
     # Signal handler is already set in main_program, no need to set it again
-    global _MAX_EXECUTORS, _EXECUTOR_COUNTER
-    max_workers = len(items) if processes is None else processes
+    global _MAX_EXECUTORS, _EXECUTOR_COUNTER, _CURRENT_BATCH_SIZE
+    _CURRENT_BATCH_SIZE = len(items)
+    max_workers = processes or _CURRENT_BATCH_SIZE
     _MAX_EXECUTORS = max_workers
     _EXECUTOR_COUNTER = 0  # Reset executor counter for each parallel execution batch
     pool = ThreadPool(max_workers)
@@ -1698,6 +1706,7 @@ def _parallel_execute(
         delayed_result_append = max(0, delayed_result_append - 1)
         if new_items and delayed_result_append == 0:
             _construct_last_levels([new_items])
+            _CURRENT_BATCH_SIZE = len(new_items)
             results.append(pool.map_async(_execute_item_with_executor_tracking, new_items, 1))
             new_items = []
     pool.close()
