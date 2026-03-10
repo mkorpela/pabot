@@ -57,11 +57,5 @@ jobs:
           echo "pytest: $(pytest --version)"
           echo "pip: $(pip --version)"
 
-      - name: Test Pabot console streaming multiple times
-        run: |
-          echo "Running realtime Pabot streaming test..."
-          pytest -s tests/test_pabot_console_streaming.py
-          echo "Finished!"
-
       - name: Run tests
         run: pytest tests
