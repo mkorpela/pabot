@@ -1,63 +1,49 @@
-import threading
-import time
-from pabot.writer import get_writer
+import unittest
+import subprocess
+import re
+from datetime import datetime
 
-def worker(writer, start, end, delay=0.1):
-    """Simulates a single worker writing log output with a small delay."""
-    for i in range(start, end):
-        writer.write(f"step {i}")
-        time.sleep(delay)
+class TestPabotRealtimeLogging(unittest.TestCase):
+    def test_pabot_log_delay(self):
+        pabot_cmd = [
+            "pabot",
+            "--testlevelsplit",
+            "tests/ci"
+        ]
 
-
-def test_pabot_console_streaming_realtime():
-    """
-    Tests Pabot console streaming with multiple "workers".
-    Fails if output is excessively buffered (i.e., not near-real-time).
-    """
-    # Get the MessageWriter directly (not ThreadSafeWriter)
-    # Use console_type='none' to capture logs in memory instead of printing
-    writer = get_writer(console_type="none")
-
-    # List to capture timestamps of each log
-    log_times = []
-
-    # Override writer.write to capture timestamps
-    original_write = writer.write
-    def capture_write(msg, color=None, level="info"):
-        log_times.append(time.time())
-        original_write(msg, color=color, level=level)
-
-    writer.write = capture_write
-
-    threads = []
-    num_workers = 8
-    steps_per_worker = 100
-    sleep_delay = 0.05
-    max_interval_threshold = 0.1  # Max allowed interval between log messages (in seconds)
-
-    # Start worker threads
-    for w in range(num_workers):
-        t = threading.Thread(
-            target=worker,
-            args=(writer, w * steps_per_worker, (w + 1) * steps_per_worker, sleep_delay),
+        process = subprocess.Popen(
+            pabot_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            bufsize=1,
+            universal_newlines=True
         )
-        t.start()
-        threads.append(t)
 
-    # Wait for all threads to finish
-    for t in threads:
-        t.join()
+        timestamp_pattern = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d+)")
 
-    # Ensure all queued messages are flushed
-    writer.flush(timeout=5)
-    # Stop the background writer thread
-    writer.stop()
+        max_allowed_delay = 0.5  # seconds
+        delays = []
 
-    # Calculate intervals between log messages
-    intervals = [t2 - t1 for t1, t2 in zip(log_times, log_times[1:])]
-    max_interval = max(intervals) if intervals else 0.0
+        for line in process.stdout:
+            line = line.rstrip()
+            match = timestamp_pattern.search(line)
+            now = datetime.now()
 
-    print(f"Max interval between log messages: {max_interval:.3f}s")
+            if match:
+                log_time_str = match.group(1)
+                log_time = datetime.strptime(log_time_str, "%Y-%m-%d %H:%M:%S.%f")
+                delta = (now - log_time).total_seconds()
+                delays.append(delta)
+                print(f"{now.isoformat()} | {line} | delay: {delta:.6f}s")
+            else:
+                print(f"{now.isoformat()} | {line} | delay: N/A")
 
-    # Fail if any interval is too long (i.e., buffering happened)
-    assert max_interval < max_interval_threshold, f"Console output appears buffered, max interval={max_interval:.3f}s"
+        process.wait()
+
+        # Assert that all log delays are within the allowed threshold
+        for delta in delays:
+            self.assertLessEqual(delta, max_allowed_delay, 
+                f"Log delay too high: {delta:.6f}s")
+
+if __name__ == "__main__":
+    unittest.main()

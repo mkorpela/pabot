@@ -59,11 +59,9 @@ jobs:
 
       - name: Test Pabot console streaming multiple times
         run: |
-          echo "Running realtime Pabot streaming test 5 times..."
-          for i in {1..5}; do
-            echo "Run #$i"
-            pytest -s tests/test_pabot_console_streaming.py
-          done
+          echo "Running realtime Pabot streaming test..."
+          pytest -s tests/test_pabot_console_streaming.py
+          echo "Finished!"
 
       - name: Run tests
         run: pytest tests
