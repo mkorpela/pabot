@@ -305,7 +305,8 @@ def execute_and_wait_with(item):
                 item.index,
                 item.execution_item.type != "test",
                 process_timeout=item.timeout,
-                sleep_before_start=item.sleep_before_start
+                sleep_before_start=item.sleep_before_start,
+                item=item
             )
         outputxml_preprocessing(
             item.options, outs_dir, name, item.verbose, _get_executor_num(), caller_id, item.index
@@ -363,6 +364,83 @@ def _hived_execute(
         _increase_completed(plib, my_index)
 
 
+def _create_fallback_report(outs_dir, item, error_message):
+    # type: (str, Any, str) -> None
+    """
+    Creates a fallback output.xml in the given directory using Robot Framework API
+    to ensure that failures are visible in the merged report.
+    """
+    output_xml = os.path.join(outs_dir, "output.xml")
+    if os.path.isfile(output_xml):
+        return
+
+    from robot.result.model import TestSuite
+    from robot.result.executionresult import Result
+    from .execution_items import SuiteItem, TestItem, GroupItem
+    
+    def _reconstruct_suite_hierarchy(name_parts, is_test=False, tests=None):
+        if not name_parts:
+            return None
+        
+        # Robot Framework expects YYYYMMDD HH:MM:SS.mmm format
+        now = datetime.datetime.now().strftime("%Y%m%d %H:%M:%S.%f")
+
+        if len(name_parts) == 1:
+            if is_test:
+                # If it's a test, we don't want a suite for it at this level,
+                # but we need to return the test to be added to the parent.
+                # However, the recursive structure returns suites.
+                # So we handle test at the penultimate level.
+                return None
+            
+            suite = TestSuite(name=name_parts[0])
+            suite.starttime = now
+            suite.endtime = now
+            if tests:
+                for test_item in tests:
+                    short_name = test_item.name.split('.')[-1]
+                    suite.tests.create(name=short_name, status='FAIL', message=error_message)
+            else:
+                # Mark the suite itself as failed if no tests are known
+                # We add a placeholder test because TestSuite.status is read-only
+                suite.tests.create(name="Suite Startup", status='FAIL', message=error_message)
+            return suite
+        
+        suite = TestSuite(name=name_parts[0])
+        suite.starttime = now
+        suite.endtime = now
+        if len(name_parts) == 2 and is_test:
+            suite.tests.create(name=name_parts[1], status='FAIL', message=error_message)
+            return suite
+
+        inner_suite = _reconstruct_suite_hierarchy(name_parts[1:], is_test, tests)
+        if inner_suite:
+            suite.suites.append(inner_suite)
+        return suite
+
+    exec_item = item.execution_item
+    root_suite = None
+
+    if isinstance(exec_item, SuiteItem):
+        root_suite = _reconstruct_suite_hierarchy(exec_item.name.split('.'), is_test=False, tests=exec_item.tests)
+    elif isinstance(exec_item, TestItem):
+        root_suite = _reconstruct_suite_hierarchy(exec_item.name.split('.'), is_test=True)
+    elif isinstance(exec_item, GroupItem):
+        root_suite = TestSuite(name=exec_item.name)
+        for sub_item in exec_item._items:
+             is_t = sub_item.type == 'test'
+             sub_suite = _reconstruct_suite_hierarchy(sub_item.name.split('.'), is_test=is_t, tests=getattr(sub_item, 'tests', None))
+             if sub_suite:
+                 root_suite.suites.append(sub_suite)
+    else:
+        root_suite = _reconstruct_suite_hierarchy(exec_item.name.split('.'), is_test=False)
+
+    if root_suite:
+        result = Result(suite=root_suite)
+        result.generator = 'Pabot Fallback'
+        result.save(output_xml)
+
+
 def _try_execute_and_wait(
     run_cmd,
     run_options,
@@ -374,9 +452,10 @@ def _try_execute_and_wait(
     my_index=-1,
     show_stdout_on_failure=False,
     process_timeout=None,
-    sleep_before_start=0
+    sleep_before_start=0,
+    item=None
 ):
-    # type: (List[str], List[str], str, str, bool, int, str, int, bool, Optional[int], int) -> int
+    # type: (List[str], List[str], str, str, bool, int, str, int, bool, Optional[int], int, Any) -> int
     plib = None
     is_ignored = False
     if _pabotlib_in_use():
@@ -390,25 +469,59 @@ def _try_execute_and_wait(
         with open(stdout_path, "w", encoding="utf-8", buffering=1) as stdout, \
              open(stderr_path, "w", encoding="utf-8", buffering=1) as stderr:
 
-            process, (rc, elapsed) = _run(
-                run_cmd,
-                run_options,
-                stderr,
-                stdout,
-                item_name,
-                verbose,
-                pool_id,
-                my_index,
-                outs_dir,
-                process_timeout,
-                sleep_before_start
-            )
+            try:
+                process, (rc, elapsed) = _run(
+                    run_cmd,
+                    run_options,
+                    stderr,
+                    stdout,
+                    item_name,
+                    verbose,
+                    pool_id,
+                    my_index,
+                    outs_dir,
+                    process_timeout,
+                    sleep_before_start
+                )
+            except Exception as e:
+                # If process failed to start entirely (e.g., FileNotFoundError)
+                rc = 252
+                elapsed = 0
+                _write(f"Failed to start process for {item_name}: {e}", level="error")
+                # Create a minimal mock process for later use
+                import collections
+                process = collections.namedtuple('Process', ['pid'])(pid=0)
 
             # Ensure writing
             stdout.flush()
             stderr.flush()
             os.fsync(stdout.fileno())
             os.fsync(stderr.fileno())
+
+        if rc != 0:
+             # Check if output.xml exists, if not create a fallback
+             output_xml = os.path.join(outs_dir, "output.xml")
+             if not os.path.isfile(output_xml) and item:
+                 full_command = " ".join(run_cmd + ["-A", os.path.join(outs_dir, f"{command_name}_argfile.txt")])
+                 error_msg = [
+                     f"Execution failed with return code {rc}.",
+                     f"Command: {full_command}",
+                 ]
+                 try:
+                     with open(stderr_path, "r", encoding="utf-8") as f:
+                         stderr_content = f.read().strip()
+                         if stderr_content:
+                             error_msg.append(f"--- Stderr ---\n{stderr_content}")
+                 except Exception:
+                     pass
+                 try:
+                     with open(stdout_path, "r", encoding="utf-8") as f:
+                         stdout_content = f.read().strip()
+                         if stdout_content:
+                             error_msg.append(f"--- Stdout ---\n{stdout_content}")
+                 except Exception:
+                     pass
+                 _create_fallback_report(outs_dir, item, "\n".join(error_msg))
 
         if plib:
             _increase_completed(plib, my_index)
@@ -536,6 +649,7 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
             pool_id,
             caller_id,
             item_id,
+            item=None
         )
         newsize = os.path.getsize(outputxmlfile)
         perc = 100 * newsize / oldsize
