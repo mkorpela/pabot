@@ -434,7 +434,7 @@ def _try_execute_and_wait(
         if is_ignored and os.path.isdir(outs_dir):
             _rmtree_with_path(outs_dir)
         return rc
-    
+
     except:
         _write(traceback.format_exc(), level="error")
         return 252
@@ -1264,7 +1264,7 @@ def store_suite_names(hashes, suite_names):
         _write(
             "[ "
             + _wrap_with(Color.YELLOW, "WARNING")
-            + " ]: storing .pabotsuitenames failed", level="warning", 
+            + " ]: storing .pabotsuitenames failed", level="warning",
         )
 
 
@@ -1512,7 +1512,7 @@ def _dependencies_satisfied(item, completed):
             # No argfile index (single argumentfile case)
             if dep not in completed:
                 return False
-    
+
     return True
 
 
@@ -1520,7 +1520,7 @@ def _collect_transitive_dependents(failed_name, pending_items):
     """
     Returns all pending items that (directly or indirectly) depend on failed_name.
     Handles both regular names and unique names (with argfile_index).
-    
+
     When failed_name is "1:Suite", it means Suite failed in argumentfile 1.
     We should only skip items in argumentfile 1 that depend on Suite,
     not items in other argumentfiles.
@@ -1543,14 +1543,14 @@ def _collect_transitive_dependents(failed_name, pending_items):
 
     while queue:
         current = queue.pop(0)
-        
+
         # Extract base name from current (e.g., "1:Suite" -> "Suite")
         if ":" in current:
             current_argfile, current_base = current.split(":", 1)
         else:
             current_argfile = ""
             current_base = current
-        
+
         for item_name, deps in depends_map.items():
             # Only skip items from the same argumentfile
             # Check if item_name corresponds to the same argumentfile
@@ -1558,11 +1558,11 @@ def _collect_transitive_dependents(failed_name, pending_items):
                 item_argfile, _ = item_name.split(":", 1)
             else:
                 item_argfile = ""
-            
+
             # Only process if same argumentfile
             if item_argfile != argfile_index:
                 continue
-            
+
             # Check if this item depends on the current failed item
             if current_base in deps and item_name not in to_skip:
                 to_skip.add(item_name)
@@ -2039,8 +2039,9 @@ def _get_free_port():
 
 def _start_remote_library(pabot_args):  # type: (dict) -> Optional[Tuple[subprocess.Popen, threading.Thread]]
     global _PABOTLIBURI
-    # If pabotlib is not enabled, do nothing
-    if not pabot_args.get("pabotlib"):
+    # If pabotlib is disabled, do nothing.
+    #
+    if pabot_args.get("pabotlib") == "disable":
         return None, None
 
     host = pabot_args.get("pabotlibhost", "127.0.0.1")
@@ -2055,8 +2056,8 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[Tuple[subproc
         )
         port = _get_free_port()
 
-    # If host is default and port = 0, assign a free port
-    if host == "127.0.0.1" and port == 0:
+    # If port = 0, assign a free port
+    if port == 0:
         port = _get_free_port()
 
     _PABOTLIBURI = f"{host}:{port}"
@@ -2091,7 +2092,7 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[Tuple[subproc
         # Unix/Linux/macOS: use preexec_fn to create new session
         import os as os_module
         kwargs["preexec_fn"] = os_module.setsid
-    
+
     process = subprocess.Popen(cmd, **kwargs)
 
     def _read_output(proc, writer):
@@ -2129,13 +2130,13 @@ def _stop_remote_library(process):  # type: (subprocess.Popen) -> None
         remoteLib.run_keyword("stop_remote_server", [], {})
     except RuntimeError:
         _write("Could not connect to PabotLib - assuming stopped already", level="info")
-    
+
     # Always wait for graceful shutdown, regardless of remote connection status
     i = 50
     while i > 0 and process.poll() is None:
         time.sleep(0.1)
         i -= 1
-    
+
     # If still running after remote stop attempt, terminate it
     if process.poll() is None:
         _write(
@@ -2479,12 +2480,12 @@ def main_program(args):
             _write("No tests to execute", level="info")
             if not options.get("runemptysuite", False):
                 return 252
-        
+
         # Create execution items for all argumentfiles at once
         all_execution_items = _create_execution_items(
             suite_groups, datasources, outs_dir, options, opts_for_run, pabot_args
         )
-        
+
         # Now execute all items from all argumentfiles in parallel
         if pabot_args.get("ordering", {}).get("mode") == "dynamic":
             # flatten stages
@@ -2525,7 +2526,7 @@ def main_program(args):
             start_time_string,
             _get_suite_root_name(suite_groups),
         )
-        # If CTRL+C was pressed during execution, raise KeyboardInterrupt now. 
+        # If CTRL+C was pressed during execution, raise KeyboardInterrupt now.
         # This can happen without previous errors if test are for example almost ready.
         if CTRL_C_PRESSED:
             raise KeyboardInterrupt()
@@ -2574,7 +2575,7 @@ def main_program(args):
     finally:
         if not version_or_help_called and _PABOTWRITER:
             _write("Finalizing Pabot execution...", level="debug")
-        
+
         # Restore original signal handler
         try:
             signal.signal(signal.SIGINT, original_signal_handler)
@@ -2583,7 +2584,7 @@ def main_program(args):
                 _write(f"[ WARNING ] Could not restore signal handler: {e}", Color.YELLOW, level="warning")
             else:
                 print(f"[ WARNING ] Could not restore signal handler: {e}")
-        
+
         # First: Terminate all test subprocesses gracefully
         # This must happen BEFORE stopping PabotLib so test processes
         # can cleanly disconnect from the remote library
@@ -2595,7 +2596,7 @@ def main_program(args):
                 _write(f"[ WARNING ] Could not terminate test subprocesses: {e}", Color.YELLOW, level="warning")
             else:
                 print(f"[ WARNING ] Could not terminate test subprocesses: {e}")
-        
+
         # Then: Stop PabotLib after all test processes are gone
         # This ensures clean shutdown with no orphaned remote connections
         try:
@@ -2606,7 +2607,7 @@ def main_program(args):
                 _write(f"[ WARNING ] Failed to stop remote library cleanly: {e}", Color.YELLOW, level="warning")
             else:
                 print(f"[ WARNING ] Failed to stop remote library cleanly: {e}")
-        
+
         # Print elapsed time
         try:
             if not version_or_help_called and _PABOTWRITER:
@@ -2647,7 +2648,7 @@ def main_program(args):
                     writer.flush()
         except Exception as e:
             print(f"[ WARNING ] Could not flush writer: {e}")
-        
+
         try:
             if _PABOTWRITER:
                 _PABOTWRITER.stop()
@@ -2684,7 +2685,7 @@ def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], 
             if item.type in ['suite', 'test']:
                 if not any((s == item.name or s.endswith("." + item.name)) for s in list_of_suite_names):
                     # If test name is too long, it gets name ' Invalid', so skip that
-                    # Additionally, the test is skipped also if the user wants a higher-level suite to be executed sequentially by using 
+                    # Additionally, the test is skipped also if the user wants a higher-level suite to be executed sequentially by using
                     # the --suite option, and the given name is part of the full name of any test or suite.
                     if item.name != ' Invalid' and not (item.type == 'suite' and any((s == item.name or s.startswith(item.name + ".")) for s in list_of_suite_names)):
                         skipped_runnable_items.append(f"{item.type.title()} item: '{item.name}'")

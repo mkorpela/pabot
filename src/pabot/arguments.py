@@ -3,6 +3,7 @@ import multiprocessing
 import os
 import glob
 import re
+import socket
 import tempfile
 from typing import Dict, List, Optional, Tuple
 
@@ -162,7 +163,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "help": False,
         "version": False,
         "testlevelsplit": False,
-        "pabotlib": True,
+        "pabotlib": "manual",
         "pabotlibhost": "127.0.0.1",
         "pabotlibport": 8270,
         "processes": _processes_count(),
@@ -182,7 +183,6 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "verbose",
         "help",
         "testlevelsplit",
-        "pabotlib",
         "artifactsinsubfolders",
         "chunk",
         "no-rebot",
@@ -193,6 +193,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "hive": str,
         "processes": lambda x: int(x) if x != "all" else None,
         "resourcefile": str,
+        "pabotlib": str,
         "pabotlibhost": str,
         "pabotlibport": int,
         "pabotprerunmodifier": str,
@@ -211,6 +212,8 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
     # Track conflicting pabotlib options
     saw_pabotlib_flag = False
     saw_no_pabotlib = False
+    saw_pabotlibhost = False
+    saw_pabotlibport = False
 
     while i < len(args):
         arg = args[i]
@@ -224,11 +227,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         # Handle mutually exclusive pabotlib flags
         if arg_name == "no-pabotlib":
             saw_no_pabotlib = True
-            pabot_args["pabotlib"] = False
-            i += 1
-            continue
-        if arg_name == "pabotlib":
-            saw_pabotlib_flag = True
+            pabot_args["pabotlib"] = "disable"
             i += 1
             continue
 
@@ -302,12 +301,27 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                     pabot_args["pabotconsole"] = console_type
                     i += 2
                     continue
+                elif arg_name == "pabotlib":
+                    saw_pabotlib_flag = True
+                    value = value_args[arg_name](args[i + 1])
+                    valid_values = ("manual", "auto", "disable")
+                    if value not in valid_values:
+                        raise DataError(
+                            f"Invalid value for --pabotlib: {value}. "
+                            f"Valid values are: {', '.join(valid_values)}"
+                        )
+                    pabot_args["pabotlib"] = value
+                    i += 2
+                    continue
                 else:
                     value = value_args[arg_name](args[i + 1])
                     if arg_name == "shard":
                         pabot_args["shardindex"], pabot_args["shardcount"] = value
                     elif arg_name == "pabotlibhost":
-                        pabot_args["pabotlib"] = False
+                        saw_pabotlibhost = True
+                        pabot_args[arg_name] = value
+                    elif arg_name == "pabotlibport":
+                        saw_pabotlibport = True
                         pabot_args[arg_name] = value
                     elif arg_name == "artifacts":
                         pabot_args["artifacts"] = value[0]
@@ -318,7 +332,7 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                     continue
             except (ValueError, TypeError):
                 raise DataError(f"Invalid value for --{arg_name}: {args[i + 1]}")
-        
+
         # Handle argumentfiles like --argumentfile1
         match = ARGSMATCHER.match(arg)
         if match:
@@ -335,6 +349,17 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
     # Check for conflicting pabotlib flags
     if saw_pabotlib_flag and saw_no_pabotlib:
         raise DataError("Cannot use both --pabotlib and --no-pabotlib options together")
+
+    # Check if pabotlibhost is used with pabotlib manual
+    if saw_pabotlibhost and pabot_args.get("pabotlib") == "manual":
+        pabot_args["pabotlib"] = "disable"
+
+    if pabot_args.get("pabotlib") == "auto":
+        if not saw_pabotlibhost:
+            pabot_args["pabotlibhost"] = socket.gethostname()
+        if not saw_pabotlibport:
+            pabot_args["pabotlibport"] = 0
+
 
     pabot_args["argumentfiles"] = argumentfiles
 
