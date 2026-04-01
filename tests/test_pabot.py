@@ -1169,6 +1169,46 @@ class PabotTests(unittest.TestCase):
             pabot._stop_remote_library(lib_process)
             shutil.rmtree(dtemp)
 
+    def test_options_for_executor_variables(self):
+        original_pabotlib_uri = pabot._PABOTLIBURI
+        original_batch_size = pabot._CURRENT_BATCH_SIZE
+        try:
+            pabot._PABOTLIBURI = "12.34.56.78:1234"
+            pabot._CURRENT_BATCH_SIZE = 7
+            options = {
+                "listener": [],
+                "variable": ["PRE_EXISTING_VAR1:foo", "PRE_EXISTING_VAR2:bar"],
+            }
+            result = pabot._options_for_executor(
+                options=options,
+                outs_dir=self._outs_dir,
+                execution_item=s("Fixtures.Suite One"),
+                argfile=None,
+                caller_id="caller-id",
+                is_last=False,
+                queueIndex=1,
+                last_level=None,
+                processes=3,
+                skip=False,
+            )
+            self.assertListEqual(
+                [
+                    "PRE_EXISTING_VAR1:foo",
+                    "PRE_EXISTING_VAR2:bar",
+                    "CALLER_ID:caller-id",
+                    "PABOTLIBURI:12.34.56.78:1234",
+                    "PABOTEXECUTIONPOOLID:0",
+                    "PABOTISLASTEXECUTIONINPOOL:0",
+                    "PABOTEXECUTIONBATCHSIZE:7",
+                    "PABOTNUMBEROFPROCESSES:3",
+                    "PABOTQUEUEINDEX:1",
+                ],
+                result["variable"],
+            )
+        finally:
+            pabot._CURRENT_BATCH_SIZE = original_batch_size
+            pabot._PABOTLIBURI = original_pabotlib_uri
+
     def test_suite_root_name(self):
         def t(l):
             return [[s(i) for i in suites] for suites in l]
