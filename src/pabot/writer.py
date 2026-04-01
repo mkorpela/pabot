@@ -152,9 +152,9 @@ class MessageWriter:
                         self.console.dot(self._wrap_with(color, "s"))
                     else:
                         self.console.newline()
-                        print(self._wrap_with(color, message))
+                        print(self._wrap_with(color, message), flush=True)
                 else:
-                    print(self._wrap_with(color, message))
+                    print(self._wrap_with(color, message), flush=True)
                     
     def _writer(self):
         log_f = None
