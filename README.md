@@ -102,7 +102,7 @@ Before contributing, please read our detailed contributing guidelines:
 - [Security Policy](SECURITY.md)
 
 ## Command-line options
-<!-- NOTE: 
+<!-- NOTE:
 The sections inside these docstring markers are also used in Pabot's --help output.
 Currently, the following transformations are applied:
 - Remove Markdown links but keep the text
@@ -114,7 +114,7 @@ If you modify this part, make sure the Markdown section still looks clean and re
 ```
 pabot [--verbose|--testlevelsplit|--command .. --end-command|
         --processes num|--no-pabotlib|--pabotlibhost host|--pabotlibport port|
-        --processtimeout num|
+        --pabotlib [manual|auto|disable]|--processtimeout num|
         --shard i/n|
         --artifacts extensions|--artifactsinsubfolders|
         --resourcefile file|--argumentfile[num] file|--suitesfrom file
@@ -131,56 +131,68 @@ PabotLib remote server is started by default to enable locking and resource dist
 
 Supports all [Robot Framework command line options](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#command-line-options) and also following pabot options:
 
-**--verbose**     
+**--verbose**
   More output from the parallel execution.
 
-**--testlevelsplit**          
+**--testlevelsplit**
   Split execution on test level instead of default suite level. If .pabotsuitenames contains both tests and suites then
-  this will only affect new suites and split only them. Leaving this flag out when both suites and tests in 
+  this will only affect new suites and split only them. Leaving this flag out when both suites and tests in
   .pabotsuitenames file will also only affect new suites and add them as suite files.
 
-**--command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command**    
+**--command [ACTUAL COMMANDS TO START ROBOT EXECUTOR] --end-command**
   RF script for situations where robot is not used directly.
 
-**--processes [NUMBER OF PROCESSES]**          
-  How many parallel executors to use (default max of 2 and cpu count). Special option "all" will use as many processes as 
+**--processes [NUMBER OF PROCESSES]**
+  How many parallel executors to use (default max of 2 and cpu count). Special option "all" will use as many processes as
   there are executable suites or tests.
 
-**--no-pabotlib**  
+**--no-pabotlib**
   Disable the PabotLib remote server if you don't need locking or resource distribution features.
 
-**--pabotlibhost [HOSTNAME]**          
-  Connect to an already running instance of the PabotLib remote server at the given host (disables the local PabotLib 
+**--pabotlib [manual|auto|disable]**
+  manual: Use to manually connect to a running pabot server using the --pabotlibhost and --pabotlibport options.
+            This is the default behavior.
+
+  auto:  Use to automatically start a pabot server on this host. Use the --pabotlibhost and --pabotlibport
+           options to override the default hostname and port. to tell the client how to connect to the server.
+
+               pabot --pabotlib auto test/
+               pabot --pabotlib auto --pabotlibhost $(hostname -f) --pabotlibport 8271 test/
+
+  disable: Disable pabotlib, this is the same as --no-pabotlib.
+
+**--pabotlibhost [HOSTNAME]**
+  Connect to an already running instance of the PabotLib remote server at the given host (disables the local PabotLib
   server start). For example, to connect to a remote PabotLib server running on another machine:
-  
+
       pabot --pabotlibhost 192.168.1.123 --pabotlibport 8271 tests/
 
   The remote server can also be started and executed separately from pabot instances:
-  
+
       python -m pabot.pabotlib <path_to_resourcefile> <host> <port>
       python -m pabot.pabotlib resource.txt 192.168.1.123 8271
-  
+
   This enables sharing a resource with multiple Robot Framework instances.
 
   Additional details:
   - The default value for --pabotlibhost is 127.0.0.1.
   - If you provide a hostname other than 127.0.0.1, the local PabotLib server startup is automatically disabled.
 
-**--pabotlibport [PORT]**          
+**--pabotlibport [PORT]**
   Port number of the PabotLib remote server (default is 8270). See --pabotlibhost for more information.
 
   Behavior with port and host settings:
   - If you set the port value to 0 and --pabotlibhost is 127.0.0.1 (default), a free port on localhost will be assigned automatically.
 
-**--processtimeout [TIMEOUT]**          
+**--processtimeout [TIMEOUT]**
   Maximum time in seconds to wait for a process before killing it. If not set, there's no timeout.
 
-**--shard [INDEX]/[TOTAL]**   
+**--shard [INDEX]/[TOTAL]**
   Optionally split execution into smaller pieces. This can be used for distributing testing to multiple machines.
-  
-**--artifacts [FILE EXTENSIONS]**   
-  List of file extensions (comma separated). Defines which files (screenshots, videos etc.) from separate reporting 
-  directories would be copied and included in a final report. Possible links to copied files in RF log would be updated 
+
+**--artifacts [FILE EXTENSIONS]**
+  List of file extensions (comma separated). Defines which files (screenshots, videos etc.) from separate reporting
+  directories would be copied and included in a final report. Possible links to copied files in RF log would be updated
   (only relative paths supported). The default value is `png`.
 
   Examples:
@@ -189,43 +201,43 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
 
   The artifact naming conventions are described in the README.md section: [Output Files Generated by Pabot](#output-files-generated-by-pabot).
 
-**--artifactsinsubfolders**   
+**--artifactsinsubfolders**
   Copy artifacts located not only directly in the RF output dir, but also in it's sub-folders.
 
-**--resourcefile [FILEPATH]**          
-  Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with 
+**--resourcefile [FILEPATH]**
+  Indicator for a file that can contain shared variables for distributing resources. This needs to be used together with
   pabotlib option. Resource file syntax is same as Windows ini files where a section is a shared set of variables.
 
-**--argumentfile[INTEGER] [FILEPATH]**          
+**--argumentfile[INTEGER] [FILEPATH]**
   Run same suites with multiple [argumentfile](http://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#argument-files) options.
 
   For example:
 
      --argumentfile1 arg1.txt --argumentfile2 arg2.txt
 
-**--suitesfrom [FILEPATH TO OUTPUTXML]**          
-  Optionally read suites from output.xml file. Failed suites will run first and longer running ones will be executed 
+**--suitesfrom [FILEPATH TO OUTPUTXML]**
+  Optionally read suites from output.xml file. Failed suites will run first and longer running ones will be executed
   before shorter ones.
 
-**--ordering [FILEPATH] [MODE] [FAILURE POLICY]**   
+**--ordering [FILEPATH] [MODE] [FAILURE POLICY]**
   Optionally give execution order from a file. See README.md section: [Controlling execution order, mode and level of parallelism](#controlling-execution-order-mode-and-level-of-parallelism)
   - MODE (optional): [ static (default) | dynamic ]
   - FAILURE POLICY (optional, only in dynamic mode): [ skip | run_all (default) ]
 
-**--chunk**   
-  Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same 
-  setups and teardowns. Note that chunking is skipped if an ordering file is provided. The ordering file may contain 
+**--chunk**
+  Optionally chunk tests to PROCESSES number of robot runs. This can save time because all the suites will share the same
+  setups and teardowns. Note that chunking is skipped if an ordering file is provided. The ordering file may contain
   significantly complex execution orders, in which case consolidation into chunks is not possible.
 
-**--pabotprerunmodifier [PRERUNMODIFIER MODULE OR CLASS]**   
-  Like Robot Framework's --prerunmodifier, but executed only once in the pabot's main process after all other 
-  --prerunmodifiers. But unlike the regular --prerunmodifier command, --pabotprerunmodifier is not executed again in each 
-  pabot subprocesses. Depending on the intended use, this may be desirable as well as more efficient. Can be used, for 
+**--pabotprerunmodifier [PRERUNMODIFIER MODULE OR CLASS]**
+  Like Robot Framework's --prerunmodifier, but executed only once in the pabot's main process after all other
+  --prerunmodifiers. But unlike the regular --prerunmodifier command, --pabotprerunmodifier is not executed again in each
+  pabot subprocesses. Depending on the intended use, this may be desirable as well as more efficient. Can be used, for
   example, to modify the list of tests to be performed.
 
-**--no-rebot**    
-  If specified, the tests will execute as usual, but Rebot will not be called to merge the logs. This option is designed 
-  for scenarios where Rebot should be run later due to large log files, ensuring better memory and resource availability. 
+**--no-rebot**
+  If specified, the tests will execute as usual, but Rebot will not be called to merge the logs. This option is designed
+  for scenarios where Rebot should be run later due to large log files, ensuring better memory and resource availability.
   Subprocess results are stored in the pabot_results folder.
 
 **--pabotconsole [MODE]**
@@ -241,19 +253,19 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
       - PASS = .
       - FAIL = F
       - SKIP = s
-    
-    Note that each Robot Framework process is represented by a single character. 
-    Depending on the execution parameters, individual tests may not have their own status character; 
+
+    Note that each Robot Framework process is represented by a single character.
+    Depending on the execution parameters, individual tests may not have their own status character;
     instead, the status may represent an entire suite or a group of tests.
   - quiet:
     Similar to dotted, but suppresses execution progress output.
   - none:
     Produces no console output at all.
 
-**--help**             
+**--help**
   Print usage instructions.
- 
-**--version**                
+
+**--version**
   Print version information.
 
 **Example usages:**
@@ -261,7 +273,7 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
      pabot test_directory
      pabot --exclude FOO directory_to_tests
      pabot --command java -jar robotframework.jar --end-command --include SMOKE tests
-     pabot --processes 10 tests     
+     pabot --processes 10 tests
      pabot --pabotlibhost 192.168.1.123 --pabotlibport 8271 --processes 10 tests
      pabot --artifacts png,mp4,txt --artifactsinsubfolders directory_to_tests
      # To disable PabotLib:
@@ -275,7 +287,7 @@ These can be helpful when you must ensure that only one of the processes uses so
 
 PabotLib Docs are located at https://pabot.org/PabotLib.html.
 
-Note that PabotLib uses the XML-RPC protocol, which does not support all possible object types. 
+Note that PabotLib uses the XML-RPC protocol, which does not support all possible object types.
 These limitations are described in the Robot Framework documentation in chapter [Supported argument and return value types](https://robotframework.org/robotframework/latest/RobotFrameworkUserGuide.html#supported-argument-and-return-value-types).
 
 ### PabotLib example:
@@ -284,7 +296,7 @@ test.robot
 
       *** Settings ***
       Library    pabot.PabotLib
-      
+
       *** Test Case ***
       Testing PabotLib
         Acquire Lock   MyLock
@@ -305,7 +317,7 @@ valueset.dat
       HOST=123.123.123.123
       USERNAME=user1
       PASSWORD=password1
-      
+
       [Server2]
       tags=server
       HOST=121.121.121.121
@@ -333,15 +345,15 @@ The file can be manually edited partially, but a simpler and more controlled app
 --ordering <FILENAME> [static|dynamic] [skip|run_all]
 ```
 
-- **FILENAME** – path to the ordering file.  
-- **mode** – optional execution mode, either `static` (default) or `dynamic`.  
-    - `static` executes suites in predefined stages.  
-    - `dynamic` executes tests as soon as all their dependencies are satisfied, allowing more optimal parallel execution.  
-- **failure_policy** – determines behavior when dependencies fail. Used only in dynamic mode. Optional:  
-    - `skip` – dependent tests are skipped if a dependency fails.  
-    - `run_all` – all tests run regardless of failures (default).  
+- **FILENAME** – path to the ordering file.
+- **mode** – optional execution mode, either `static` (default) or `dynamic`.
+    - `static` executes suites in predefined stages.
+    - `dynamic` executes tests as soon as all their dependencies are satisfied, allowing more optimal parallel execution.
+- **failure_policy** – determines behavior when dependencies fail. Used only in dynamic mode. Optional:
+    - `skip` – dependent tests are skipped if a dependency fails.
+    - `run_all` – all tests run regardless of failures (default).
 
-The ordering file syntax is similar to `.pabotsuitenames` but does not include the first 4 hash rows used by pabot. The ordering file defines the **execution order and dependencies** of suites and tests.  
+The ordering file syntax is similar to `.pabotsuitenames` but does not include the first 4 hash rows used by pabot. The ordering file defines the **execution order and dependencies** of suites and tests.
 The actual selection of what to run must still be done using options like `--test`, `--suite`, `--include`, or `--exclude`.
 
 #### Controlling execution order
@@ -366,9 +378,9 @@ OR
 
   * You can add a line with text `#WAIT` to force executor to wait until all previous suites have been executed.
   * You can group suites and tests together to same executor process by adding line `{` before the group and `}` after. Note that `#WAIT` cannot be used inside a group.
-  * You can introduce dependencies using the word `#DEPENDS` after a test declaration. This keyword can be used several times if it is necessary to refer to several different tests. 
-      * The ordering algorithm is designed to preserve the exact user-defined order as closely as possible. However, if a test's execution dependencies are not yet satisfied, the test is postponed and moved to the earliest possible stage where all its dependencies are fulfilled. 
-      * Please take care that in case of circular dependencies an exception will be thrown. 
+  * You can introduce dependencies using the word `#DEPENDS` after a test declaration. This keyword can be used several times if it is necessary to refer to several different tests.
+      * The ordering algorithm is designed to preserve the exact user-defined order as closely as possible. However, if a test's execution dependencies are not yet satisfied, the test is postponed and moved to the earliest possible stage where all its dependencies are fulfilled.
+      * Please take care that in case of circular dependencies an exception will be thrown.
       * Note that each `#WAIT` splits suites into separate execution blocks, and it's not possible to define dependencies for suites or tests that are inside another `#WAIT` block or inside another `{}` braces.
       * Ordering mode effect to execution:
         * **Dynamic mode** will schedule dependent tests as soon as all their dependencies are satisfied. Note that in dynamic mode `#WAIT` is ignored, but you can achieve same results with using only `#DEPENDS` keywords.
@@ -396,10 +408,10 @@ OR
 --test robotTest.3 Dictionary.Test with FOR loops and Dictionaries #DEPENDS robotTest.1 Scalar.Test Case with Return Values
 ```
 
-  * By using the command `#SLEEP X`, where `X` is an integer in the range [0-3600] (in seconds), you can 
-  define a startup delay for each subprocess. `#SLEEP` affects the next line unless the next line starts a 
-  group with `{`, in which case the delay applies to the entire group. If the next line begins with `--test` 
-  or `--suite`, the delay is applied to that specific item. Any other occurrences of `#SLEEP` are ignored. 
+  * By using the command `#SLEEP X`, where `X` is an integer in the range [0-3600] (in seconds), you can
+  define a startup delay for each subprocess. `#SLEEP` affects the next line unless the next line starts a
+  group with `{`, in which case the delay applies to the entire group. If the next line begins with `--test`
+  or `--suite`, the delay is applied to that specific item. Any other occurrences of `#SLEEP` are ignored.
   Note that `#SLEEP` has no effect within a group, i.e., inside a subprocess.
 
 The following example clarifies the behavior:
@@ -474,16 +486,16 @@ Pabot generates several output files and folders during execution, both for inte
 
 #### Internal File: `.pabotsuitenames`
 
-Pabot creates a `.pabotsuitenames` file in the working directory. This is an internal hash file used to speed up execution in certain scenarios.  
-This file can also be used as a base for the `--ordering` file as described earlier. Although technically it can be modified, it will be overwritten during the next execution.  
+Pabot creates a `.pabotsuitenames` file in the working directory. This is an internal hash file used to speed up execution in certain scenarios.
+This file can also be used as a base for the `--ordering` file as described earlier. Although technically it can be modified, it will be overwritten during the next execution.
 Therefore, it is **recommended** to maintain a separate file for the `--ordering` option if needed.
 
 #### Output Directory Structure
 
 In addition to the standard `log.html`, `report.html`, and `output.xml` files, the specified `--outputdir` will contain:
 
-- A folder named `pabot_results`, and  
-- All defined artifacts (default: `.png` files)  
+- A folder named `pabot_results`, and
+- All defined artifacts (default: `.png` files)
 - Optionally, artifacts from subfolders if `--artifactsinsubfolders` is used
 
 Artifacts are **copied** into the output directory and renamed with the following structure:
@@ -492,7 +504,7 @@ Artifacts are **copied** into the output directory and renamed with the followin
 TIMESTAMP-ARGUMENT_INDEX-PABOTQUEUEINDEX
 ```
 
-If you use the special option `notimestamps` at the end of the `--artifacts` command, (For example:  `--artifacts png,txt,notimestamps`) the timestamp part will be omitted, and the name will be in the format: 
+If you use the special option `notimestamps` at the end of the `--artifacts` command, (For example:  `--artifacts png,txt,notimestamps`) the timestamp part will be omitted, and the name will be in the format:
 
 ```
 ARGUMENT_INDEX-PABOTQUEUEINDEX
@@ -532,8 +544,8 @@ Each `PABOTQUEUEINDEX` folder contains as default:
 
 Due to parallel execution, artifacts like screenshots should ideally be:
 
-- Embedded directly into the XML using tools like [SeleniumLibrary](https://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Screenshot%20Directory) with the `EMBED` option  
-  _Example:_  
+- Embedded directly into the XML using tools like [SeleniumLibrary](https://robotframework.org/SeleniumLibrary/SeleniumLibrary.html#Set%20Screenshot%20Directory) with the `EMBED` option
+  _Example:_
   `Library  SeleniumLibrary  screenshot_root_directory=EMBED`
 - Or saved to the subprocess’s working directory (usually default behavior), ensuring separation across processes
 
