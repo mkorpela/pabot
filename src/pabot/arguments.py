@@ -173,7 +173,6 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "shardindex": 0,
         "shardcount": 1,
         "chunk": False,
-        "parser": [],
         "no-rebot": False,
         "pabotconsole": "verbose",
     }
@@ -203,7 +202,6 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "artifacts": _parse_artifacts,
         "shard": _parse_shard,
         "pabotconsole": str,
-        "parser": str,
     }
 
     argumentfiles = []
@@ -260,10 +258,6 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
             if i + 1 >= len(args):
                 raise DataError(f"--{arg_name} requires a value")
             try:
-                if arg_name == "parser":
-                    pabot_args["parser"].append(value_args[arg_name](args[i + 1]))
-                    i += 2
-                    continue
                 # Special parsing for --ordering <file> [mode] [failure_policy]
                 if arg_name == "ordering":
                     if i + 1 >= len(args):
