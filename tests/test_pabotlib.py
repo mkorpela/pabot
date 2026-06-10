@@ -7,7 +7,7 @@ from pabot import pabotlib
 from pabot.SharedLibrary import SharedLibrary
 from robot.running.context import EXECUTION_CONTEXTS
 from robot.running.namespace import Namespace
-from robot.running.model import TestSuite
+from robot.running.model import TestSuite as RobotTestSuite
 from robot.variables import Variables
 from robot import __version__ as ROBOT_VERSION
 
@@ -298,7 +298,7 @@ class PabotLibTests(unittest.TestCase):
         return output
 
     def _create_ctx(self):
-        suite = TestSuite()
+        suite = RobotTestSuite()
         variables = Variables()
         EXECUTION_CONTEXTS._contexts = []
         if ROBOT_VERSION >= "6.0":

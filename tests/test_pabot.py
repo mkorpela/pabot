@@ -6,6 +6,7 @@ import os
 import tempfile
 import shutil
 import random
+import socket
 
 import pabot.execution_items as execution_items
 from pabot import pabot, arguments
@@ -117,7 +118,7 @@ class PabotTests(unittest.TestCase):
         self.assertEqual(datasources, ["suite"])
 
     def test_start_and_stop_remote_library(self):
-        writer = pabot.get_writer()
+        writer = pabot.get_writer(log_dir=self._outs_dir)
         try:
             lib_process, _ = pabot._start_remote_library(self._pabot_args)
             self.assertTrue(lib_process.poll() is None)
@@ -128,7 +129,7 @@ class PabotTests(unittest.TestCase):
             writer.flush()  # This test will end so fast that needs wait console logging
 
     def test_start_and_stop_remote_library_without_resourcefile(self):
-        writer = pabot.get_writer()
+        writer = pabot.get_writer(log_dir=self._outs_dir)
         try:
             pabot_args = dict(self._pabot_args)
             pabot_args["resourcefile"] = None
@@ -236,7 +237,7 @@ class PabotTests(unittest.TestCase):
             "97d170e1550eee4afc0af065b78cda302a97674c",
             "no-suites-from-option",
             file_hash,
-            *self._all_with_suites
+            *self._all_with_suites,
         )
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
@@ -440,7 +441,8 @@ class PabotTests(unittest.TestCase):
             [s("s1"), w(), s("s2")], pabot._fix_items([s("s1"), w(), w(), s("s2")])
         )
         self.assertEqual(
-            [s("s1"), w(), s("s2"), w()], pabot._fix_items([w(), w(), s("s1"), w(), w(), s("s2"), w(), w(), w()])
+            [s("s1"), w(), s("s2"), w()],
+            pabot._fix_items([w(), w(), s("s1"), w(), w(), s("s2"), w(), w(), w()]),
         )
 
     def test_solve_suite_names_with_testlevelsplit_option(self):
@@ -460,7 +462,7 @@ class PabotTests(unittest.TestCase):
             "65f95c924ba97541f47949701c4e3c51192a5b43",
             "no-suites-from-option",
             "2e667c32eb50b41dffd9f3d97a5c3f442b52a1ca",
-            *self._all_with_tests
+            *self._all_with_tests,
         )
         with pabot._open_pabotsuitenames("r") as f:
             actual = f.readlines()
@@ -474,7 +476,7 @@ class PabotTests(unittest.TestCase):
             "97d170e1550eee4afc0af065b78cda302a97674c",
             "no-suites-from-option",
             file_hash,
-            *self._all_with_suites
+            *self._all_with_suites,
         )
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames)
@@ -492,7 +494,7 @@ class PabotTests(unittest.TestCase):
             "65f95c924ba97541f47949701c4e3c51192a5b43",
             "no-suites-from-option",
             "2e667c32eb50b41dffd9f3d97a5c3f442b52a1ca",
-            *self._all_with_tests
+            *self._all_with_tests,
         )
         with pabot._open_pabotsuitenames("r") as f:
             actual = f.readlines()
@@ -518,7 +520,7 @@ class PabotTests(unittest.TestCase):
             "97d170e1550eee4afc0af065b78cda302a97674c",
             "no-suites-from-option",
             "1ac0e4ebf55ba472c813b5ac9f8d870dfbd97756",
-            *all_with
+            *all_with,
         )
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames)
@@ -536,7 +538,7 @@ class PabotTests(unittest.TestCase):
             "65f95c924ba97541f47949701c4e3c51192a5b43",
             "no-suites-from-option",
             "9bfb1cffcc5fe8b0dfa2ee5a1587655d5da00f53",
-            *all_with
+            *all_with,
         )
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
@@ -560,7 +562,7 @@ class PabotTests(unittest.TestCase):
             "65f95c924ba97541f47949701c4e3c51192a5b43",
             "no-suites-from-option",
             "c08124c3319cbb938d12ae5da81f83ab297f7c9f",
-            *all_with
+            *all_with,
         )
         with open(".pabotsuitenames", "w") as f:
             f.writelines(pabotsuitenames)
@@ -578,7 +580,7 @@ class PabotTests(unittest.TestCase):
             "97d170e1550eee4afc0af065b78cda302a97674c",
             "no-suites-from-option",
             "7beb0f073adfba9b7c36db527e65b3bdb3d14001",
-            *all_with
+            *all_with,
         )
         with open(".pabotsuitenames", "r") as f:
             actual = f.readlines()
@@ -1029,7 +1031,7 @@ class PabotTests(unittest.TestCase):
         if os.path.isfile(".pabotsuitenames"):
             os.remove(".pabotsuitenames")
         os.mkdir(".pabotsuitenames")
-        writer = pabot.get_writer()
+        writer = pabot.get_writer(log_dir=self._outs_dir)
         try:
             suite_names = pabot.solve_suite_names(
                 outs_dir=self._outs_dir,
@@ -1502,6 +1504,23 @@ class PabotTests(unittest.TestCase):
         options, _, pabot_args, _ = arguments.parse_args(["--pabotlib", "suite"])
         self.assertTrue(pabot_args["pabotlib"])
         self.assertFalse("no_pabotlib" in pabot_args)  # Ensure internal flag not leaked
+
+    def test_pabotlib_auto_mode_returns_enabled(self):
+        options, _, pabot_args, _ = arguments.parse_args(
+            ["--pabotlib", "auto", "suite"]
+        )
+        self.assertTrue(pabot_args["pabotlib"])
+        self.assertEqual(pabot_args["pabotlib_mode"], "auto")
+        self.assertEqual(pabot_args["pabotlibhost"], socket.gethostname())
+        self.assertEqual(pabot_args["pabotlibport"], 0)
+
+    def test_pabotlib_disable_value_returns_false(self):
+        options, _, pabot_args, _ = arguments.parse_args(
+            ["--pabotlib", "disable", "suite"]
+        )
+        self.assertFalse(pabot_args["pabotlib"])
+        self.assertEqual(pabot_args["pabotlib_mode"], "disable")
+        self.assertFalse("no_pabotlib" in pabot_args)
 
     def test_conflicting_pabotlib_options_raise_error(self):
         with self.assertRaises(DataError) as context:

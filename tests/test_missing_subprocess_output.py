@@ -10,12 +10,15 @@ import time
 from pabot import pabot
 from pabot.writer import get_writer
 
+
 class PabotMissingSubProcessOutputTest(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
 
     def tearDown(self):
-        if not (hasattr(self, "tmpdir") and self.tmpdir and os.path.exists(self.tmpdir)):
+        if not (
+            hasattr(self, "tmpdir") and self.tmpdir and os.path.exists(self.tmpdir)
+        ):
             return
 
         attempts = 3
@@ -24,13 +27,19 @@ class PabotMissingSubProcessOutputTest(unittest.TestCase):
                 shutil.rmtree(self.tmpdir)
                 break
             except PermissionError:
-                print(f"[WARNING] Attempt {i+1}: Could not remove {self.tmpdir}, in use by another process. Retrying...")
+                print(
+                    f"[WARNING] Attempt {i + 1}: Could not remove {self.tmpdir}, in use by another process. Retrying..."
+                )
                 time.sleep(1)
             except OSError as e:
-                print(f"[WARNING] Attempt {i+1}: Could not remove {self.tmpdir}: {e}. Retrying...")
+                print(
+                    f"[WARNING] Attempt {i + 1}: Could not remove {self.tmpdir}: {e}. Retrying..."
+                )
                 time.sleep(1)
         else:
-            raise OSError(f"[ERROR] Failed to remove {self.tmpdir} after {attempts} attempts.")
+            raise OSError(
+                f"[ERROR] Failed to remove {self.tmpdir} after {attempts} attempts."
+            )
 
     def _run_tests_with(self, testfile):
         with open("{}/test.robot".format(self.tmpdir), "w") as robot_file:
@@ -38,7 +47,7 @@ class PabotMissingSubProcessOutputTest(unittest.TestCase):
         process = subprocess.Popen(
             [
                 sys.executable,
-                "-m" "pabot.pabot",
+                "-mpabot.pabot",
                 "--testlevelsplit",
                 "--no-rebot",
                 "--output",
@@ -52,7 +61,7 @@ class PabotMissingSubProcessOutputTest(unittest.TestCase):
             stderr=subprocess.PIPE,
         )
         return process.communicate(timeout=15)
-    
+
     def test_missing_subprocess_output_xml(self):
         """
         # Test for: https://github.com/mkorpela/pabot/issues/637
@@ -64,7 +73,7 @@ class PabotMissingSubProcessOutputTest(unittest.TestCase):
         """
         start_time = pabot._now()
         stdout, stderr = self._run_tests_with(
-"""
+            """
 *** Test Cases ***
 Testing 1
    Log  1
@@ -73,81 +82,105 @@ Testing 2
    Log  2
 
 Testing 3
-   Log  3 
+   Log  3
 """
         )
-        self.assertIn((b"All tests were executed, but the --no-rebot argument was given, "
-                       b"so the results were not compiled, and no summary was generated. "
-                       b"All results have been saved in the"
-                       ), stdout)
+        self.assertIn(
+            (
+                b"All tests were executed, but the --no-rebot argument was given, "
+                b"so the results were not compiled, and no summary was generated. "
+                b"All results have been saved in the"
+            ),
+            stdout,
+        )
         self.assertEqual(b"", stderr)
         # Note: pabot._report_results() function does not need all of these pabot_args and options.
         pabot_args = {
-            'command': ['robot'], 
-            'verbose': False, 
-            'help': False, 
-            'version': False, 
-            'testlevelsplit': True, 
-            'pabotlib': True, 
-            'pabotlibhost': '127.0.0.1', 
-            'pabotlibport': 8270, 
-            'processes': 3, 
-            'processtimeout': None, 
-            'artifacts': ['png'], 
+            "command": ["robot"],
+            "verbose": False,
+            "help": False,
+            "version": False,
+            "testlevelsplit": True,
+            "pabotlib": True,
+            "pabotlibhost": "127.0.0.1",
+            "pabotlibport": 8270,
+            "processes": 3,
+            "processtimeout": None,
+            "artifacts": ["png"],
             "artifactstimestamps": True,
-            'artifactsinsubfolders': False, 
-            'shardindex': 0, 
-            'shardcount': 1, 
-            'chunk': False, 
-            'no-rebot': False, 
-            'argumentfiles': []
+            "artifactsinsubfolders": False,
+            "shardindex": 0,
+            "shardcount": 1,
+            "chunk": False,
+            "no-rebot": False,
+            "argumentfiles": [],
         }
         options = {
-            'metadata': [], 
-            'settag': [], 
-            'test': [], 
-            'task': [], 
-            'suite': [], 
-            'include': [], 
-            'exclude': [], 
-            'skip': [], 
-            'skiponfailure': [], 
-            'variable': [], 
-            'variablefile': [], 
-            'outputdir': 'results', 
-            'output': 'out.xml', 
-            'tagstatinclude': [], 
-            'tagstatexclude': [], 
-            'tagstatcombine': [], 
-            'tagdoc': [], 
-            'tagstatlink': [], 
-            'expandkeywords': [], 
-            'removekeywords': [], 
-            'flattenkeywords': [], 
-            'listener': [], 
-            'prerunmodifier': [], 
-            'prerebotmodifier': [], 
-            'pythonpath': [],
+            "metadata": [],
+            "settag": [],
+            "test": [],
+            "task": [],
+            "suite": [],
+            "include": [],
+            "exclude": [],
+            "skip": [],
+            "skiponfailure": [],
+            "variable": [],
+            "variablefile": [],
+            "outputdir": "results",
+            "output": "out.xml",
+            "tagstatinclude": [],
+            "tagstatexclude": [],
+            "tagstatcombine": [],
+            "tagdoc": [],
+            "tagstatlink": [],
+            "expandkeywords": [],
+            "removekeywords": [],
+            "flattenkeywords": [],
+            "listener": [],
+            "prerunmodifier": [],
+            "prerebotmodifier": [],
+            "pythonpath": [],
         }
-        pabot_args2 = pabot_args.copy()  # Using copy, because pabot._report_results does minor modifications.
+        pabot_args2 = (
+            pabot_args.copy()
+        )  # Using copy, because pabot._report_results does minor modifications.
         options2 = options.copy()
-        tests_root_name = "Test"  # This is from test.robot 
+        tests_root_name = "Test"  # This is from test.robot
 
         # Change one subprocess output file extension from .xml to .not_xml
         file_path = "{}/results/pabot_results/0/output.xml".format(self.tmpdir)
         assert os.path.exists(file_path)
         os.rename(file_path, file_path.replace(".xml", ".not_xml"))
-        
+
         prev_cmd = os.getcwd()
         try:
             os.chdir(self.tmpdir)
             # Checking that we see exit code 252 when some .xml is missing.
-            self.assertIs(pabot._report_results("results/pabot_results", pabot_args, options, start_time, tests_root_name), 252)
-            
+            self.assertIs(
+                pabot._report_results(
+                    "results/pabot_results",
+                    pabot_args,
+                    options,
+                    start_time,
+                    tests_root_name,
+                ),
+                252,
+            )
+
             # Return .xml file extension and run same command again. Check exit code = 0
             os.rename(file_path.replace(".xml", ".not_xml"), file_path)
-            self.assertIs(pabot._report_results("results/pabot_results", pabot_args2, options2, start_time, tests_root_name), 0)
+            self.assertIs(
+                pabot._report_results(
+                    "results/pabot_results",
+                    pabot_args2,
+                    options2,
+                    start_time,
+                    tests_root_name,
+                ),
+                0,
+            )
         finally:
             os.chdir(prev_cmd)
-            writer = get_writer()
+            writer = get_writer(log_dir=self.tmpdir)
             writer.stop()
