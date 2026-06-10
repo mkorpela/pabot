@@ -15,3 +15,7 @@ dist
 .tox
 .coverage
 .coverage.*
+atest/.concurrent_tracker.json
+atest/_exec_log.txt
+uv.lock
+pabot_manager.log
