@@ -132,6 +132,9 @@ _EXECUTOR_COUNTER_LOCK = threading.Lock()
 _MAX_EXECUTORS = 1
 # Size of the current parallel execution batch
 _CURRENT_BATCH_SIZE = 0
+# Pool of free executor numbers (for proper reuse of executor slots)
+_FREE_EXECUTORS = []  # type: List[int]
+_EXECUTOR_ALLOCATION_LOCK = threading.Lock()
 
 _ROBOT_EXTENSIONS = [
     ".html",
@@ -259,21 +262,47 @@ def _get_next_executor_num():
     return executor_num
 
 
+def _allocate_executor():
+    """Allocate next available executor number from the pool."""
+    global _FREE_EXECUTORS, _MAX_EXECUTORS
+    with _EXECUTOR_ALLOCATION_LOCK:
+        if not _FREE_EXECUTORS:
+            # Initialize pool if empty
+            _FREE_EXECUTORS = list(range(_MAX_EXECUTORS))
+        executor_num = _FREE_EXECUTORS.pop(0)  # Get first available executor
+    return executor_num
+
+
+def _release_executor(executor_num):
+    """Release executor back to the pool."""
+    global _FREE_EXECUTORS
+    with _EXECUTOR_ALLOCATION_LOCK:
+        _FREE_EXECUTORS.append(executor_num)
+        _FREE_EXECUTORS.sort()  # Keep sorted for predictability
+
+
 def _set_executor_num(executor_num):
     """Set the executor number for the current thread."""
     _EXECUTOR_THREAD_LOCAL.executor_num = executor_num
 
 
 def _get_executor_num():
-    """Get the executor number for the current thread."""
-    return getattr(_EXECUTOR_THREAD_LOCAL, "executor_num", 0)
+    """Get the executor number for the current thread. Note that indexing starts from 1."""
+    return getattr(_EXECUTOR_THREAD_LOCAL, "executor_num", 0) + 1
 
 
 def _execute_item_with_executor_tracking(item):
-    """Wrapper to track executor number and call execute_and_wait_with."""
-    executor_num = _get_next_executor_num()
+    """Wrapper to track executor number and call execute_and_wait_with.
+
+    Allocates next available executor from the pool, ensuring that freed
+    executors are properly reused instead of cycling through all numbers.
+    """
+    executor_num = _allocate_executor()
     _set_executor_num(executor_num)
-    return execute_and_wait_with(item)
+    try:
+        return execute_and_wait_with(item)
+    finally:
+        _release_executor(executor_num)
 
 
 def execute_and_wait_with(item):
@@ -1771,12 +1800,13 @@ def _parallel_execute_dynamic(
 ):
     # Signal handler is already set in main_program, no need to set it again
     # Just use the thread pool without managing signals
-    global _MAX_EXECUTORS, _EXECUTOR_COUNTER, _CURRENT_BATCH_SIZE
+    global _MAX_EXECUTORS, _EXECUTOR_COUNTER, _CURRENT_BATCH_SIZE, _FREE_EXECUTORS
 
     _CURRENT_BATCH_SIZE = len(items)
     max_processes = processes or _CURRENT_BATCH_SIZE
     _MAX_EXECUTORS = max_processes
     _EXECUTOR_COUNTER = 0  # Reset executor counter for each parallel execution batch
+    _FREE_EXECUTORS = list(range(max_processes))  # Initialize free executor pool
     pool = ThreadPool(max_processes)
 
     pending = set(items)
@@ -1857,11 +1887,12 @@ def _parallel_execute(
     items, processes, datasources, outs_dir, opts_for_run, pabot_args
 ):
     # Signal handler is already set in main_program, no need to set it again
-    global _MAX_EXECUTORS, _EXECUTOR_COUNTER, _CURRENT_BATCH_SIZE
+    global _MAX_EXECUTORS, _EXECUTOR_COUNTER, _CURRENT_BATCH_SIZE, _FREE_EXECUTORS
     _CURRENT_BATCH_SIZE = len(items)
     max_workers = processes or _CURRENT_BATCH_SIZE
     _MAX_EXECUTORS = max_workers
     _EXECUTOR_COUNTER = 0  # Reset executor counter for each parallel execution batch
+    _FREE_EXECUTORS = list(range(max_workers))  # Initialize free executor pool
     pool = ThreadPool(max_workers)
     results = [pool.map_async(_execute_item_with_executor_tracking, items, 1)]
     delayed_result_append = 0
@@ -2086,7 +2117,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
             _write(repr(missing), level="warning")
         _write(
             (
-                f"[ " + _wrap_with(Color.RED, "ERROR") + " ] "
+                "[ " + _wrap_with(Color.RED, "ERROR") + " ] "
                 "The output, log and report files produced by Pabot are "
                 "incomplete and do not contain all test cases."
             ),
@@ -2728,7 +2759,9 @@ def _collect_exclusive_tests_recursive(suite, exclusive_test_names, suite_to_all
             exclusive_test_names.add(longname)
     suite_to_all_tests[suite.longname] = suite_tests
     for subsuite in suite.suites:
-        _collect_exclusive_tests_recursive(subsuite, exclusive_test_names, suite_to_all_tests)
+        _collect_exclusive_tests_recursive(
+            subsuite, exclusive_test_names, suite_to_all_tests
+        )
 
 
 def _scan_for_exclusive_tests(datasources, options):
@@ -2754,9 +2787,13 @@ def _scan_for_exclusive_tests(datasources, options):
         suite = builder.build(*datasources)
         settings.rpa = builder.rpa
         suite.configure(**settings.suite_config)
-        _collect_exclusive_tests_recursive(suite, exclusive_test_names, suite_to_all_tests)
+        _collect_exclusive_tests_recursive(
+            suite, exclusive_test_names, suite_to_all_tests
+        )
     except Exception as e:
-        _write("Warning: could not scan for exclusive tests: %s" % str(e), level="warning")
+        _write(
+            "Warning: could not scan for exclusive tests: %s" % str(e), level="warning"
+        )
     return exclusive_test_names, suite_to_all_tests
 
 
@@ -2871,7 +2908,9 @@ def main_program(args):
                 return 252
 
         # Detect and separate tests that must run exclusively (no parallel execution)
-        exclusive_test_names, suite_to_all_tests = _scan_for_exclusive_tests(datasources, options)
+        exclusive_test_names, suite_to_all_tests = _scan_for_exclusive_tests(
+            datasources, options
+        )
         exclusive_items = []  # type: List[ExecutionItem]
         if exclusive_test_names:
             suite_groups, exclusive_items = _separate_exclusive_items(
@@ -2893,7 +2932,12 @@ def main_program(args):
         exclusive_stages = []  # type: List[Tuple[str, List[List[ExecutionItem]]]]
         for exclusive_item in exclusive_items:
             exc_items = _create_execution_items(
-                [[exclusive_item]], datasources, outs_dir, options, opts_for_run, pabot_args
+                [[exclusive_item]],
+                datasources,
+                outs_dir,
+                options,
+                opts_for_run,
+                pabot_args,
             )
             exclusive_stages.append((exclusive_item.name, exc_items))
 
