@@ -13,7 +13,6 @@ def get_tmpdir_name(name):
 
 
 class TestVariables(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.tmpdir = tempfile.mkdtemp()
@@ -27,7 +26,8 @@ class TestVariables(unittest.TestCase):
 
         cls.variables_suite = os.path.join(cls.suites_dir, "check_variables.robot")
         with open(cls.variables_suite, "w") as f:
-            f.write(textwrap.dedent("""
+            f.write(
+                textwrap.dedent("""
                 *** Test Cases ***
                 Test A
                     Log Variables
@@ -49,7 +49,8 @@ class TestVariables(unittest.TestCase):
                     Log    PABOTEXECUTIONBATCHSIZE=${PABOTEXECUTIONBATCHSIZE}
                     Log    PABOTNUMBEROFPROCESSES=${PABOTNUMBEROFPROCESSES}
                     Log    CALLER_ID=${CALLER_ID}
-            """))
+            """)
+            )
 
     @classmethod
     def tearDownClass(cls):
@@ -116,11 +117,17 @@ class TestVariables(unittest.TestCase):
         Checks that the expected pabot variables are set correctly in all test
         cases when there are more test cases than processes.
         """
-        process = self._run_pabot([
-            "--processes", "2", "--testlevelsplit",
-            self.variables_suite,
-        ])
-        assert process.returncode == 0, f"Pabot failed: {process.stdout}\n{process.stderr}"
+        process = self._run_pabot(
+            [
+                "--processes",
+                "2",
+                "--testlevelsplit",
+                self.variables_suite,
+            ]
+        )
+        assert (
+            process.returncode == 0
+        ), f"Pabot failed: {process.stdout}\n{process.stderr}"
 
         results = self._read_results()
         self.assertEqual(results["Test A"], "PASS")
@@ -132,28 +139,42 @@ class TestVariables(unittest.TestCase):
         self.assert_all_variables_present(variables)
         # Check the values of all variables are correct.
         pabotlib_uris = [test_vars["PABOTLIBURI"] for test_vars in variables.values()]
-        self.assertEqual(len(set(pabotlib_uris)), 1) # All should be the same
-        queue_indices = [test_vars["PABOTQUEUEINDEX"] for test_vars in variables.values()]
+        self.assertEqual(len(set(pabotlib_uris)), 1)  # All should be the same
+        queue_indices = [
+            test_vars["PABOTQUEUEINDEX"] for test_vars in variables.values()
+        ]
         self.assertListEqual(sorted(queue_indices), ["0", "1", "2", "3"])
-        pool_ids = [test_vars["PABOTEXECUTIONPOOLID"] for test_vars in variables.values()]
+        pool_ids = [
+            test_vars["PABOTEXECUTIONPOOLID"] for test_vars in variables.values()
+        ]
         self.assertListEqual(sorted(pool_ids), ["0", "0", "1", "1"])
-        batch_sizes = [test_vars["PABOTEXECUTIONBATCHSIZE"] for test_vars in variables.values()]
+        batch_sizes = [
+            test_vars["PABOTEXECUTIONBATCHSIZE"] for test_vars in variables.values()
+        ]
         self.assertListEqual(sorted(batch_sizes), ["4", "4", "4", "4"])
-        process_counts = [test_vars["PABOTNUMBEROFPROCESSES"] for test_vars in variables.values()]
+        process_counts = [
+            test_vars["PABOTNUMBEROFPROCESSES"] for test_vars in variables.values()
+        ]
         self.assertListEqual(sorted(process_counts), ["2", "2", "2", "2"])
         caller_ids = [test_vars["CALLER_ID"] for test_vars in variables.values()]
-        self.assertEqual(len(set(caller_ids)), 4) # All should be different
+        self.assertEqual(len(set(caller_ids)), 4)  # All should be different
 
     def test_check_variables_more_processes_than_tests(self):
         """
         Checks that the expected pabot variables are set correctly in all test
         cases when there are more processes than test cases.
         """
-        process = self._run_pabot([
-            "--processes", "8", "--testlevelsplit",
-            self.variables_suite,
-        ])
-        assert process.returncode == 0, f"Pabot failed: {process.stdout}\n{process.stderr}"
+        process = self._run_pabot(
+            [
+                "--processes",
+                "8",
+                "--testlevelsplit",
+                self.variables_suite,
+            ]
+        )
+        assert (
+            process.returncode == 0
+        ), f"Pabot failed: {process.stdout}\n{process.stderr}"
 
         results = self._read_results()
         self.assertEqual(results["Test A"], "PASS")
@@ -165,14 +186,22 @@ class TestVariables(unittest.TestCase):
         self.assert_all_variables_present(variables)
         # Check the values of all variables are correct.
         pabotlib_uris = [test_vars["PABOTLIBURI"] for test_vars in variables.values()]
-        self.assertEqual(len(set(pabotlib_uris)), 1) # All should be the same
-        queue_indices = [test_vars["PABOTQUEUEINDEX"] for test_vars in variables.values()]
+        self.assertEqual(len(set(pabotlib_uris)), 1)  # All should be the same
+        queue_indices = [
+            test_vars["PABOTQUEUEINDEX"] for test_vars in variables.values()
+        ]
         self.assertListEqual(sorted(queue_indices), ["0", "1", "2", "3"])
-        pool_ids = [test_vars["PABOTEXECUTIONPOOLID"] for test_vars in variables.values()]
+        pool_ids = [
+            test_vars["PABOTEXECUTIONPOOLID"] for test_vars in variables.values()
+        ]
         self.assertListEqual(sorted(pool_ids), ["0", "1", "2", "3"])
-        batch_sizes = [test_vars["PABOTEXECUTIONBATCHSIZE"] for test_vars in variables.values()]
+        batch_sizes = [
+            test_vars["PABOTEXECUTIONBATCHSIZE"] for test_vars in variables.values()
+        ]
         self.assertListEqual(sorted(batch_sizes), ["4", "4", "4", "4"])
-        process_counts = [test_vars["PABOTNUMBEROFPROCESSES"] for test_vars in variables.values()]
+        process_counts = [
+            test_vars["PABOTNUMBEROFPROCESSES"] for test_vars in variables.values()
+        ]
         self.assertListEqual(sorted(process_counts), ["8", "8", "8", "8"])
         caller_ids = [test_vars["CALLER_ID"] for test_vars in variables.values()]
-        self.assertEqual(len(set(caller_ids)), 4) # All should be different
+        self.assertEqual(len(set(caller_ids)), 4)  # All should be different

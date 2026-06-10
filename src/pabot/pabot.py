@@ -125,9 +125,6 @@ _NOT_COMPLETED_INDEXES = []  # type: List[int]
 
 # Thread-local storage for tracking executor number assigned to each thread
 _EXECUTOR_THREAD_LOCAL = threading.local()
-# Next executor number to assign (incremented each time a task is submitted)
-_EXECUTOR_COUNTER = 0
-_EXECUTOR_COUNTER_LOCK = threading.Lock()
 # Maximum number of executors (workers in the thread pool)
 _MAX_EXECUTORS = 1
 # Size of the current parallel execution batch
@@ -253,15 +250,6 @@ class Color:
     YELLOW = "\033[93m"
 
 
-def _get_next_executor_num():
-    """Get the next executor number in round-robin fashion."""
-    global _EXECUTOR_COUNTER, _MAX_EXECUTORS
-    with _EXECUTOR_COUNTER_LOCK:
-        executor_num = _EXECUTOR_COUNTER % _MAX_EXECUTORS
-        _EXECUTOR_COUNTER += 1
-    return executor_num
-
-
 def _allocate_executor():
     """Allocate next available executor number from the pool."""
     global _FREE_EXECUTORS, _MAX_EXECUTORS
@@ -287,8 +275,8 @@ def _set_executor_num(executor_num):
 
 
 def _get_executor_num():
-    """Get the executor number for the current thread. Note that indexing starts from 1."""
-    return getattr(_EXECUTOR_THREAD_LOCAL, "executor_num", 0) + 1
+    """Get the executor number for the current thread."""
+    return getattr(_EXECUTOR_THREAD_LOCAL, "executor_num", 0)
 
 
 def _execute_item_with_executor_tracking(item):
@@ -1800,12 +1788,11 @@ def _parallel_execute_dynamic(
 ):
     # Signal handler is already set in main_program, no need to set it again
     # Just use the thread pool without managing signals
-    global _MAX_EXECUTORS, _EXECUTOR_COUNTER, _CURRENT_BATCH_SIZE, _FREE_EXECUTORS
+    global _MAX_EXECUTORS, _CURRENT_BATCH_SIZE, _FREE_EXECUTORS
 
     _CURRENT_BATCH_SIZE = len(items)
     max_processes = processes or _CURRENT_BATCH_SIZE
     _MAX_EXECUTORS = max_processes
-    _EXECUTOR_COUNTER = 0  # Reset executor counter for each parallel execution batch
     _FREE_EXECUTORS = list(range(max_processes))  # Initialize free executor pool
     pool = ThreadPool(max_processes)
 
@@ -1887,11 +1874,10 @@ def _parallel_execute(
     items, processes, datasources, outs_dir, opts_for_run, pabot_args
 ):
     # Signal handler is already set in main_program, no need to set it again
-    global _MAX_EXECUTORS, _EXECUTOR_COUNTER, _CURRENT_BATCH_SIZE, _FREE_EXECUTORS
+    global _MAX_EXECUTORS, _CURRENT_BATCH_SIZE, _FREE_EXECUTORS
     _CURRENT_BATCH_SIZE = len(items)
     max_workers = processes or _CURRENT_BATCH_SIZE
     _MAX_EXECUTORS = max_workers
-    _EXECUTOR_COUNTER = 0  # Reset executor counter for each parallel execution batch
     _FREE_EXECUTORS = list(range(max_workers))  # Initialize free executor pool
     pool = ThreadPool(max_workers)
     results = [pool.map_async(_execute_item_with_executor_tracking, items, 1)]
