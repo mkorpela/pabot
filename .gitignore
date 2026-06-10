@@ -13,3 +13,5 @@ dist
 *.xml
 .venv
 .tox
+.coverage
+.coverage.*

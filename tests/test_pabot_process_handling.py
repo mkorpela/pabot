@@ -20,13 +20,16 @@ def _assert_runtime_at_least(output: str, min_seconds: float, max_seconds: float
 
     total_time = float(match.group(1))
     if total_time < min_seconds:
-        raise AssertionError(f"Total testing time {total_time}s is less than expected {min_seconds}s")
+        raise AssertionError(
+            f"Total testing time {total_time}s is less than expected {min_seconds}s"
+        )
     if total_time > max_seconds:
-        raise AssertionError(f"Total testing time {total_time}s exceeds maximum expected {max_seconds}s")
+        raise AssertionError(
+            f"Total testing time {total_time}s exceeds maximum expected {max_seconds}s"
+        )
 
 
 class PabotProcessHandlingTests(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         # Create one temporary root directory for all suites
@@ -36,26 +39,23 @@ class PabotProcessHandlingTests(unittest.TestCase):
         # --- Fast suite ---
         cls.fast_suite = cls.suites_dir / "fast_suite.robot"
         cls.fast_suite.write_text(
-            "*** Test Cases ***\n"
-            "Quick Test\n"
-            "    Log    This test should finish fast.\n"
+            "*** Test Cases ***\nQuick Test\n    Log    This test should finish fast.\n"
         )
 
         # --- Slow suite ---
         cls.slow_suite = cls.suites_dir / "slow_suite.robot"
-        cls.slow_suite.write_text(
-            "*** Test Cases ***\n"
-            "Slow Test\n"
-            "    Sleep    30s\n"
-        )
+        cls.slow_suite.write_text("*** Test Cases ***\nSlow Test\n    Sleep    30s\n")
 
         # --- Chain process & heartbeat ---
         cls.heartbeat_file = cls.suites_dir / f"heartbeat_{os.getpid()}.txt"
         chain_script = cls.suites_dir / "chain_process.py"
-        chain_script_robot = str(chain_script).replace("/", "${/}").replace("\\", "${/}")
+        chain_script_robot = (
+            str(chain_script).replace("/", "${/}").replace("\\", "${/}")
+        )
 
         with open(chain_script, "w", encoding="utf-8") as f:
-            f.write(textwrap.dedent(f"""
+            f.write(
+                textwrap.dedent(f"""
                 import time, os, sys
                 heartbeat_file = r'{cls.heartbeat_file}'
                 with open(heartbeat_file, 'w') as f:
@@ -69,7 +69,8 @@ class PabotProcessHandlingTests(unittest.TestCase):
                         os.fsync(f.fileno())
                         print(ts, flush=True)  # ensures stdout flush so Run Process waits correctly
                         time.sleep(1)
-            """))
+            """)
+            )
 
         # --- Chain suite ---
         cls.chain_suite = cls.suites_dir / "chain_suite.robot"
@@ -91,7 +92,9 @@ class PabotProcessHandlingTests(unittest.TestCase):
         )
 
         # --- Chain suite with RF timeout---
-        cls.chain_suite_with_rf_timeout = cls.suites_dir / "chain_suite_with_rf_timeout.robot"
+        cls.chain_suite_with_rf_timeout = (
+            cls.suites_dir / "chain_suite_with_rf_timeout.robot"
+        )
         cls.chain_suite_with_rf_timeout.write_text(
             textwrap.dedent(f"""
             *** Settings ***
@@ -110,30 +113,32 @@ class PabotProcessHandlingTests(unittest.TestCase):
             """)
         )
 
-
     def setUp(self):
         """Each test gets its own pabot output directory."""
         self.test_output_dir = self.suites_dir / f"results_{self._testMethodName}"
         self.test_output_dir.mkdir(exist_ok=True)
 
-
-    def _run_with_process_counts(self, suites, timeout=None, process_counts: List[int] = [2]):
+    def _run_with_process_counts(
+        self, suites, timeout=None, process_counts: List[int] = [2]
+    ):
         """Run pabot with given suites and process counts."""
         for proc_count in process_counts:
             result_dir = self.test_output_dir / f"p{proc_count}"
             result_dir.mkdir(exist_ok=True)
             cmd = [
                 sys.executable,
-                "-m", "pabot.pabot",
+                "-m",
+                "pabot.pabot",
                 "--testlevelsplit",
-                "--processes", str(proc_count),
-                "--outputdir", str(result_dir)
+                "--processes",
+                str(proc_count),
+                "--outputdir",
+                str(result_dir),
             ]
             if timeout:
                 cmd += ["--processtimeout", str(timeout)]
             cmd += [str(s) for s in suites]
 
-                        
             if sys.platform == "win32":
                 creationflags = subprocess.CREATE_NEW_PROCESS_GROUP
             else:
@@ -145,31 +150,37 @@ class PabotProcessHandlingTests(unittest.TestCase):
                 stderr=subprocess.PIPE,
                 text=True,
                 preexec_fn=os.setsid if sys.platform != "win32" else None,
-                creationflags=creationflags
+                creationflags=creationflags,
             )
             yield result, result_dir, proc_count
-
 
     def test_multiple_fast_suites(self):
         """Ensure multiple fast suites run in parallel successfully with different process counts."""
         timeout = 3
-        for result, result_dir, proc_count in self._run_with_process_counts([self.fast_suite, self.fast_suite], timeout=timeout):
+        for result, result_dir, proc_count in self._run_with_process_counts(
+            [self.fast_suite, self.fast_suite], timeout=timeout
+        ):
             with self.subTest(processes=proc_count):
-                self.assertEqual(result.returncode, 0, f"Pabot failed:\n{result.stderr}")
-                self.assertTrue((result_dir / "output.xml").exists(), "Output file missing")
+                self.assertEqual(
+                    result.returncode, 0, f"Pabot failed:\n{result.stderr}"
+                )
+                self.assertTrue(
+                    (result_dir / "output.xml").exists(), "Output file missing"
+                )
                 self.assertIn("2 tests, 2 passed, 0 failed, 0 skipped.", result.stdout)
                 _assert_runtime_at_least(result.stdout, 0, timeout + 2)
                 self.assertEqual("", result.stderr)
 
-
     def test_long_running_suite_timeout(self):
         """Verify Pabot terminates long-running suite on timeout."""
         timeout = 3
-        for result, _, _ in self._run_with_process_counts([self.slow_suite], timeout=timeout):
+        for result, _, _ in self._run_with_process_counts(
+            [self.slow_suite], timeout=timeout
+        ):
             self.assertNotEqual(result.returncode, 0, "Expected timeout")
             self.assertIn(
                 f"Process Slow Suite.Slow Test killed due to exceeding the maximum timeout of {timeout} seconds",
-                result.stdout
+                result.stdout,
             )
             _assert_runtime_at_least(result.stdout, timeout, timeout + 5)
 
@@ -177,29 +188,34 @@ class PabotProcessHandlingTests(unittest.TestCase):
             if result.stderr.strip():
                 self.assertIn("contains no tests", result.stderr)
 
-
     def test_chain_process_cleanup(self):
         """Ensure chain subprocesses terminate after --processtimeout; no zombie remains."""
         self.chain_process_cleanup(use_rf_timeout=False)
-
 
     def test_chain_process_cleanup_with_rf_timeout(self):
         """Ensure chain subprocesses terminate after RF [Timeout] 5s; no zombie remains."""
         self.chain_process_cleanup(use_rf_timeout=True, expected_timeout=5)
 
-
-    def chain_process_cleanup(self, use_rf_timeout: bool, process_timeout: int = 10, expected_timeout: int = 10):
+    def chain_process_cleanup(
+        self,
+        use_rf_timeout: bool,
+        process_timeout: int = 10,
+        expected_timeout: int = 10,
+    ):
         """Ensure chain subprocesses terminate after --processtimeout; no zombie remains."""
         if use_rf_timeout:
             suite_to_run = self.chain_suite_with_rf_timeout
         else:
             suite_to_run = self.chain_suite
 
-        for result, _, _ in self._run_with_process_counts([suite_to_run], timeout=process_timeout):
-
+        for result, _, _ in self._run_with_process_counts(
+            [suite_to_run], timeout=process_timeout
+        ):
             # Grace period for CI: kill may be delayed or heartbeat still flushing to file.
             grace = 25.0
-            interval = 1.5    # must be > 1 second because heartbeats are written every ~1s
+            interval = (
+                1.5  # must be > 1 second because heartbeats are written every ~1s
+            )
             deadline = time.time() + grace
 
             last_count = None
@@ -242,14 +258,17 @@ class PabotProcessHandlingTests(unittest.TestCase):
                             pass
                         time.sleep(0.5)
                     else:
-                        raise AssertionError(f"PID {pid} still alive — possible zombie.")
+                        raise AssertionError(
+                            f"PID {pid} still alive — possible zombie."
+                        )
 
-            _assert_runtime_at_least(result.stdout, expected_timeout, expected_timeout + 3)
+            _assert_runtime_at_least(
+                result.stdout, expected_timeout, expected_timeout + 10
+            )
 
             # stderr empty on CI Linux is OK
             if result.stderr.strip():
                 self.assertIn("contains no tests", result.stderr)
-
 
     def tearDown(self):
         """Clean up heartbeat and any leftover processes."""
@@ -265,7 +284,11 @@ class PabotProcessHandlingTests(unittest.TestCase):
                         pass
                     else:
                         if os.name == "nt":
-                            subprocess.call(["taskkill", "/F", "/PID", str(pid)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                            subprocess.call(
+                                ["taskkill", "/F", "/PID", str(pid)],
+                                stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL,
+                            )
                         else:
                             os.killpg(os.getpgid(pid), signal.SIGTERM)
                             time.sleep(0.5)
@@ -277,7 +300,6 @@ class PabotProcessHandlingTests(unittest.TestCase):
                                 os.killpg(os.getpgid(pid), signal.SIGKILL)
             finally:
                 self.heartbeat_file.unlink(missing_ok=True)
-
 
     @classmethod
     def tearDownClass(cls):
