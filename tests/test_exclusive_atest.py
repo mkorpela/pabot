@@ -32,19 +32,24 @@ ATEST_DIR = os.path.join(REPO_ROOT, "atest")
 SRC_DIR = os.path.join(REPO_ROOT, "src")
 PABOT_TAG = "pabot:exclusive"
 
-EXPECTED_EXCLUSIVE_TESTS = 3   # 1 (suite_04) + 2 (suite_05)
-EXPECTED_TOTAL_TESTS = 10      # suite_01..03: 3*2=6, suite_04: 2, suite_05: 2
+EXPECTED_EXCLUSIVE_TESTS = 3  # 1 (suite_04) + 2 (suite_05)
+EXPECTED_TOTAL_TESTS = 10  # suite_01..03: 3*2=6, suite_04: 2, suite_05: 2
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _run_pabot(output_dir, extra_args=None):
     """Run pabot against atest/ and return CompletedProcess."""
     cmd = [
-        sys.executable, "-m", "pabot.pabot",
-        "--processes", "4",
-        "--outputdir", str(output_dir),
+        sys.executable,
+        "-m",
+        "pabot.pabot",
+        "--processes",
+        "4",
+        "--outputdir",
+        str(output_dir),
     ]
     if extra_args:
         cmd.extend(extra_args)
@@ -111,6 +116,8 @@ def _overlap(a, b):
 # Tests
 # ---------------------------------------------------------------------------
 
+
+@pytest.mark.skipif(sys.platform == "win32", reason="fcntl not supported on Windows")
 def test_all_atest_tests_pass(tmp_path):
     """pabot must exit 0 and all tests in atest/ must report PASS."""
     result = _run_pabot(tmp_path)
@@ -120,8 +127,9 @@ def test_all_atest_tests_pass(tmp_path):
     )
 
     tests = _parse_tests(str(tmp_path / "output.xml"))
-    assert len(tests) == EXPECTED_TOTAL_TESTS, (
-        "Expected %d tests, found %d" % (EXPECTED_TOTAL_TESTS, len(tests))
+    assert len(tests) == EXPECTED_TOTAL_TESTS, "Expected %d tests, found %d" % (
+        EXPECTED_TOTAL_TESTS,
+        len(tests),
     )
     failed = [t["name"] for t in tests if t.get("status") == "FAIL"]
     assert not failed, "Some tests failed: %s" % failed
@@ -137,6 +145,7 @@ def test_exclusive_tests_detected_in_output(tmp_path):
     )
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="fcntl not supported on Windows")
 def test_exclusive_tests_run_alone(tmp_path):
     """Each exclusive test must not overlap in wall-clock time with any other test.
 
@@ -154,7 +163,7 @@ def test_exclusive_tests_run_alone(tmp_path):
 
     assert len(exclusive) >= EXPECTED_EXCLUSIVE_TESTS, (
         "Expected at least %d exclusive tests, found %d.\n"
-        "Check that suite_04–suite_05 exist and carry [Tags]    pabot:exclusive."
+        "Check that suite_04-suite_05 exist and carry [Tags]    pabot:exclusive."
         % (EXPECTED_EXCLUSIVE_TESTS, len(exclusive))
     )
 
