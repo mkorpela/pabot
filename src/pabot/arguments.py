@@ -80,39 +80,43 @@ def parse_args(
 # -s/--suite shall be removed if --testlevelsplit options does not exist
 def _replace_arg_files(pabot_args, opts_sub):
     _cleanup_old_pabot_temp_files()
-    if not opts_sub.get('argumentfile') or not opts_sub['argumentfile']:
+    if not opts_sub.get("argumentfile") or not opts_sub["argumentfile"]:
         return
-    arg_file_list = opts_sub['argumentfile']
+    arg_file_list = opts_sub["argumentfile"]
     temp_file_list = []
-    test_level = pabot_args.get('testlevelsplit')
+    test_level = pabot_args.get("testlevelsplit")
 
     for arg_file_path in arg_file_list:
-        with open(arg_file_path, 'r') as arg_file:
+        with open(arg_file_path, "r") as arg_file:
             arg_file_lines = arg_file.readlines()
         if not arg_file_lines:
             continue
 
         fd, temp_path = tempfile.mkstemp(prefix="pabot_temp_", suffix=".txt")
-        with os.fdopen(fd, 'wb') as temp_file:
+        with os.fdopen(fd, "wb") as temp_file:
             for line in arg_file_lines:
                 if test_level and _is_test_option(line):
                     continue
                 elif not test_level and _is_suite_option(line):
                     continue
-                temp_file.write(line.encode('utf-8'))
+                temp_file.write(line.encode("utf-8"))
 
         temp_file_list.append(temp_path)
 
-    opts_sub['argumentfile'] = temp_file_list
+    opts_sub["argumentfile"] = temp_file_list
     atexit.register(cleanup_temp_file, temp_file_list)
 
 
 def _is_suite_option(line):
-    return line.startswith('-s ') or line.startswith('--suite ')
+    return line.startswith("-s ") or line.startswith("--suite ")
 
 
 def _is_test_option(line):
-    return line.startswith('-t ') or line.startswith('--test ') or line.startswith('--task ')
+    return (
+        line.startswith("-t ")
+        or line.startswith("--test ")
+        or line.startswith("--task ")
+    )
 
 
 # clean the temp argument files before exiting the pabot process
@@ -145,8 +149,8 @@ def _parse_shard(arg):
 
 def _parse_artifacts(arg):
     # type: (str) -> Tuple[List[str], bool]
-    artifacts = arg.split(',')
-    if artifacts[-1] == 'notimestamps':
+    artifacts = arg.split(",")
+    if artifacts[-1] == "notimestamps":
         return (artifacts[:-1], False)
     return (artifacts, True)
 
@@ -163,7 +167,8 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "help": False,
         "version": False,
         "testlevelsplit": False,
-        "pabotlib": "manual",
+        "pabotlib": True,
+        "pabotlib_mode": "manual",
         "pabotlibhost": "127.0.0.1",
         "pabotlibport": 8270,
         "processes": _processes_count(),
@@ -187,6 +192,8 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         "chunk",
         "no-rebot",
     }
+
+    PABOTLIB_VALUES = ("manual", "auto", "disable")
 
     # Arguments that expect values
     value_args = {
@@ -227,7 +234,8 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         # Handle mutually exclusive pabotlib flags
         if arg_name == "no-pabotlib":
             saw_no_pabotlib = True
-            pabot_args["pabotlib"] = "disable"
+            pabot_args["pabotlib_mode"] = "disable"
+            pabot_args["pabotlib"] = False
             i += 1
             continue
 
@@ -274,7 +282,11 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                         i_mode_offset = 0
 
                     # optional failure policy, only for dynamic mode
-                    if mode == "dynamic" and i + 2 + i_mode_offset < len(args) and args[i + 2 + i_mode_offset] in ("skip", "run_all"):
+                    if (
+                        mode == "dynamic"
+                        and i + 2 + i_mode_offset < len(args)
+                        and args[i + 2 + i_mode_offset] in ("skip", "run_all")
+                    ):
                         failure_policy = args[i + 2 + i_mode_offset]
                         i_failure_offset = 1
                     else:
@@ -303,15 +315,23 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
                     continue
                 elif arg_name == "pabotlib":
                     saw_pabotlib_flag = True
-                    value = value_args[arg_name](args[i + 1])
-                    valid_values = ("manual", "auto", "disable")
-                    if value not in valid_values:
+                    next_arg = args[i + 1] if i + 1 < len(args) else None
+
+                    if next_arg not in PABOTLIB_VALUES:
+                        value = "manual"
+                        i += 1
+                    else:
+                        value = next_arg
+                        i += 2
+
+                    if value not in PABOTLIB_VALUES:
                         raise DataError(
                             f"Invalid value for --pabotlib: {value}. "
-                            f"Valid values are: {', '.join(valid_values)}"
+                            f"Valid values are: {', '.join(PABOTLIB_VALUES)}"
                         )
-                    pabot_args["pabotlib"] = value
-                    i += 2
+
+                    pabot_args["pabotlib_mode"] = value
+                    pabot_args["pabotlib"] = value != "disable"
                     continue
                 else:
                     value = value_args[arg_name](args[i + 1])
@@ -351,15 +371,15 @@ def _parse_pabot_args(args):  # type: (List[str]) -> Tuple[List[str], Dict[str, 
         raise DataError("Cannot use both --pabotlib and --no-pabotlib options together")
 
     # Check if pabotlibhost is used with pabotlib manual
-    if saw_pabotlibhost and pabot_args.get("pabotlib") == "manual":
-        pabot_args["pabotlib"] = "disable"
+    if saw_pabotlibhost and pabot_args.get("pabotlib_mode") == "manual":
+        pabot_args["pabotlib_mode"] = "disable"
+        pabot_args["pabotlib"] = False
 
-    if pabot_args.get("pabotlib") == "auto":
+    if pabot_args.get("pabotlib_mode") == "auto":
         if not saw_pabotlibhost:
             pabot_args["pabotlibhost"] = socket.gethostname()
         if not saw_pabotlibport:
             pabot_args["pabotlibport"] = 0
-
 
     pabot_args["argumentfiles"] = argumentfiles
 

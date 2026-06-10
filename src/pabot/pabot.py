@@ -83,7 +83,13 @@ from .execution_items import (
     create_dependency_tree,
 )
 from .result_merger import merge
-from .writer import get_writer, get_stdout_writer, get_stderr_writer, ThreadSafeWriter, MessageWriter
+from .writer import (
+    get_writer,
+    get_stdout_writer,
+    get_stderr_writer,
+    ThreadSafeWriter,
+    MessageWriter,
+)
 
 try:
     import queue  # type: ignore
@@ -97,6 +103,7 @@ except ImportError:
 
 try:
     import importlib.metadata
+
     METADATA_AVAILABLE = True
 except ImportError:
     METADATA_AVAILABLE = False
@@ -143,10 +150,12 @@ IS_PYTHON_3_8_OR_NEWER = sys.version_info >= (3, 8)
 
 _PROCESS_MANAGER = None
 
+
 def _ensure_process_manager():
     global _PROCESS_MANAGER
     if _PROCESS_MANAGER is None:
         from pabot.ProcessManager import ProcessManager
+
         _PROCESS_MANAGER = ProcessManager()
     return _PROCESS_MANAGER
 
@@ -160,7 +169,9 @@ def read_args_from_readme():
         return f"Extracted from METADATA:\n\n{metadata_section}"
 
     # 2. If METADATA is not available, fall back to development environment README.md
-    dev_readme_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "README.md"))
+    dev_readme_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", "..", "README.md")
+    )
     if os.path.exists(dev_readme_path):
         with open(dev_readme_path, encoding="utf-8") as f:
             lines = f.readlines()
@@ -202,7 +213,9 @@ def read_from_metadata():
         return None
 
 
-def extract_section(lines, start_marker="<!-- START DOCSTRING -->", end_marker="<!-- END DOCSTRING -->"):
+def extract_section(
+    lines, start_marker="<!-- START DOCSTRING -->", end_marker="<!-- END DOCSTRING -->"
+):
     """Extracts content between two markers in a list of lines."""
     inside_section = False
     extracted_lines = []
@@ -219,11 +232,11 @@ def extract_section(lines, start_marker="<!-- START DOCSTRING -->", end_marker="
     result = "".join(extracted_lines)
 
     # Remove Markdown hyperlinks but keep text
-    result = re.sub(r'\[([^\]]+)\]\(https?://[^\)]+\)', r'\1', result)
+    result = re.sub(r"\[([^\]]+)\]\(https?://[^\)]+\)", r"\1", result)
     # Remove Markdown section links but keep text
-    result = re.sub(r'\[([^\]]+)\]\(#[^\)]+\)', r'\1', result)
+    result = re.sub(r"\[([^\]]+)\]\(#[^\)]+\)", r"\1", result)
     # Remove ** and backticks `
-    result = re.sub(r'(\*\*|`)', '', result)
+    result = re.sub(r"(\*\*|`)", "", result)
 
     return result.strip()
 
@@ -253,7 +266,7 @@ def _set_executor_num(executor_num):
 
 def _get_executor_num():
     """Get the executor number for the current thread."""
-    return getattr(_EXECUTOR_THREAD_LOCAL, 'executor_num', 0)
+    return getattr(_EXECUTOR_THREAD_LOCAL, "executor_num", 0)
 
 
 def _execute_item_with_executor_tracking(item):
@@ -308,10 +321,16 @@ def execute_and_wait_with(item):
                 item.execution_item.type != "test",
                 process_timeout=item.timeout,
                 sleep_before_start=item.sleep_before_start,
-                item=item
+                item=item,
             )
         outputxml_preprocessing(
-            item.options, outs_dir, name, item.verbose, _get_executor_num(), caller_id, item.index
+            item.options,
+            outs_dir,
+            name,
+            item.verbose,
+            _get_executor_num(),
+            caller_id,
+            item.index,
         )
     except:
         _write(traceback.format_exc(), level="error")
@@ -322,6 +341,7 @@ def has_robot_stacktracer(min_version="0.4.1"):
     try:
         import RobotStackTracer  # type: ignore
         from packaging.version import Version
+
         return Version(RobotStackTracer.__version__) >= Version(min_version)  # type: ignore
     except (ImportError, ModuleNotFoundError, AttributeError):
         return False
@@ -329,7 +349,11 @@ def has_robot_stacktracer(min_version="0.4.1"):
 
 def _create_command_for_execution(caller_id, datasources, is_last, item, outs_dir):
     options = item.options.copy()
-    if item.command == ["robot"] and not options["listener"] and has_robot_stacktracer():
+    if (
+        item.command == ["robot"]
+        and not options["listener"]
+        and has_robot_stacktracer()
+    ):
         options["listener"] = ["RobotStackTracer"]
     run_options = (
         _options_for_custom_executor(
@@ -347,6 +371,7 @@ def _create_command_for_execution(caller_id, datasources, is_last, item, outs_di
         + datasources
     )
     return item.command, run_options
+
 
 def _pabotlib_in_use():
     return _PABOTLIBPROCESS or _PABOTLIBURI != "127.0.0.1:8270"
@@ -379,11 +404,11 @@ def _create_fallback_report(outs_dir, item, error_message):
     from robot.result.model import TestSuite
     from robot.result.executionresult import Result
     from .execution_items import SuiteItem, TestItem, GroupItem
-    
+
     def _reconstruct_suite_hierarchy(name_parts, is_test=False, tests=None):
         if not name_parts:
             return None
-        
+
         # Robot Framework expects YYYYMMDD HH:MM:SS.mmm format
         now = datetime.datetime.now().strftime("%Y%m%d %H:%M:%S.%f")
 
@@ -394,25 +419,29 @@ def _create_fallback_report(outs_dir, item, error_message):
                 # However, the recursive structure returns suites.
                 # So we handle test at the penultimate level.
                 return None
-            
+
             suite = TestSuite(name=name_parts[0])
             suite.starttime = now
             suite.endtime = now
             if tests:
                 for test_item in tests:
-                    short_name = test_item.name.split('.')[-1]
-                    suite.tests.create(name=short_name, status='FAIL', message=error_message)
+                    short_name = test_item.name.split(".")[-1]
+                    suite.tests.create(
+                        name=short_name, status="FAIL", message=error_message
+                    )
             else:
                 # Mark the suite itself as failed if no tests are known
                 # We add a placeholder test because TestSuite.status is read-only
-                suite.tests.create(name="Suite Startup", status='FAIL', message=error_message)
+                suite.tests.create(
+                    name="Suite Startup", status="FAIL", message=error_message
+                )
             return suite
-        
+
         suite = TestSuite(name=name_parts[0])
         suite.starttime = now
         suite.endtime = now
         if len(name_parts) == 2 and is_test:
-            suite.tests.create(name=name_parts[1], status='FAIL', message=error_message)
+            suite.tests.create(name=name_parts[1], status="FAIL", message=error_message)
             return suite
 
         inner_suite = _reconstruct_suite_hierarchy(name_parts[1:], is_test, tests)
@@ -424,22 +453,32 @@ def _create_fallback_report(outs_dir, item, error_message):
     root_suite = None
 
     if isinstance(exec_item, SuiteItem):
-        root_suite = _reconstruct_suite_hierarchy(exec_item.name.split('.'), is_test=False, tests=exec_item.tests)
+        root_suite = _reconstruct_suite_hierarchy(
+            exec_item.name.split("."), is_test=False, tests=exec_item.tests
+        )
     elif isinstance(exec_item, TestItem):
-        root_suite = _reconstruct_suite_hierarchy(exec_item.name.split('.'), is_test=True)
+        root_suite = _reconstruct_suite_hierarchy(
+            exec_item.name.split("."), is_test=True
+        )
     elif isinstance(exec_item, GroupItem):
         root_suite = TestSuite(name=exec_item.name)
         for sub_item in exec_item._items:
-             is_t = sub_item.type == 'test'
-             sub_suite = _reconstruct_suite_hierarchy(sub_item.name.split('.'), is_test=is_t, tests=getattr(sub_item, 'tests', None))
-             if sub_suite:
-                 root_suite.suites.append(sub_suite)
+            is_t = sub_item.type == "test"
+            sub_suite = _reconstruct_suite_hierarchy(
+                sub_item.name.split("."),
+                is_test=is_t,
+                tests=getattr(sub_item, "tests", None),
+            )
+            if sub_suite:
+                root_suite.suites.append(sub_suite)
     else:
-        root_suite = _reconstruct_suite_hierarchy(exec_item.name.split('.'), is_test=False)
+        root_suite = _reconstruct_suite_hierarchy(
+            exec_item.name.split("."), is_test=False
+        )
 
     if root_suite:
         result = Result(suite=root_suite)
-        result.generator = 'Pabot Fallback'
+        result.generator = "Pabot Fallback"
         result.save(output_xml)
 
 
@@ -455,7 +494,7 @@ def _try_execute_and_wait(
     show_stdout_on_failure=False,
     process_timeout=None,
     sleep_before_start=0,
-    item=None
+    item=None,
 ):
     # type: (List[str], List[str], str, str, bool, int, str, int, bool, Optional[int], int, Any) -> int
     plib = None
@@ -468,9 +507,10 @@ def _try_execute_and_wait(
     stderr_path = os.path.join(outs_dir, f"{command_name}_stderr.out")
 
     try:
-        with open(stdout_path, "w", encoding="utf-8", buffering=1) as stdout, \
-             open(stderr_path, "w", encoding="utf-8", buffering=1) as stderr:
-
+        with (
+            open(stdout_path, "w", encoding="utf-8", buffering=1) as stdout,
+            open(stderr_path, "w", encoding="utf-8", buffering=1) as stderr,
+        ):
             try:
                 process, (rc, elapsed) = _run(
                     run_cmd,
@@ -483,7 +523,7 @@ def _try_execute_and_wait(
                     my_index,
                     outs_dir,
                     process_timeout,
-                    sleep_before_start
+                    sleep_before_start,
                 )
             except Exception as e:
                 # If process failed to start entirely (e.g., FileNotFoundError)
@@ -492,7 +532,8 @@ def _try_execute_and_wait(
                 _write(f"Failed to start process for {item_name}: {e}", level="error")
                 # Create a minimal mock process for later use
                 import collections
-                process = collections.namedtuple('Process', ['pid'])(pid=0)
+
+                process = collections.namedtuple("Process", ["pid"])(pid=0)
 
             # Ensure writing
             stdout.flush()
@@ -501,29 +542,32 @@ def _try_execute_and_wait(
             os.fsync(stderr.fileno())
 
         if rc != 0:
-             # Check if output.xml exists, if not create a fallback
-             output_xml = os.path.join(outs_dir, "output.xml")
-             if not os.path.isfile(output_xml) and item:
-                 full_command = " ".join(run_cmd + ["-A", os.path.join(outs_dir, f"{command_name}_argfile.txt")])
-                 error_msg = [
-                     f"Execution failed with return code {rc}.",
-                     f"Command: {full_command}",
-                 ]
-                 try:
-                     with open(stderr_path, "r", encoding="utf-8") as f:
-                         stderr_content = f.read().strip()
-                         if stderr_content:
-                             error_msg.append(f"--- Stderr ---\n{stderr_content}")
-                 except Exception:
-                     pass
-                 try:
-                     with open(stdout_path, "r", encoding="utf-8") as f:
-                         stdout_content = f.read().strip()
-                         if stdout_content:
-                             error_msg.append(f"--- Stdout ---\n{stdout_content}")
-                 except Exception:
-                     pass
-                 _create_fallback_report(outs_dir, item, "\n".join(error_msg))
+            # Check if output.xml exists, if not create a fallback
+            output_xml = os.path.join(outs_dir, "output.xml")
+            if not os.path.isfile(output_xml) and item:
+                full_command = " ".join(
+                    run_cmd
+                    + ["-A", os.path.join(outs_dir, f"{command_name}_argfile.txt")]
+                )
+                error_msg = [
+                    f"Execution failed with return code {rc}.",
+                    f"Command: {full_command}",
+                ]
+                try:
+                    with open(stderr_path, "r", encoding="utf-8") as f:
+                        stderr_content = f.read().strip()
+                        if stderr_content:
+                            error_msg.append(f"--- Stderr ---\n{stderr_content}")
+                except Exception:
+                    pass
+                try:
+                    with open(stdout_path, "r", encoding="utf-8") as f:
+                        stdout_content = f.read().strip()
+                        if stdout_content:
+                            error_msg.append(f"--- Stdout ---\n{stdout_content}")
+                except Exception:
+                    pass
+                _create_fallback_report(outs_dir, item, "\n".join(error_msg))
 
         if plib:
             _increase_completed(plib, my_index)
@@ -604,7 +648,9 @@ def _is_ignored(plib, caller_id):  # type: (Remote, str) -> bool
 
 # optionally invoke rebot for output.xml preprocessing to get --RemoveKeywords
 # and --flattenkeywords applied => result: much smaller output.xml files + faster merging + avoid MemoryErrors
-def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, caller_id, item_id):
+def outputxml_preprocessing(
+    options, outs_dir, item_name, verbose, pool_id, caller_id, item_id
+):
     # type: (Dict[str, Any], str, str, bool, int, str, int) -> None
     try:
         remove_keywords = options["removekeywords"]
@@ -621,7 +667,9 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
         output_name = options.get("output", "output.xml")
         outputxmlfile = os.path.join(outs_dir, output_name)
         if not os.path.isfile(outputxmlfile):
-            raise DataError(f"Preprosessing cannot be done because file {outputxmlfile} not exists.")
+            raise DataError(
+                f"Preprosessing cannot be done because file {outputxmlfile} not exists."
+            )
         oldsize = os.path.getsize(outputxmlfile)
         process_empty = ["--processemptysuite"] if options.get("runemptysuite") else []
         run_cmd = ["rebot"]
@@ -651,7 +699,7 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
             pool_id,
             caller_id,
             item_id,
-            item=None
+            item=None,
         )
         newsize = os.path.getsize(outputxmlfile)
         perc = 100 * newsize / oldsize
@@ -671,7 +719,9 @@ def outputxml_preprocessing(options, outs_dir, item_name, verbose, pool_id, call
         print(sys.exc_info())
 
 
-def _write_with_id(process, pool_id, item_index, message, color=None, timestamp=None, level="debug"):
+def _write_with_id(
+    process, pool_id, item_index, message, color=None, timestamp=None, level="debug"
+):
     timestamp = timestamp or datetime.datetime.now()
     _write(
         "%s [PID:%s] [%s] [ID:%s] %s"
@@ -723,7 +773,11 @@ def _write_internal_argument_file(cmd_args, filename):
         i = 0
         while i < len(cmd_args):
             current = cmd_args[i]
-            if current.startswith("-") and i + 1 < len(cmd_args) and not cmd_args[i + 1].startswith("-"):
+            if (
+                current.startswith("-")
+                and i + 1 < len(cmd_args)
+                and not cmd_args[i + 1].startswith("-")
+            ):
                 f.write(f"{current} {cmd_args[i + 1]}\n")
                 i += 2
             else:
@@ -747,18 +801,22 @@ def _run(
     timestamp = datetime.datetime.now()
 
     if sleep_before_start > 0:
-        _write(f"{timestamp} [{pool_id}] [ID:{item_index}] SLEEPING {sleep_before_start} SECONDS BEFORE STARTING {item_name}")
+        _write(
+            f"{timestamp} [{pool_id}] [ID:{item_index}] SLEEPING {sleep_before_start} SECONDS BEFORE STARTING {item_name}"
+        )
         time.sleep(sleep_before_start)
 
     command_name = _get_command_name(run_command[0])
     argfile_path = os.path.join(outs_dir, f"{command_name}_argfile.txt")
     _write_internal_argument_file(run_options, filename=argfile_path)
 
-    cmd = run_command + ['-A', argfile_path]
+    cmd = run_command + ["-A", argfile_path]
     my_env = os.environ.copy()
     syslog_file = my_env.get("ROBOT_SYSLOG_FILE", None)
     if syslog_file:
-        my_env["ROBOT_SYSLOG_FILE"] = os.path.join(outs_dir, os.path.basename(syslog_file))
+        my_env["ROBOT_SYSLOG_FILE"] = os.path.join(
+            outs_dir, os.path.basename(syslog_file)
+        )
 
     log_path = os.path.join(outs_dir, f"{command_name}_{item_index}.log")
 
@@ -905,10 +963,14 @@ def _modify_options_for_argfile_use(argfile, options):
 
 def _replace_base_name(new_name, options, key):
     if isinstance(options.get(key), str):
-        options[key] = f"{new_name}.{options[key].split('.', 1)[1]}" if '.' in options[key] else new_name
+        options[key] = (
+            f"{new_name}.{options[key].split('.', 1)[1]}"
+            if "." in options[key]
+            else new_name
+        )
     elif key in options:
         options[key] = [
-            f"{new_name}.{s.split('.', 1)[1]}" if '.' in s else new_name
+            f"{new_name}.{s.split('.', 1)[1]}" if "." in s else new_name
             for s in options.get(key, [])
         ]
 
@@ -1088,15 +1150,14 @@ def solve_shard_suites(suite_names, pabot_args):
         )
     q, r = divmod(items_count, shard_count)
     return suite_names[
-        (shard_index - 1) * q
-        + min(shard_index - 1, r) : shard_index * q
+        (shard_index - 1) * q + min(shard_index - 1, r) : shard_index * q
         + min(shard_index, r)
     ]
 
 
 def solve_suite_names(outs_dir, datasources, options, pabot_args):
     if pabot_args.get("pabotprerunmodifier"):
-        options['prerunmodifier'].append(pabot_args['pabotprerunmodifier'])
+        options["prerunmodifier"].append(pabot_args["pabotprerunmodifier"])
     h = Hashes(
         dirs=get_hash_of_dirs(datasources),
         cmd=get_hash_of_command(options, pabot_args),
@@ -1132,10 +1193,17 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                 for l in lines[4:]
             )
             execution_item_lines = [parse_execution_item_line(l) for l in lines[4:]]
-            if corrupted or h != file_h or file_hash != hash_of_file or pabot_args.get("pabotprerunmodifier"):
+            if (
+                corrupted
+                or h != file_h
+                or file_hash != hash_of_file
+                or pabot_args.get("pabotprerunmodifier")
+            ):
                 if file_h is not None and file_h[0] != h[0] and file_h[2] == h[2]:
                     suite_names = _levelsplit(
-                        generate_suite_names_with_builder(outs_dir, datasources, options),
+                        generate_suite_names_with_builder(
+                            outs_dir, datasources, options
+                        ),
                         pabot_args,
                     )
                     store_suite_names(h, suite_names)
@@ -1157,9 +1225,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
         )
 
 
-def _levelsplit(
-    suites, pabot_args
-):  # type: (List[SuiteItem], Dict[str, str]) -> List[ExecutionItem]
+def _levelsplit(suites, pabot_args):  # type: (List[SuiteItem], Dict[str, str]) -> List[ExecutionItem]
     if pabot_args.get("testlevelsplit"):
         tests = []  # type: List[ExecutionItem]
         for s in suites:
@@ -1182,9 +1248,7 @@ def _group_by_wait(lines):
     return suites
 
 
-def _regenerate(
-    file_h, h, pabot_args, outs_dir, datasources, options, lines
-):  # type: (Optional[Hashes], Hashes, Dict[str, str], str, List[str], Dict[str, str], List[ExecutionItem]) -> List[ExecutionItem]
+def _regenerate(file_h, h, pabot_args, outs_dir, datasources, options, lines):  # type: (Optional[Hashes], Hashes, Dict[str, str], str, List[str], Dict[str, str], List[ExecutionItem]) -> List[ExecutionItem]
     assert all(isinstance(s, ExecutionItem) for s in lines)
     if (
         (file_h is None or file_h.suitesfrom != h.suitesfrom)
@@ -1322,9 +1386,7 @@ def _remove_empty_groups(exists_in_old_and_new):  # type: (List[ExecutionItem]) 
         del exists_in_old_and_new[i]
 
 
-def _split_partially_to_tests(
-    new_suites, old_suites
-):  # type: (List[SuiteItem], List[ExecutionItem]) -> List[ExecutionItem]
+def _split_partially_to_tests(new_suites, old_suites):  # type: (List[SuiteItem], List[ExecutionItem]) -> List[ExecutionItem]
     suits = []  # type: List[ExecutionItem]
     for s in new_suites:
         split = False
@@ -1383,13 +1445,12 @@ def store_suite_names(hashes, suite_names):
         _write(
             "[ "
             + _wrap_with(Color.YELLOW, "WARNING")
-            + " ]: storing .pabotsuitenames failed", level="warning",
+            + " ]: storing .pabotsuitenames failed",
+            level="warning",
         )
 
 
-def generate_suite_names(
-    outs_dir, datasources, options, pabot_args
-):  # type: (object, object, object, Dict[str, str]) -> List[ExecutionItem]
+def generate_suite_names(outs_dir, datasources, options, pabot_args):  # type: (object, object, object, Dict[str, str]) -> List[ExecutionItem]
     suites = []  # type: List[SuiteItem]
     if "suitesfrom" in pabot_args and os.path.isfile(pabot_args["suitesfrom"]):
         suites = _suites_from_outputxml(pabot_args["suitesfrom"])
@@ -1449,13 +1510,15 @@ def generate_suite_names_with_builder(outs_dir, datasources, options):
         if stdout_value:
             _write(
                 "[STDOUT] from suite search:\n" + stdout_value + "[STDOUT] end",
-                Color.YELLOW, level="warning",
+                Color.YELLOW,
+                level="warning",
             )
         stderr_value = opts["stderr"].getvalue()
         if stderr_value:
             _write(
                 "[STDERR] from suite search:\n" + stderr_value + "[STDERR] end",
-                Color.RED, level="error",
+                Color.RED,
+                level="error",
             )
     return list(sorted(set(suite_names)))
 
@@ -1511,7 +1574,9 @@ def _options_for_dryrun(options, outs_dir):
     return _set_terminal_coloring_options(options)
 
 
-def _options_for_rebot(options, start_time_string, end_time_string, num_of_executions=0):
+def _options_for_rebot(
+    options, start_time_string, end_time_string, num_of_executions=0
+):
     rebot_options = options.copy()
     rebot_options["starttime"] = start_time_string
     rebot_options["endtime"] = end_time_string
@@ -1523,9 +1588,7 @@ def _options_for_rebot(options, start_time_string, end_time_string, num_of_execu
     rebot_options["metadata"].append(
         f"Pabot Info:[https://pabot.org/?ref=log|Pabot] result from {num_of_executions} executions."
     )
-    rebot_options["metadata"].append(
-        f"Pabot Version:{PABOT_VERSION}"
-    )
+    rebot_options["metadata"].append(f"Pabot Version:{PABOT_VERSION}")
     if rebot_options.get("runemptysuite"):
         rebot_options["processemptysuite"] = True
     if ROBOT_VERSION >= "2.8":
@@ -1569,14 +1632,8 @@ def _now():
 
 
 def _print_elapsed(start, end):
-    _write(
-        "Total testing: "
-        + _time_string(sum(_ALL_ELAPSED)), level="info"
-    )
-    _write(
-        "Elapsed time:  "
-        + _time_string(end - start), level="info"
-    )
+    _write("Total testing: " + _time_string(sum(_ALL_ELAPSED)), level="info")
+    _write("Elapsed time:  " + _time_string(end - start), level="info")
 
 
 def _time_string(elapsed):
@@ -1606,7 +1663,11 @@ def keyboard_interrupt(*args):
     if _PROCESS_MANAGER:
         _PROCESS_MANAGER.set_interrupted()
     if _PABOTWRITER:
-        _write("[ INTERRUPT ] Ctrl+C pressed - initiating graceful shutdown...", Color.YELLOW, level="warning")
+        _write(
+            "[ INTERRUPT ] Ctrl+C pressed - initiating graceful shutdown...",
+            Color.YELLOW,
+            level="warning",
+        )
     else:
         print("[ INTERRUPT ] Ctrl+C pressed - initiating graceful shutdown...")
 
@@ -1622,7 +1683,7 @@ def _dependencies_satisfied(item, completed):
     """
     for dep in _get_depends(item):
         # Build unique name for dependency with same argfile_index as the item
-        if hasattr(item, 'argfile_index') and item.argfile_index:
+        if hasattr(item, "argfile_index") and item.argfile_index:
             # Item has an argfile index, so check for dependency with same argfile index
             dep_unique_name = f"{item.argfile_index}:{dep}"
             if dep_unique_name not in completed:
@@ -1751,7 +1812,8 @@ def _parallel_execute_dynamic(
                                 _write(
                                     f"Skipping '{other_unique_name}' because dependency "
                                     f"'{unique_name}' failed (transitive).",
-                                    Color.YELLOW, level="debug"
+                                    Color.YELLOW,
+                                    level="debug",
                                 )
                             other.skip = True
 
@@ -1759,7 +1821,8 @@ def _parallel_execute_dynamic(
         while pending or running:
             with lock:
                 ready = [
-                    item for item in list(pending)
+                    item
+                    for item in list(pending)
                     if _dependencies_satisfied(item, completed)
                 ]
 
@@ -1821,7 +1884,9 @@ def _parallel_execute(
         if new_items and delayed_result_append == 0:
             _construct_last_levels([new_items])
             _CURRENT_BATCH_SIZE = len(new_items)
-            results.append(pool.map_async(_execute_item_with_executor_tracking, new_items, 1))
+            results.append(
+                pool.map_async(_execute_item_with_executor_tracking, new_items, 1)
+            )
             new_items = []
     pool.close()
     # Signal handler will be restored in main_program's finally block
@@ -1850,11 +1915,21 @@ def _rmtree_with_path(path):
 def _get_timestamp_id(timestamp_str, add_timestamp):
     # type: (str, bool) -> Optional[str]
     if add_timestamp:
-        return str(datetime.datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").strftime("%Y%m%d_%H%M%S"))
+        return str(
+            datetime.datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f").strftime(
+                "%Y%m%d_%H%M%S"
+            )
+        )
     return None
 
 
-def _copy_output_artifacts(options, timestamp_id=None, file_extensions=None, include_subfolders=False, index=None):
+def _copy_output_artifacts(
+    options,
+    timestamp_id=None,
+    file_extensions=None,
+    include_subfolders=False,
+    index=None,
+):
     file_extensions = file_extensions or ["png"]
     pabot_outputdir = _output_dir(options, cleanup=False)
     outputdir = options.get("outputdir", ".")
@@ -1889,7 +1964,9 @@ def _copy_output_artifacts(options, timestamp_id=None, file_extensions=None, inc
     return copied_artifacts
 
 
-def _check_pabot_results_for_missing_xml(base_dir, command_list, output_xml_name='output.xml'):
+def _check_pabot_results_for_missing_xml(
+    base_dir, command_list, output_xml_name="output.xml"
+):
     """
     Check for missing Robot Framework output XML files in pabot result directories,
     taking into account the optional timestamp added by the -T option.
@@ -1906,7 +1983,9 @@ def _check_pabot_results_for_missing_xml(base_dir, command_list, output_xml_name
     # Prepare regex to match timestamped filenames like output-YYYYMMDD-hhmmss.xml
     name_stem = os.path.splitext(output_xml_name)[0]
     name_suffix = os.path.splitext(output_xml_name)[1]
-    pattern = re.compile(rf"^{re.escape(name_stem)}(-\d{{8}}-\d{{6}})?{re.escape(name_suffix)}$")
+    pattern = re.compile(
+        rf"^{re.escape(name_stem)}(-\d{{8}}-\d{{6}})?{re.escape(name_suffix)}$"
+    )
 
     for root, dirs, _ in os.walk(base_dir):
         if root == base_dir:
@@ -1916,7 +1995,9 @@ def _check_pabot_results_for_missing_xml(base_dir, command_list, output_xml_name
                 has_xml = any(pattern.match(fname) for fname in os.listdir(subdir_path))
                 if not has_xml:
                     sanitized_cmd = _get_command_name(command_list[0])
-                    missing.append(os.path.join(subdir_path, f"{sanitized_cmd}_stderr.out"))
+                    missing.append(
+                        os.path.join(subdir_path, f"{sanitized_cmd}_stderr.out")
+                    )
             break  # only check immediate subdirectories
     return missing
 
@@ -1947,7 +2028,11 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
         total_num_of_executions = 0
         for index, _ in pabot_args["argumentfiles"]:
             copied_artifacts = _copy_output_artifacts(
-                options, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"], index
+                options,
+                _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]),
+                pabot_args["artifacts"],
+                pabot_args["artifactsinsubfolders"],
+                index,
             )
             output, num_of_executions = _merge_one_run(
                 os.path.join(outs_dir, index),
@@ -1955,33 +2040,58 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
                 tests_root_name,
                 stats,
                 copied_artifacts,
-                timestamp_id=_get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]),
+                timestamp_id=_get_timestamp_id(
+                    start_time_string, pabot_args["artifactstimestamps"]
+                ),
                 outputfile=os.path.join("pabot_results", "output%s.xml" % index),
             )
             outputs += [output]
             total_num_of_executions += num_of_executions
-            missing_outputs.extend(_check_pabot_results_for_missing_xml(os.path.join(outs_dir, index), pabot_args.get('command')))
+            missing_outputs.extend(
+                _check_pabot_results_for_missing_xml(
+                    os.path.join(outs_dir, index), pabot_args.get("command")
+                )
+            )
         if "output" not in options:
             options["output"] = "output.xml"
         _write_stats(stats)
         stdout_writer = get_stdout_writer()
-        stderr_writer = get_stderr_writer(original_stderr_name='Internal Rebot')
-        exit_code = rebot(*outputs, **_options_for_rebot(options, start_time_string, _now(), total_num_of_executions), stdout=stdout_writer, stderr=stderr_writer)
+        stderr_writer = get_stderr_writer(original_stderr_name="Internal Rebot")
+        exit_code = rebot(
+            *outputs,
+            **_options_for_rebot(
+                options, start_time_string, _now(), total_num_of_executions
+            ),
+            stdout=stdout_writer,
+            stderr=stderr_writer,
+        )
     else:
         exit_code = _report_results_for_one_run(
             outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
         )
-        missing_outputs.extend(_check_pabot_results_for_missing_xml(outs_dir, pabot_args.get('command')))
+        missing_outputs.extend(
+            _check_pabot_results_for_missing_xml(outs_dir, pabot_args.get("command"))
+        )
     if missing_outputs:
-        _write(("[ " + _wrap_with(Color.YELLOW, 'WARNING') + " ] "
+        _write(
+            (
+                "[ " + _wrap_with(Color.YELLOW, "WARNING") + " ] "
                 "One or more subprocesses encountered an error and the "
                 "internal .xml files could not be generated. Please check the "
-                "following stderr files to identify the cause:"), level="warning")
+                "following stderr files to identify the cause:"
+            ),
+            level="warning",
+        )
         for missing in missing_outputs:
             _write(repr(missing), level="warning")
-        _write((f"[ " + _wrap_with(Color.RED, 'ERROR') + " ] "
+        _write(
+            (
+                f"[ " + _wrap_with(Color.RED, "ERROR") + " ] "
                 "The output, log and report files produced by Pabot are "
-                "incomplete and do not contain all test cases."), level="error")
+                "incomplete and do not contain all test cases."
+            ),
+            level="error",
+        )
     return exit_code if not missing_outputs else 252
 
 
@@ -1991,16 +2101,19 @@ def _write_stats(stats):
         al = stats["all"]
         _write(
             "%d critical tests, %d passed, %d failed"
-            % (crit["total"], crit["passed"], crit["failed"]), level="info"
+            % (crit["total"], crit["passed"], crit["failed"]),
+            level="info",
         )
         _write(
             "%d tests total, %d passed, %d failed"
-            % (al["total"], al["passed"], al["failed"]), level="info"
+            % (al["total"], al["passed"], al["failed"]),
+            level="info",
         )
     else:
         _write(
             "%d tests, %d passed, %d failed, %d skipped."
-            % (stats["total"], stats["passed"], stats["failed"], stats["skipped"]), level="info"
+            % (stats["total"], stats["passed"], stats["failed"], stats["skipped"]),
+            level="info",
         )
     _write("===================================================", level="info")
 
@@ -2025,10 +2138,18 @@ def _report_results_for_one_run(
     outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
 ):
     copied_artifacts = _copy_output_artifacts(
-        options, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]), pabot_args["artifacts"], pabot_args["artifactsinsubfolders"]
+        options,
+        _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]),
+        pabot_args["artifacts"],
+        pabot_args["artifactsinsubfolders"],
     )
     output_path, num_of_executions = _merge_one_run(
-        outs_dir, options, tests_root_name, stats, copied_artifacts, _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"])
+        outs_dir,
+        options,
+        tests_root_name,
+        stats,
+        copied_artifacts,
+        _get_timestamp_id(start_time_string, pabot_args["artifactstimestamps"]),
     )
     _write_stats(stats)
     ts = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -2040,20 +2161,31 @@ def _report_results_for_one_run(
         and "log" in options
         and options["log"].upper() == "NONE"
     ):
-        options[
-            "output"
-        ] = output_path  # REBOT will return error 252 if nothing is written
+        options["output"] = (
+            output_path  # REBOT will return error 252 if nothing is written
+        )
     else:
         _write("Output:  %s" % output_path, level="info")
         options["output"] = None  # Do not write output again with rebot
     stdout_writer = get_stdout_writer()
     stderr_writer = get_stderr_writer(original_stderr_name="Internal Rebot")
-    exit_code = rebot(output_path, **_options_for_rebot(options, start_time_string, ts, num_of_executions), stdout=stdout_writer, stderr=stderr_writer)
+    exit_code = rebot(
+        output_path,
+        **_options_for_rebot(options, start_time_string, ts, num_of_executions),
+        stdout=stdout_writer,
+        stderr=stderr_writer,
+    )
     return exit_code
 
 
 def _merge_one_run(
-    outs_dir, options, tests_root_name, stats, copied_artifacts, timestamp_id, outputfile=None
+    outs_dir,
+    options,
+    tests_root_name,
+    stats,
+    copied_artifacts,
+    timestamp_id,
+    outputfile=None,
 ):
     outputfile = outputfile or options.get("output", "output.xml")
     output_path = os.path.abspath(
@@ -2062,22 +2194,29 @@ def _merge_one_run(
     filename = "output.xml"
     base_name, ext = os.path.splitext(filename)
     # Glob all candidates
-    candidate_files = glob(os.path.join(outs_dir, "**", f"*{base_name}*{ext}"), recursive=True)
+    candidate_files = glob(
+        os.path.join(outs_dir, "**", f"*{base_name}*{ext}"), recursive=True
+    )
 
     # Regex: basename or basename-YYYYMMDD-hhmmss.ext
-    ts_pattern = re.compile(rf"^{re.escape(base_name)}(?:-\d{{8}}-\d{{6}})?{re.escape(ext)}$")
+    ts_pattern = re.compile(
+        rf"^{re.escape(base_name)}(?:-\d{{8}}-\d{{6}})?{re.escape(ext)}$"
+    )
 
     files = [f for f in candidate_files if ts_pattern.search(os.path.basename(f))]
 
     # For sorting ./pabot_results/X/Y/output.xml paths without natsort library
     def natural_key(s):
-        return [int(t) if t.isdigit() else t.casefold()
-                for t in re.split(r'(\d+)', s)]
+        return [int(t) if t.isdigit() else t.casefold() for t in re.split(r"(\d+)", s)]
 
     files.sort(key=natural_key)
 
     if not files:
-        _write('[ WARNING ]: No output files in "%s"' % outs_dir, Color.YELLOW, level="warning")
+        _write(
+            '[ WARNING ]: No output files in "%s"' % outs_dir,
+            Color.YELLOW,
+            level="warning",
+        )
         return "", 0
 
     def invalid_xml_callback():
@@ -2087,7 +2226,12 @@ def _merge_one_run(
     if PY2:
         files = [f.decode(SYSTEM_ENCODING) if not is_unicode(f) else f for f in files]
     resu = merge(
-        files, options, tests_root_name, copied_artifacts, timestamp_id, invalid_xml_callback
+        files,
+        options,
+        tests_root_name,
+        copied_artifacts,
+        timestamp_id,
+        invalid_xml_callback,
     )
     _update_stats(resu, stats)
     if ROBOT_VERSION >= "7.0" and options.get("legacyoutput"):
@@ -2163,8 +2307,10 @@ def _get_free_port():
 def _start_remote_library(pabot_args):  # type: (dict) -> Optional[Tuple[subprocess.Popen, threading.Thread]]
     global _PABOTLIBURI
     # If pabotlib is disabled, do nothing.
-    #
-    if pabot_args.get("pabotlib") == "disable":
+    if (
+        pabot_args.get("pabotlib") is False
+        or pabot_args.get("pabotlib_mode") == "disable"
+    ):
         return None, None
 
     host = pabot_args.get("pabotlibhost", "127.0.0.1")
@@ -2175,7 +2321,8 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[Tuple[subproc
         _write(
             f"Warning: specified pabotlibport {port} is already in use. "
             "A free port will be assigned automatically.",
-            Color.YELLOW, level="warning"
+            Color.YELLOW,
+            level="warning",
         )
         port = _get_free_port()
 
@@ -2189,12 +2336,14 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[Tuple[subproc
         _write(
             "Warning: specified resource file doesn't exist."
             " Some tests may fail or continue forever.",
-            Color.YELLOW, level="warning"
+            Color.YELLOW,
+            level="warning",
         )
         resourcefile = ""
     cmd = [
         sys.executable,
-        "-m", pabotlib.__name__,
+        "-m",
+        pabotlib.__name__,
         resourcefile,
         pabot_args["pabotlibhost"],
         str(port),
@@ -2208,12 +2357,13 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[Tuple[subproc
         "bufsize": 1,
         "env": {**os.environ, "PYTHONUNBUFFERED": "1"},
     }
-    if sys.platform.startswith('win'):
+    if sys.platform.startswith("win"):
         # Windows: use CREATE_NEW_PROCESS_GROUP
         kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP
     else:
         # Unix/Linux/macOS: use preexec_fn to create new session
         import os as os_module
+
         kwargs["preexec_fn"] = os_module.setsid
 
     process = subprocess.Popen(cmd, **kwargs)
@@ -2223,7 +2373,7 @@ def _start_remote_library(pabot_args):  # type: (dict) -> Optional[Tuple[subproc
             for line in proc.stdout:
                 if line.strip():  # Skip empty lines
                     try:
-                        writer.write(line.rstrip('\n') + '\n', level="info")
+                        writer.write(line.rstrip("\n") + "\n", level="info")
                         writer.flush()
                     except (RuntimeError, ValueError):
                         # Writer/stdout already closed during shutdown
@@ -2263,8 +2413,9 @@ def _stop_remote_library(process):  # type: (subprocess.Popen) -> None
     # If still running after remote stop attempt, terminate it
     if process.poll() is None:
         _write(
-            "Could not stop PabotLib Process in 5 seconds " "- calling terminate",
-            Color.YELLOW, level="warning"
+            "Could not stop PabotLib Process in 5 seconds - calling terminate",
+            Color.YELLOW,
+            level="warning",
         )
         process.terminate()
         # Give it a moment to respond to SIGTERM
@@ -2272,7 +2423,8 @@ def _stop_remote_library(process):  # type: (subprocess.Popen) -> None
         if process.poll() is None:
             _write(
                 "PabotLib Process did not respond to terminate - calling kill",
-                Color.RED, level="error"
+                Color.RED,
+                level="error",
             )
             process.kill()
     else:
@@ -2309,7 +2461,9 @@ class QueueItem(object):
             outs_dir.encode("utf-8") if PY2 and is_unicode(outs_dir) else outs_dir
         )
         self.options = options
-        self.options["output"] = "output.xml"  # This is hardcoded output.xml inside pabot_results, not the final output
+        self.options["output"] = (
+            "output.xml"  # This is hardcoded output.xml inside pabot_results, not the final output
+        )
         self.execution_item = (
             execution_item if not hive else HivedItem(execution_item, hive)
         )
@@ -2390,9 +2544,15 @@ def _create_execution_items_for_run(
     return all_items
 
 
-def _create_items(datasources, opts_for_run, outs_dir, pabot_args, suite_group, argfile=None):
+def _create_items(
+    datasources, opts_for_run, outs_dir, pabot_args, suite_group, argfile=None
+):
     # If argfile is provided, use only that one. Otherwise, loop through all argumentfiles.
-    argumentfiles = [argfile] if argfile is not None else (pabot_args["argumentfiles"] or [("", None)])
+    argumentfiles = (
+        [argfile]
+        if argfile is not None
+        else (pabot_args["argumentfiles"] or [("", None)])
+    )
     return [
         QueueItem(
             datasources,
@@ -2444,7 +2604,9 @@ def _chunk_items(items, chunk_size):
                 yield item
         else:
             # For suites, create a combined execution item with all suite execution items
-            execution_items = SuiteItems([item.execution_item for item in chunked_items])
+            execution_items = SuiteItems(
+                [item.execution_item for item in chunked_items]
+            )
             # Reuse the base item but update its execution_item to the combined one
             base_item.execution_item = execution_items
             yield base_item
@@ -2517,7 +2679,8 @@ def _get_dynamically_created_execution_items(
             "[ WARNING ] PabotLib unreachable during post-run phase, "
             "assuming no dynamically added suites. "
             "Original error: %s",
-            err, level="warning"
+            err,
+            level="warning",
         )
         new_suites = []
     if len(new_suites) == 0:
@@ -2550,7 +2713,12 @@ def main(args=None):
 
 
 def main_program(args):
-    global _PABOTLIBPROCESS, _PABOTCONSOLE, _PABOTWRITER, _PABOTLIBTHREAD, _USE_USER_COMMAND
+    global \
+        _PABOTLIBPROCESS, \
+        _PABOTCONSOLE, \
+        _PABOTWRITER, \
+        _PABOTLIBTHREAD, \
+        _USE_USER_COMMAND
     outs_dir = None
     version_or_help_called = False
     args = args or sys.argv[1:]
@@ -2565,16 +2733,17 @@ def main_program(args):
     start_time = time.time()
     start_time_string = _now()
     # NOTE: timeout option
-    original_signal_handler = signal.default_int_handler  # Save default handler in case of early exit
+    original_signal_handler = (
+        signal.default_int_handler
+    )  # Save default handler in case of early exit
     try:
         options, datasources, pabot_args, opts_for_run = parse_args(args)
         _USE_USER_COMMAND = pabot_args.get("use_user_command", False)
         _PABOTCONSOLE = pabot_args.get("pabotconsole", "verbose")
         if pabot_args["help"]:
             help_print = __doc__.replace(
-                    "PLACEHOLDER_README.MD",
-                    read_args_from_readme()
-                )
+                "PLACEHOLDER_README.MD", read_args_from_readme()
+            )
             print(help_print.replace("[PABOT_VERSION]", PABOT_VERSION, 1))
             version_or_help_called = True
             return 251
@@ -2633,13 +2802,16 @@ def main_program(args):
                     outs_dir,
                     opts_for_run,
                     pabot_args,
-                    )
+                )
         if pabot_args["no-rebot"]:
-            _write((
-                "All tests were executed, but the --no-rebot argument was given, "
-                "so the results were not compiled, and no summary was generated. "
-                f"All results have been saved in the {outs_dir} folder."
-            ), level="info")
+            _write(
+                (
+                    "All tests were executed, but the --no-rebot argument was given, "
+                    "so the results were not compiled, and no summary was generated. "
+                    f"All results have been saved in the {outs_dir} folder."
+                ),
+                level="info",
+            )
             _write("===================================================", level="info")
             return 253
         result_code = _report_results(
@@ -2672,26 +2844,38 @@ def main_program(args):
     except (Exception, KeyboardInterrupt):
         if not CTRL_C_PRESSED:
             if _PABOTWRITER:
-                _write("[ ERROR ] EXCEPTION RAISED DURING PABOT EXECUTION", Color.RED, level="error")
+                _write(
+                    "[ ERROR ] EXCEPTION RAISED DURING PABOT EXECUTION",
+                    Color.RED,
+                    level="error",
+                )
                 _write(
                     "[ ERROR ] PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues",
-                    Color.RED, level="error"
+                    Color.RED,
+                    level="error",
                 )
                 _write("Pabot: %s" % PABOT_VERSION, level="info")
                 _write("Python: %s" % sys.version, level="info")
                 _write("Robot Framework: %s" % ROBOT_VERSION, level="info")
             else:
                 print("[ ERROR ] EXCEPTION RAISED DURING PABOT EXECUTION")
-                print("[ ERROR ] PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues")
+                print(
+                    "[ ERROR ] PLEASE CONSIDER REPORTING THIS ISSUE TO https://github.com/mkorpela/pabot/issues"
+                )
                 print("Pabot: %s" % PABOT_VERSION)
                 print("Python: %s" % sys.version)
                 print("Robot Framework: %s" % ROBOT_VERSION)
             import traceback
+
             traceback.print_exc()
             return 255
         else:
             if _PABOTWRITER:
-                _write("[ ERROR ] Execution stopped by user (Ctrl+C)", Color.RED, level="error")
+                _write(
+                    "[ ERROR ] Execution stopped by user (Ctrl+C)",
+                    Color.RED,
+                    level="error",
+                )
             else:
                 print("[ ERROR ] Execution stopped by user (Ctrl+C)")
             return 253
@@ -2704,7 +2888,11 @@ def main_program(args):
             signal.signal(signal.SIGINT, original_signal_handler)
         except Exception as e:
             if _PABOTWRITER:
-                _write(f"[ WARNING ] Could not restore signal handler: {e}", Color.YELLOW, level="warning")
+                _write(
+                    f"[ WARNING ] Could not restore signal handler: {e}",
+                    Color.YELLOW,
+                    level="warning",
+                )
             else:
                 print(f"[ WARNING ] Could not restore signal handler: {e}")
 
@@ -2716,7 +2904,11 @@ def main_program(args):
                 _PROCESS_MANAGER.terminate_all()
         except Exception as e:
             if _PABOTWRITER:
-                _write(f"[ WARNING ] Could not terminate test subprocesses: {e}", Color.YELLOW, level="warning")
+                _write(
+                    f"[ WARNING ] Could not terminate test subprocesses: {e}",
+                    Color.YELLOW,
+                    level="warning",
+                )
             else:
                 print(f"[ WARNING ] Could not terminate test subprocesses: {e}")
 
@@ -2727,7 +2919,11 @@ def main_program(args):
                 _stop_remote_library(_PABOTLIBPROCESS)
         except Exception as e:
             if _PABOTWRITER:
-                _write(f"[ WARNING ] Failed to stop remote library cleanly: {e}", Color.YELLOW, level="warning")
+                _write(
+                    f"[ WARNING ] Failed to stop remote library cleanly: {e}",
+                    Color.YELLOW,
+                    level="warning",
+                )
             else:
                 print(f"[ WARNING ] Failed to stop remote library cleanly: {e}")
 
@@ -2737,7 +2933,11 @@ def main_program(args):
                 _print_elapsed(start_time, time.time())
         except Exception as e:
             if _PABOTWRITER:
-                _write(f"[ WARNING ] Failed to print elapsed time: {e}", Color.YELLOW, level="warning")
+                _write(
+                    f"[ WARNING ] Failed to print elapsed time: {e}",
+                    Color.YELLOW,
+                    level="warning",
+                )
             else:
                 print(f"[ WARNING ] Failed to print elapsed time: {e}")
 
@@ -2750,13 +2950,19 @@ def main_program(args):
                         _write(
                             "[ WARNING ] PabotLib output thread did not finish before timeout",
                             Color.YELLOW,
-                            level="warning"
+                            level="warning",
                         )
                     else:
-                        print("[ WARNING ] PabotLib output thread did not finish before timeout")
+                        print(
+                            "[ WARNING ] PabotLib output thread did not finish before timeout"
+                        )
         except Exception as e:
             if _PABOTWRITER:
-                _write(f"[ WARNING ] Could not join pabotlib output thread: {e}", Color.YELLOW, level="warning")
+                _write(
+                    f"[ WARNING ] Could not join pabotlib output thread: {e}",
+                    Color.YELLOW,
+                    level="warning",
+                )
             else:
                 print(f"[ WARNING ] Could not join pabotlib output thread: {e}")
 
@@ -2788,7 +2994,8 @@ def _parse_ordering(filename):  # type: (str) -> List[ExecutionItem]
         with open(filename, "r") as orderingfile:
             return [
                 parse_execution_item_line(line.strip())
-                for line in orderingfile.readlines() if line.strip() != ""
+                for line in orderingfile.readlines()
+                if line.strip() != ""
             ]
     except FileNotFoundError:
         raise DataError("Error: File '%s' not found." % filename)
@@ -2805,22 +3012,39 @@ def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], 
     duplicates = []
     if ordering_file:
         for item in ordering_file:
-            if item.type in ['suite', 'test']:
-                if not any((s == item.name or s.endswith("." + item.name)) for s in list_of_suite_names):
+            if item.type in ["suite", "test"]:
+                if not any(
+                    (s == item.name or s.endswith("." + item.name))
+                    for s in list_of_suite_names
+                ):
                     # If test name is too long, it gets name ' Invalid', so skip that
                     # Additionally, the test is skipped also if the user wants a higher-level suite to be executed sequentially by using
                     # the --suite option, and the given name is part of the full name of any test or suite.
-                    if item.name != ' Invalid' and not (item.type == 'suite' and any((s == item.name or s.startswith(item.name + ".")) for s in list_of_suite_names)):
-                        skipped_runnable_items.append(f"{item.type.title()} item: '{item.name}'")
+                    if item.name != " Invalid" and not (
+                        item.type == "suite"
+                        and any(
+                            (s == item.name or s.startswith(item.name + "."))
+                            for s in list_of_suite_names
+                        )
+                    ):
+                        skipped_runnable_items.append(
+                            f"{item.type.title()} item: '{item.name}'"
+                        )
                 if item.name in suite_and_test_names:
                     duplicates.append(f"{item.type.title()} item: '{item.name}'")
                 suite_and_test_names.append(item.name)
     if skipped_runnable_items:
-        _write("Note: The ordering file contains test or suite items that are not included in the current test run. The following items will be ignored/skipped:", level="info")
+        _write(
+            "Note: The ordering file contains test or suite items that are not included in the current test run. The following items will be ignored/skipped:",
+            level="info",
+        )
         for item in skipped_runnable_items:
             _write(f"  - {item}", level="info")
     if duplicates:
-        _write("Note: The ordering file contains duplicate suite or test items. Only the first occurrence is taken into account. These are duplicates:", level="info")
+        _write(
+            "Note: The ordering file contains duplicate suite or test items. Only the first occurrence is taken into account. These are duplicates:",
+            level="info",
+        )
         for item in duplicates:
             _write(f"  - {item}", level="info")
 
@@ -2828,13 +3052,21 @@ def _check_ordering(ordering_file, suite_names):  # type: (List[ExecutionItem], 
 def _group_suites(outs_dir, datasources, options, pabot_args):
     suite_names = solve_suite_names(outs_dir, datasources, options, pabot_args)
     _verify_depends(suite_names)
-    ordering_arg = _parse_ordering(pabot_args.get("ordering").get("file")) if (pabot_args.get("ordering")) is not None else None
+    ordering_arg = (
+        _parse_ordering(pabot_args.get("ordering").get("file"))
+        if (pabot_args.get("ordering")) is not None
+        else None
+    )
     if ordering_arg:
         _verify_depends(ordering_arg)
         if options.get("name"):
-            ordering_arg = _update_ordering_names(ordering_arg, options['name'])
+            ordering_arg = _update_ordering_names(ordering_arg, options["name"])
         _check_ordering(ordering_arg, suite_names)
-    if pabot_args.get("testlevelsplit") and ordering_arg and any(item.type == 'suite' for item in ordering_arg):
+    if (
+        pabot_args.get("testlevelsplit")
+        and ordering_arg
+        and any(item.type == "suite" for item in ordering_arg)
+    ):
         reduced_suite_names = _reduce_items(suite_names, ordering_arg)
         if options.get("runemptysuite") and not reduced_suite_names:
             return [suite_names]
@@ -2856,17 +3088,17 @@ def _update_ordering_names(ordering, new_top_name):
     # type: (List[ExecutionItem], str) -> List[ExecutionItem]
     output = []
     for item in ordering:
-        if item.type in ['suite', 'test']:
-            splitted_name = item.name.split('.')
+        if item.type in ["suite", "test"]:
+            splitted_name = item.name.split(".")
             splitted_name[0] = new_top_name
-            item.name = '.'.join(splitted_name)
+            item.name = ".".join(splitted_name)
 
             # Replace dependencies too
             deps = []
             for d in item.depends:
-                splitted_name = d.split('.')
+                splitted_name = d.split(".")
                 splitted_name[0] = new_top_name
-                deps.append('.'.join(splitted_name))
+                deps.append(".".join(splitted_name))
 
             item.depends = deps
 
@@ -2886,10 +3118,11 @@ def _reduce_items(items, selected_suites):
     test_to_suite = {}
 
     for suite in selected_suites:
-        if suite.type == 'suite':
+        if suite.type == "suite":
             suite_name = str(suite.name)
             covered_tests = [
-                item for item in items
+                item
+                for item in items
                 if item.type == "test" and str(item.name).startswith(suite_name + ".")
             ]
 
@@ -2932,7 +3165,11 @@ def _set_sleep_times(ordering_arg):
                     in_group = False
                 if isinstance(output[i + 1], GroupStartItem) and set_sleep_value > 0:
                     output[i + 1].set_sleep(set_sleep_value)
-                if isinstance(output[i + 1], RunnableItem) and set_sleep_value > 0 and not in_group:
+                if (
+                    isinstance(output[i + 1], RunnableItem)
+                    and set_sleep_value > 0
+                    and not in_group
+                ):
                     output[i + 1].set_sleep(set_sleep_value)
     return output
 
