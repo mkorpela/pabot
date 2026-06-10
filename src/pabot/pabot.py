@@ -1295,6 +1295,7 @@ def generate_suite_names_with_builder(outs_dir, datasources, options):
         builder = TestSuiteBuilder(
             included_extensions=settings.extension,
             included_files=settings.parse_include,
+            custom_parsers=opts.get("parser", ()),
             rpa=settings.rpa,
             lang=opts.get("language"),
         )
