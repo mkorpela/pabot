@@ -108,7 +108,7 @@ try:
 except ImportError:
     METADATA_AVAILABLE = False
 
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 CTRL_C_PRESSED = False
 _PABOTLIBURI = "127.0.0.1:8270"
@@ -2712,6 +2712,103 @@ def main(args=None):
     return sys.exit(main_program(args))
 
 
+# Tag that marks a test as exclusive (must run alone, no parallel tests)
+PABOT_EXCLUSIVE_TAG = "pabot:exclusive"
+
+
+def _collect_exclusive_tests_recursive(suite, exclusive_test_names, suite_to_all_tests):
+    # type: (Any, Set[str], Dict[str, Set[str]]) -> None
+    """Recursively scan RF suite tree, populating exclusive_test_names and suite_to_all_tests."""
+    suite_tests = set()  # type: Set[str]
+    for test in suite.tests:
+        longname = test.longname
+        suite_tests.add(longname)
+        tag_names = [str(t).lower() for t in test.tags]
+        if PABOT_EXCLUSIVE_TAG.lower() in tag_names:
+            exclusive_test_names.add(longname)
+    suite_to_all_tests[suite.longname] = suite_tests
+    for subsuite in suite.suites:
+        _collect_exclusive_tests_recursive(subsuite, exclusive_test_names, suite_to_all_tests)
+
+
+def _scan_for_exclusive_tests(datasources, options):
+    # type: (List[str], Dict[str, Any]) -> Tuple[Set[str], Dict[str, Set[str]]]
+    """Build RF suite tree and return (exclusive_test_names, suite_to_all_tests)."""
+    exclusive_test_names = set()  # type: Set[str]
+    suite_to_all_tests = {}  # type: Dict[str, Set[str]]
+    try:
+        opts = _options_for_dryrun(options, ".")
+        opts.pop("pythonpath", None)
+        settings = RobotSettings(opts)
+        if ROBOT_VERSION >= "6.1":
+            builder = TestSuiteBuilder(
+                included_extensions=settings.extension,
+                included_files=settings.parse_include,
+                rpa=settings.rpa,
+                lang=opts.get("language"),
+            )
+        else:
+            builder = TestSuiteBuilder(
+                settings["SuiteNames"], settings.extension, rpa=settings.rpa
+            )
+        suite = builder.build(*datasources)
+        settings.rpa = builder.rpa
+        suite.configure(**settings.suite_config)
+        _collect_exclusive_tests_recursive(suite, exclusive_test_names, suite_to_all_tests)
+    except Exception as e:
+        _write("Warning: could not scan for exclusive tests: %s" % str(e), level="warning")
+    return exclusive_test_names, suite_to_all_tests
+
+
+def _separate_exclusive_items(suite_groups, exclusive_test_names, suite_to_all_tests):
+    # type: (List[List[ExecutionItem]], Set[str], Dict[str, Set[str]]) -> Tuple[List[List[ExecutionItem]], List[ExecutionItem]]
+    """
+    Separate exclusive tests from suite_groups.
+
+    Returns:
+        normal_groups: groups with exclusive tests removed / replaced by TestItems
+        exclusive_items: list of TestItem objects that must run alone (one per exclusive test)
+    """
+    normal_groups = []  # type: List[List[ExecutionItem]]
+    exclusive_items = []  # type: List[ExecutionItem]
+
+    for group in suite_groups:
+        normal_items = []  # type: List[ExecutionItem]
+        for item in group:
+            if isinstance(item, TestItem):
+                if item.name in exclusive_test_names:
+                    exclusive_items.append(item)
+                else:
+                    normal_items.append(item)
+            elif isinstance(item, SuiteItem):
+                all_suite_tests = suite_to_all_tests.get(item.name, set())
+                if not all_suite_tests:
+                    # No info (e.g. suite has sub-suites): keep as-is, conservative fallback
+                    normal_items.append(item)
+                    continue
+                exclusive_in_suite = all_suite_tests & exclusive_test_names
+                normal_in_suite = all_suite_tests - exclusive_test_names
+                if not exclusive_in_suite:
+                    normal_items.append(item)
+                elif not normal_in_suite:
+                    # Every test in the suite is exclusive — remove suite from normal phase
+                    for test_name in sorted(exclusive_in_suite):
+                        exclusive_items.append(TestItem(test_name))
+                else:
+                    # Mixed suite — split into individual TestItems
+                    for test_name in sorted(normal_in_suite):
+                        normal_items.append(TestItem(test_name))
+                    for test_name in sorted(exclusive_in_suite):
+                        exclusive_items.append(TestItem(test_name))
+            else:
+                # WaitItem, GroupItem, SleepItem, etc. — pass through unchanged
+                normal_items.append(item)
+        if normal_items:
+            normal_groups.append(normal_items)
+
+    return normal_groups, exclusive_items
+
+
 def main_program(args):
     global \
         _PABOTLIBPROCESS, \
@@ -2773,12 +2870,34 @@ def main_program(args):
             if not options.get("runemptysuite", False):
                 return 252
 
-        # Create execution items for all argumentfiles at once
+        # Detect and separate tests that must run exclusively (no parallel execution)
+        exclusive_test_names, suite_to_all_tests = _scan_for_exclusive_tests(datasources, options)
+        exclusive_items = []  # type: List[ExecutionItem]
+        if exclusive_test_names:
+            suite_groups, exclusive_items = _separate_exclusive_items(
+                suite_groups, exclusive_test_names, suite_to_all_tests
+            )
+            if exclusive_items:
+                _write(
+                    "Found %d exclusive test(s) tagged '%s' — they will run sequentially after all parallel tests complete."
+                    % (len(exclusive_items), PABOT_EXCLUSIVE_TAG),
+                    level="info",
+                )
+
+        # Create execution items for all normal (non-exclusive) stages
         all_execution_items = _create_execution_items(
             suite_groups, datasources, outs_dir, options, opts_for_run, pabot_args
         )
 
-        # Now execute all items from all argumentfiles in parallel
+        # Pre-build exclusive stages, keeping (name, stages) so we can announce each one
+        exclusive_stages = []  # type: List[Tuple[str, List[List[ExecutionItem]]]]
+        for exclusive_item in exclusive_items:
+            exc_items = _create_execution_items(
+                [[exclusive_item]], datasources, outs_dir, options, opts_for_run, pabot_args
+            )
+            exclusive_stages.append((exclusive_item.name, exc_items))
+
+        # Execute normal stages, then exclusive tests one-by-one with announcements
         if pabot_args.get("ordering", {}).get("mode") == "dynamic":
             # flatten stages
             flattened_items = []
@@ -2797,6 +2916,21 @@ def main_program(args):
                 items = all_execution_items.pop(0)
                 _parallel_execute(
                     items,
+                    pabot_args["processes"],
+                    datasources,
+                    outs_dir,
+                    opts_for_run,
+                    pabot_args,
+                )
+
+        for exc_name, exc_items in exclusive_stages:
+            _write(
+                "Executing exclusive test case: %s" % exc_name,
+                level="info",
+            )
+            for stage in exc_items:
+                _parallel_execute(
+                    stage,
                     pabot_args["processes"],
                     datasources,
                     outs_dir,
