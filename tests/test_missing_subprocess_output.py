@@ -47,7 +47,8 @@ class PabotMissingSubProcessOutputTest(unittest.TestCase):
         process = subprocess.Popen(
             [
                 sys.executable,
-                "-mpabot.pabot",
+                "-m",
+                "pabot.pabot",
                 "--testlevelsplit",
                 "--no-rebot",
                 "--output",
