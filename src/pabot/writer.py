@@ -4,6 +4,8 @@ import sys
 import os
 import time
 
+_DEFAULT_FLUSH_TIMEOUT = 5.0
+
 class Color:
     RED = "\033[91m"
     GREEN = "\033[92m"
@@ -95,9 +97,15 @@ class MessageWriter:
         if log_file:
             os.makedirs(os.path.dirname(log_file), exist_ok=True)
         self._stop_event = threading.Event()
+        self._drain_cv = threading.Condition()  # Signals flush() waiters when the queue drains
         self.thread = threading.Thread(target=self._writer)
         self.thread.daemon = False
         self.thread.start()
+
+    def _notify_drained(self) -> None:
+        if self.queue.unfinished_tasks == 0:
+            with self._drain_cv:
+                self._drain_cv.notify_all()
 
     def _is_output_coloring_supported(self):
         return sys.stdout.isatty() and os.name in Color.SUPPORTED_OSES
@@ -184,12 +192,14 @@ class MessageWriter:
 
                 if message is None:
                     self.queue.task_done()
+                    self._notify_drained()
                     break
 
                 message = message.rstrip("\n")
 
                 buffer.append((message, color, level))
                 self.queue.task_done()
+                self._notify_drained()
 
                 # Batch full → flush
                 if len(buffer) >= BATCH_SIZE:
@@ -222,17 +232,40 @@ class MessageWriter:
         except queue.Full:
             pass  # drop
         
-    def flush(self, timeout=5):
-        end = time.time() + timeout
-        try:
-            while time.time() < end:
-                if self.queue.unfinished_tasks == 0:
-                    return True
-                time.sleep(0.05)
-            return False
-        except KeyboardInterrupt:
-            # Allow tests/cli to interrupt flushing
-            return False
+    def flush(self, timeout=_DEFAULT_FLUSH_TIMEOUT):
+        """Wait for queued messages to be written.
+
+        The writer thread drains `self.queue` and calls `task_done()` for each
+        item processed. This method waits until `unfinished_tasks == 0`.
+
+        Uses a Condition to avoid sleep-based polling, which can accumulate large
+        delays when flush() is invoked repeatedly.
+
+        Args:
+            timeout: Maximum seconds to wait. If None, wait indefinitely.
+
+        Returns:
+            True if the queue drained before the timeout (or stop was requested),
+            False if the timeout elapsed or a KeyboardInterrupt happened.
+        """
+        if self._stop_event.is_set():
+            return True
+
+        if timeout is None:
+            try:
+                self.queue.join()
+            except KeyboardInterrupt:
+                return False
+            return True
+
+        deadline = time.time() + float(timeout)
+        with self._drain_cv:
+            while self.queue.unfinished_tasks != 0:
+                remaining = deadline - time.time()
+                if remaining <= 0:
+                    return False
+                self._drain_cv.wait(timeout=remaining)
+        return True
 
     def stop(self):
         """
