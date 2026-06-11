@@ -21,8 +21,10 @@ import subprocess
 import sys
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
-
 import pytest
+
+_RF_OLD_TIME_FMT = "%Y%m%d %H:%M:%S.%f"  # RF 5/6: "20210101 12:00:00.000"
+
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -66,6 +68,31 @@ def _run_pabot(output_dir, extra_args=None):
     )
 
 
+def _parse_test_times(status):
+    """Extract (start, end) from a <status> element, handling RF 5/6 and RF 7 formats.
+
+    RF 7 : start (ISO-8601) + elapsed (seconds)
+    RF 5/6: starttime + endtime ("YYYYMMDD HH:MM:SS.mmm")
+
+    Returns (start, end) datetimes or None if the element lacks timing info.
+    """
+    start_str = status.get("start")
+    elapsed_str = status.get("elapsed")
+    if start_str is not None and elapsed_str is not None:
+        start = datetime.fromisoformat(start_str)
+        return start, start + timedelta(seconds=float(elapsed_str))
+
+    starttime_str = status.get("starttime")
+    endtime_str = status.get("endtime")
+    if starttime_str is not None and endtime_str is not None:
+        return (
+            datetime.strptime(starttime_str, _RF_OLD_TIME_FMT),
+            datetime.strptime(endtime_str, _RF_OLD_TIME_FMT),
+        )
+
+    return None
+
+
 def _parse_tests(output_xml_path):
     """Return a list of dicts for every test found in output.xml.
 
@@ -85,12 +112,10 @@ def _parse_tests(output_xml_path):
                 status = child.find("status")
                 if status is None:
                     continue
-                start_str = status.get("start")
-                elapsed_str = status.get("elapsed")
-                if start_str is None or elapsed_str is None:
+                times = _parse_test_times(status)
+                if times is None:
                     continue
-                start = datetime.fromisoformat(start_str)
-                end = start + timedelta(seconds=float(elapsed_str))
+                start, end = times
                 tags = [t.text.lower() for t in child.findall("tag") if t.text]
                 tests.append(
                     {
@@ -112,6 +137,16 @@ def _overlap(a, b):
     return a["start"] < b["end"] and b["start"] < a["end"]
 
 
+def _run_pabot_and_parse(tmp_path):
+    """Run pabot, assert exit 0, and return parsed test list."""
+    result = _run_pabot(tmp_path)
+    assert result.returncode == 0, (
+        "pabot exited with code %d\n\nSTDOUT:\n%s\n\nSTDERR:\n%s"
+        % (result.returncode, result.stdout, result.stderr)
+    )
+    return _parse_tests(str(tmp_path / "output.xml"))
+
+
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
@@ -120,13 +155,7 @@ def _overlap(a, b):
 @pytest.mark.skipif(sys.platform == "win32", reason="fcntl not supported on Windows")
 def test_all_atest_tests_pass(tmp_path):
     """pabot must exit 0 and all tests in atest/ must report PASS."""
-    result = _run_pabot(tmp_path)
-    assert result.returncode == 0, (
-        "pabot exited with code %d\n\nSTDOUT:\n%s\n\nSTDERR:\n%s"
-        % (result.returncode, result.stdout, result.stderr)
-    )
-
-    tests = _parse_tests(str(tmp_path / "output.xml"))
+    tests = _run_pabot_and_parse(tmp_path)
     assert len(tests) == EXPECTED_TOTAL_TESTS, "Expected %d tests, found %d" % (
         EXPECTED_TOTAL_TESTS,
         len(tests),
@@ -152,13 +181,7 @@ def test_exclusive_tests_run_alone(tmp_path):
     This is the core correctness check: with 4 workers and all exclusive tests
     scheduled AFTER all parallel stages, their 0.3 s windows must be isolated.
     """
-    result = _run_pabot(tmp_path)
-    assert result.returncode == 0, (
-        "pabot exited with code %d\n\nSTDOUT:\n%s\n\nSTDERR:\n%s"
-        % (result.returncode, result.stdout, result.stderr)
-    )
-
-    tests = _parse_tests(str(tmp_path / "output.xml"))
+    tests = _run_pabot_and_parse(tmp_path)
     exclusive = [t for t in tests if t["is_exclusive"]]
 
     assert len(exclusive) >= EXPECTED_EXCLUSIVE_TESTS, (
