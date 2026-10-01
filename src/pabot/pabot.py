@@ -1215,6 +1215,7 @@ def solve_suite_names(outs_dir, datasources, options, pabot_args):
                 or h != file_h
                 or file_hash != hash_of_file
                 or pabot_args.get("pabotprerunmodifier")
+                or options.get("prerunmodifier")
             ):
                 if file_h is not None and file_h[0] != h[0] and file_h[2] == h[2]:
                     suite_names = _levelsplit(

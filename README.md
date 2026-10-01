@@ -254,6 +254,9 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
   pabot subprocesses. Depending on the intended use, this may be desirable as well as more efficient. Can be used, for
   example, to modify the list of tests to be performed.
 
+  When either kind of prerunmodifier is used, Pabot refreshes suite discovery on each run instead of reusing cached
+  suite and test names. This allows modifiers to change test selection without changing the Robot source files.
+
 **--no-rebot**
 
   If specified, the tests will execute as usual, but Rebot will not be called to merge the logs. This option is designed
