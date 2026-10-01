@@ -63,6 +63,11 @@ class BufferingWriter:
     
     def flush(self):
         with self._lock:
+            self._writer.flush()
+
+    def finish(self):
+        """Flush the final partial stdout line after Robot has finished."""
+        with self._lock:
             if self._buffer:
                 try:
                     self._writer.write(self._buffer, level=self._level)
@@ -72,19 +77,36 @@ class BufferingWriter:
 
 
 class ThreadSafeWriter:
-    def __init__(self, writer, level="info"):
+    def __init__(self, writer, level="info", buffer_lines=False):
         self._writer = writer
         self._lock = threading.Lock()
         self._level = level  # Default level for this writer instance
+        # Robot flushes between fragments, so flush() must not end a line.
+        self._buffer_lines = buffer_lines
+        self._buffer = ""
 
     def write(self, msg, level=None):
         # Use provided level or fall back to instance default
         msg_level = level if level is not None else self._level
         with self._lock:
-            self._writer.write(msg, level=msg_level)
+            if self._buffer_lines:
+                self._buffer += msg
+                while "\n" in self._buffer:
+                    line, self._buffer = self._buffer.split("\n", 1)
+                    self._writer.write(line, level=msg_level)
+            else:
+                self._writer.write(msg, level=msg_level)
 
     def flush(self):
         with self._lock:
+            self._writer.flush()
+
+    def finish(self):
+        """Flush the final partial stdout line after Robot has finished."""
+        with self._lock:
+            if self._buffer:
+                self._writer.write(self._buffer, level=self._level)
+                self._buffer = ""
             self._writer.flush()
 
 
@@ -292,7 +314,9 @@ def get_writer(log_dir=None, console_type="verbose"):
 
 def get_stdout_writer(log_dir=None, console_type="verbose"):
     """Get a writer configured for stdout with 'info' level"""
-    return ThreadSafeWriter(get_writer(log_dir, console_type), level="info")
+    return ThreadSafeWriter(
+        get_writer(log_dir, console_type), level="info", buffer_lines=True
+    )
 
 def get_stderr_writer(log_dir=None, console_type="verbose", original_stderr_name: str = None):
     """Get a writer configured for stderr with 'error' level, buffered to handle partial writes"""

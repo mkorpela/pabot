@@ -2082,6 +2082,7 @@ def _report_results(outs_dir, pabot_args, options, start_time_string, tests_root
             stdout=stdout_writer,
             stderr=stderr_writer,
         )
+        stdout_writer.finish()
     else:
         exit_code = _report_results_for_one_run(
             outs_dir, pabot_args, options, start_time_string, tests_root_name, stats
@@ -2192,6 +2193,7 @@ def _report_results_for_one_run(
         stdout=stdout_writer,
         stderr=stderr_writer,
     )
+    stdout_writer.finish()
     return exit_code
 
 
