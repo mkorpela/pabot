@@ -371,7 +371,11 @@ class PabotLib(_PabotLib):
             BuiltIn().run_keyword(keyword, *args)
             return
         logger.trace('Current path "%s" and last level "%s"' % (self._path, last_level))
-        if not self._path.startswith(last_level):
+        if isinstance(last_level, list):
+            if not any(self._path.startswith(ll) for ll in last_level):
+                logger.info("Teardown skipped in this item")
+                return
+        elif not self._path.startswith(last_level):
             logger.info("Teardown skipped in this item")
             return
         queue_index = int(
