@@ -3,6 +3,7 @@ set -e
 source .venv/bin/activate
 pip install -U robotframework
 pip install pytest
-pip install -e .
-python -m pytest tests
+python setup.py sdist
+pip install dist/*.tar.gz
+python -m pytest -o addopts="" tests
 deactivate
