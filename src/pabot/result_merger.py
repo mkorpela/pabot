@@ -195,6 +195,12 @@ class ResultMerger(SuiteVisitor):
 
 
 class ResultsCombiner(CombinedResult):
+    def __init__(self, results):
+        super(ResultsCombiner, self).__init__(results)
+        # Ensure root suite name is empty or handled correctly so that Rebot
+        # generates a <testsuites> element instead of <testsuite> when combining multiple roots.
+        self.suite.name = ""
+
     def add_result(self, other):
         for suite in other.suite.suites:
             self.suite.suites.append(suite)
