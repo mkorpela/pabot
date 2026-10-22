@@ -59,6 +59,10 @@ from robot.model import ModelModifier
 from robot.result.visitor import ResultVisitor
 from robot.run import USAGE
 from robot.running import TestSuiteBuilder
+try:
+    from robot.running.parsers import TestDataParsers
+except ImportError:
+    TestDataParsers = None
 from robot.utils import PY2, SYSTEM_ENCODING, ArgumentParser, is_unicode
 
 from . import pabotlib, __version__ as PABOT_VERSION
