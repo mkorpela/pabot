@@ -2323,15 +2323,18 @@ def _get_free_port():
 
 def _start_remote_library(pabot_args):  # type: (dict) -> Optional[Tuple[subprocess.Popen, threading.Thread]]
     global _PABOTLIBURI
-    # If pabotlib is disabled, do nothing.
+    host = pabot_args.get("pabotlibhost", "127.0.0.1")
+    port = pabot_args.get("pabotlibport", 8270)
+
+    # If pabotlib is disabled, there is no server to start. When --pabotlibhost points
+    # to an externally started server the workers still need its address, so publish
+    # the requested host and port instead of leaving the default 127.0.0.1:8270.
     if (
         pabot_args.get("pabotlib") is False
         or pabot_args.get("pabotlib_mode") == "disable"
     ):
+        _PABOTLIBURI = f"{host}:{port}"
         return None, None
-
-    host = pabot_args.get("pabotlibhost", "127.0.0.1")
-    port = pabot_args.get("pabotlibport", 8270)
 
     # If host is default and user specified a non-zero port, check if it's available
     if host == "127.0.0.1" and port != 0 and not _is_port_available(port):

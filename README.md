@@ -184,6 +184,8 @@ Supports all [Robot Framework command line options](https://robotframework.org/r
 
   Additional details:
   - The default value for --pabotlibhost is 127.0.0.1.
+  - When --pabotlibhost is given (also for 127.0.0.1, for example a server reached through a port-forward),
+    pabot does not start a server and passes the given host and --pabotlibport to the workers.
   - If you provide a hostname other than 127.0.0.1, the local PabotLib server startup is automatically disabled.
 
 **--pabotlibport [PORT]**

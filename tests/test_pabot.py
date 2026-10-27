@@ -128,6 +128,31 @@ class PabotTests(unittest.TestCase):
         finally:
             writer.flush()  # This test will end so fast that needs wait console logging
 
+    def test_external_pabotlib_address_is_given_to_workers(self):
+        # Regression for #743: with --pabotlibhost the server is started externally, so
+        # nothing is started here, but workers must still get the requested address
+        # and not the default 127.0.0.1:8270.
+        _, _, pabot_args, _ = arguments.parse_args(
+            ["--pabotlibhost", "127.0.0.1", "--pabotlibport", "18279", "suite"]
+        )
+        original_uri = pabot._PABOTLIBURI
+        try:
+            self.assertEqual(pabot._start_remote_library(pabot_args), (None, None))
+            self.assertEqual(pabot._PABOTLIBURI, "127.0.0.1:18279")
+            self.assertTrue(pabot._pabotlib_in_use())
+        finally:
+            pabot._PABOTLIBURI = original_uri
+
+    def test_disabled_pabotlib_keeps_the_default_address(self):
+        _, _, pabot_args, _ = arguments.parse_args(["--no-pabotlib", "suite"])
+        original_uri = pabot._PABOTLIBURI
+        try:
+            pabot._PABOTLIBURI = "127.0.0.1:8270"
+            self.assertEqual(pabot._start_remote_library(pabot_args), (None, None))
+            self.assertEqual(pabot._PABOTLIBURI, "127.0.0.1:8270")
+        finally:
+            pabot._PABOTLIBURI = original_uri
+
     def test_start_and_stop_remote_library_without_resourcefile(self):
         writer = pabot.get_writer(log_dir=self._outs_dir)
         try:
