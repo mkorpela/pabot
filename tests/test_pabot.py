@@ -1085,6 +1085,60 @@ class PabotTests(unittest.TestCase):
             "foo.bar.zoo",
         )
 
+    def test_construct_last_levels_with_chunks_spanning_parent_suites(self):
+        class _Item(object):
+            def __init__(self, execution_item):
+                self.execution_item = execution_item
+                self.last_level = None
+
+        chunk1 = _Item(
+            execution_items.SuiteItems(
+                [
+                    execution_items.SuiteItem("Tests.A.Test1"),
+                    execution_items.SuiteItem("Tests.A.Test2"),
+                ]
+            )
+        )
+        chunk2 = _Item(
+            execution_items.SuiteItems(
+                [
+                    execution_items.SuiteItem("Tests.A.Test3"),
+                    execution_items.SuiteItem("Tests.B.Test1"),
+                ]
+            )
+        )
+        chunk3 = _Item(execution_items.SuiteItems([execution_items.SuiteItem("Tests.B.Test2")]))
+        pabot._construct_last_levels([[chunk1, chunk2, chunk3]])
+        sep = pabot.pabotlib.PABOT_LAST_LEVEL_SEPARATOR
+        self.assertEqual(chunk1.last_level, sep.join(["Tests.A.Test1", "Tests.A.Test2"]))
+        # Last suite of A and first suite of B are in the same chunk:
+        # Tests.A teardown must run here, not be lost to B's ending level.
+        self.assertEqual(chunk2.last_level, sep.join(["Tests.A", "Tests.B.Test1"]))
+        self.assertEqual(chunk3.last_level, "")
+
+    def test_construct_last_levels_with_groups_spanning_parent_suites(self):
+        class _Item(object):
+            def __init__(self, execution_item):
+                self.execution_item = execution_item
+                self.last_level = None
+
+        def _group(*names):
+            group = execution_items.GroupItem()
+            for name in names:
+                group.add(execution_items.SuiteItem(name))
+            return group
+
+        group1 = _Item(_group("Tests.A.Test1", "Tests.A.Test2"))
+        group2 = _Item(_group("Tests.A.Test3", "Tests.B.Test1"))
+        group3 = _Item(_group("Tests.B.Test2"))
+        pabot._construct_last_levels([[group1, group2, group3]])
+        sep = pabot.pabotlib.PABOT_LAST_LEVEL_SEPARATOR
+        self.assertEqual(
+            group1.last_level, sep.join(["Tests.A.Test1", "Tests.A.Test2"])
+        )
+        self.assertEqual(group2.last_level, sep.join(["Tests.A", "Tests.B.Test1"]))
+        self.assertEqual(group3.last_level, "")    
+
     def test_parallel_execution(self):
         dtemp = tempfile.mkdtemp()
         outs_dir = os.path.join(dtemp, "pabot_results")
