@@ -2642,26 +2642,32 @@ def _find_ending_level(name, group):
     return ".".join(n[: (level + 1)])
 
 
+def _execution_item_names(execution_item):
+    # Chunks and groups run several suites/tests in one process. Each of them
+    # needs its own ending level, as they may belong to different parent suites.
+    if isinstance(execution_item, SuiteItems):
+        return [suite.name for suite in execution_item.suites]
+    if isinstance(execution_item, GroupItem):
+        return [sub_item.name for sub_item in execution_item._items]
+    return [execution_item.name]
+
+
 def _construct_last_levels(all_items):
-    names = []
-    for items in all_items:
-        for item in items:
-            if isinstance(item.execution_item, SuiteItems):
-                for suite in item.execution_item.suites:
-                    names.append(suite.name)
-            else:
-                names.append(item.execution_item.name)
+    item_names = [
+        (item, _execution_item_names(item.execution_item))
+        for items in all_items
+        for item in items
+    ]
+    names = [name for _, item_name_list in item_names for name in item_name_list]
     index = 0
-    for items in all_items:
-        for item in items:
-            if isinstance(item.execution_item, SuiteItems):
-                for suite in item.execution_item.suites:
-                    item.last_level = _find_ending_level(suite.name, names[index + 1 :])
-            else:
-                item.last_level = _find_ending_level(
-                    item.execution_item.name, names[index + 1 :]
-                )
+    for item, item_name_list in item_names:
+        levels = []
+        for name in item_name_list:
             index += 1
+            level = _find_ending_level(name, names[index:])
+            if level not in levels:
+                levels.append(level)
+        item.last_level = pabotlib.PABOT_LAST_LEVEL_SEPARATOR.join(levels)
 
 
 def _initialize_queue_index():
