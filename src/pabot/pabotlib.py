@@ -37,6 +37,7 @@ from robot.libraries import STDLIBS
 from .robotremoteserver import RobotRemoteServer
 
 PABOT_LAST_LEVEL = "PABOTLASTLEVEL"
+PABOT_LAST_LEVEL_SEPARATOR = "|"
 PABOT_QUEUE_INDEX = "PABOTQUEUEINDEX"
 PABOT_LAST_EXECUTION_IN_POOL = "PABOTISLASTEXECUTIONINPOOL"
 PABOT_MIN_QUEUE_INDEX_EXECUTING_PARALLEL_VALUE = "pabot_min_queue_index_executing"
@@ -371,7 +372,8 @@ class PabotLib(_PabotLib):
             BuiltIn().run_keyword(keyword, *args)
             return
         logger.trace('Current path "%s" and last level "%s"' % (self._path, last_level))
-        if not self._path.startswith(last_level):
+        last_levels = str(last_level).split(PABOT_LAST_LEVEL_SEPARATOR)
+        if not any(self._path.startswith(level) for level in last_levels):
             logger.info("Teardown skipped in this item")
             return
         queue_index = int(
